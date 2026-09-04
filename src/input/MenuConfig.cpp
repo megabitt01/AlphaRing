@@ -317,6 +317,8 @@ void MenuConfig::ApplyControllerProfile(int profileIndex, CGamepadMapping& mappi
     if (profileIndex < 0 || profileIndex >= k_profileCount)
         profileIndex = 0;
 
+    // Also leaves Player Move Forward/Backward/Left/Right (H1A, actions 16-19)
+    // unbound — movement is handled by the analog stick, not the D-Pad.
     for (auto& action : mapping.actions)
         action = CGamepadMapping::None;
 
@@ -331,9 +333,13 @@ void MenuConfig::ApplyControllerProfile(int profileIndex, CGamepadMapping& mappi
     mapping.actions[6]  = p.toggleFlashlight;
     mapping.actions[7]  = p.throwGrenade;
     mapping.actions[49] = p.throwGrenade;  // Use Left Weapon mirrors Throw Grenade
+    mapping.actions[28] = p.throwGrenade;  // Thrust mirrors Throw Grenade
+    mapping.actions[24] = p.throwGrenade;  // Vehicle Function 1 mirrors Throw Grenade
     mapping.actions[8]  = p.shoot;
     mapping.actions[9]  = p.crouch;
+    mapping.actions[21] = p.crouch;        // Vehicle Function 2 mirrors Crouch
     mapping.actions[10] = p.playerZoom;
     mapping.actions[20] = p.multiplayerScoreboard;
     mapping.actions[23] = p.useEquipment;
+    mapping.actions[22] = p.jump;          // Vehicle Function 3 mirrors Jump
 }

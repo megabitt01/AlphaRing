@@ -41,10 +41,21 @@ static void InitializeDefaultMapping(CGamepadMapping& mapping) {
     mapping.actions[6]  = CGamepadMapping::DpadUp;        // Toggle Flashlight
     mapping.actions[7]  = CGamepadMapping::LeftTrigger;   // Throw Grenade
     mapping.actions[49] = mapping.actions[7];             // Use Left Weapon
+    mapping.actions[28] = mapping.actions[7];             // Thrust
+    mapping.actions[24] = mapping.actions[7];             // Vehicle Function 1
     mapping.actions[8]  = CGamepadMapping::RightTrigger;  // Use Right Weapon (Shoot)
     mapping.actions[9]  = CGamepadMapping::LeftThumb;     // Crouch
+    mapping.actions[21] = mapping.actions[9];             // Vehicle Function 2
     mapping.actions[10] = CGamepadMapping::RightThumb;    // Player Zoom
     mapping.actions[20] = CGamepadMapping::Back;          // Multiplayer Scoreboard
+    mapping.actions[22] = mapping.actions[0];             // Vehicle Function 3 (mirrors Jump)
+
+    // Player Move Forward/Backward/Left/Right (H1A) stay unbound — movement is
+    // handled by the analog stick, not the D-Pad.
+    mapping.actions[16] = CGamepadMapping::None;
+    mapping.actions[17] = CGamepadMapping::None;
+    mapping.actions[18] = CGamepadMapping::None;
+    mapping.actions[19] = CGamepadMapping::None;
 }
 
 ProfileContainer_t::ProfileContainer_t() {
