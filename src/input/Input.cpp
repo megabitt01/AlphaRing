@@ -90,11 +90,13 @@ namespace AlphaRing::Input {
         prevButtons      = buttons;
 
         // configurable debug UI keyboard key
+        static bool debugKeyWasDown = false;
         int debugKey = g_menuConfig.debugKeyboardVKey;
-        if (GetAsyncKeyState(debugKey) & 0x8000) {
+        bool debugKeyIsDown = (GetAsyncKeyState(debugKey) & 0x8000) != 0;
+        if (debugKeyIsDown && !debugKeyWasDown) {
             AlphaRing::Global::Global()->show_imgui = !AlphaRing::Global::Global()->show_imgui;
-            return false;
         }
+        debugKeyWasDown = debugKeyIsDown;
         
         // configurable debug UI combo
         WORD debugCombo = g_menuConfig.debugComboMask;
