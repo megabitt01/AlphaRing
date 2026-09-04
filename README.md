@@ -94,7 +94,7 @@ Works with **any Proton version** (Proton 9.0, Proton Experimental, Proton GE, e
 > **Note:** Tested on Batocera Linux with the unofficial Batocera add-ons Steam client.
 
 ### Usage
-Toggle menu: `F4` or `Controller Back` + `Controller Start`
+Toggle menu: `F4` or `Left Stick Click` + `Controller Start`
 
 To navigate using Controller use the `Right Stick` to move the mouse and `RB` to click.
 
