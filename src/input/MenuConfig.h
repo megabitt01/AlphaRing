@@ -14,6 +14,7 @@ struct ControllerProfileMapping {
     CGamepadMapping::eButton useEquipment;
     CGamepadMapping::eButton actionInteract;
     CGamepadMapping::eButton reloadRightWeapon;
+    CGamepadMapping::eButton swapReloadLeftWeapon;
     CGamepadMapping::eButton changeWeapon;
     CGamepadMapping::eButton melee;
     CGamepadMapping::eButton toggleFlashlight;
@@ -36,32 +37,32 @@ struct MenuConfig {
     ControllerProfileMapping controllerProfiles[k_profileCount] = {
         // Default
         {CGamepadMapping::A, CGamepadMapping::B, CGamepadMapping::LeftShoulder, CGamepadMapping::X,
-         CGamepadMapping::X, CGamepadMapping::Y, CGamepadMapping::RightShoulder, CGamepadMapping::DpadLeft,
+         CGamepadMapping::X, CGamepadMapping::X, CGamepadMapping::Y, CGamepadMapping::RightShoulder, CGamepadMapping::DpadLeft,
          CGamepadMapping::LeftTrigger, CGamepadMapping::RightTrigger, CGamepadMapping::LeftThumb,
          CGamepadMapping::RightThumb, CGamepadMapping::Back},
         // Southpaw
         {CGamepadMapping::A, CGamepadMapping::B, CGamepadMapping::RightShoulder, CGamepadMapping::X,
-         CGamepadMapping::X, CGamepadMapping::Y, CGamepadMapping::LeftShoulder, CGamepadMapping::DpadLeft,
+         CGamepadMapping::X, CGamepadMapping::X, CGamepadMapping::Y, CGamepadMapping::LeftShoulder, CGamepadMapping::DpadLeft,
          CGamepadMapping::RightTrigger, CGamepadMapping::LeftTrigger, CGamepadMapping::RightThumb,
          CGamepadMapping::LeftThumb, CGamepadMapping::Back},
         // Boxer
         {CGamepadMapping::A, CGamepadMapping::B, CGamepadMapping::LeftShoulder, CGamepadMapping::X,
-         CGamepadMapping::X, CGamepadMapping::Y, CGamepadMapping::LeftTrigger, CGamepadMapping::DpadLeft,
+         CGamepadMapping::X, CGamepadMapping::X, CGamepadMapping::Y, CGamepadMapping::LeftTrigger, CGamepadMapping::DpadLeft,
          CGamepadMapping::LeftShoulder, CGamepadMapping::RightTrigger, CGamepadMapping::LeftThumb,
          CGamepadMapping::RightThumb, CGamepadMapping::Back},
         // Green Thumb
         {CGamepadMapping::A, CGamepadMapping::B, CGamepadMapping::LeftShoulder, CGamepadMapping::X,
-         CGamepadMapping::X, CGamepadMapping::Y, CGamepadMapping::RightThumb, CGamepadMapping::DpadLeft,
+         CGamepadMapping::X, CGamepadMapping::X, CGamepadMapping::Y, CGamepadMapping::RightThumb, CGamepadMapping::DpadLeft,
          CGamepadMapping::LeftTrigger, CGamepadMapping::RightTrigger, CGamepadMapping::LeftThumb,
          CGamepadMapping::RightShoulder, CGamepadMapping::Back},
         // Bumper Jumper
         {CGamepadMapping::LeftShoulder, CGamepadMapping::A, CGamepadMapping::X, CGamepadMapping::B,
-         CGamepadMapping::B, CGamepadMapping::Y, CGamepadMapping::RightShoulder, CGamepadMapping::DpadLeft,
+         CGamepadMapping::B, CGamepadMapping::B, CGamepadMapping::Y, CGamepadMapping::RightShoulder, CGamepadMapping::DpadLeft,
          CGamepadMapping::LeftTrigger, CGamepadMapping::RightTrigger, CGamepadMapping::LeftThumb,
          CGamepadMapping::RightThumb, CGamepadMapping::Back},
         // Recon
         {CGamepadMapping::A, CGamepadMapping::X, CGamepadMapping::LeftShoulder, CGamepadMapping::RightShoulder,
-         CGamepadMapping::RightShoulder, CGamepadMapping::Y, CGamepadMapping::B, CGamepadMapping::DpadLeft,
+         CGamepadMapping::RightShoulder, CGamepadMapping::RightShoulder, CGamepadMapping::Y, CGamepadMapping::B, CGamepadMapping::DpadLeft,
          CGamepadMapping::LeftTrigger, CGamepadMapping::RightTrigger, CGamepadMapping::LeftThumb,
          CGamepadMapping::RightThumb, CGamepadMapping::Back},
     };

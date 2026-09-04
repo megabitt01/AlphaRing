@@ -36,7 +36,7 @@ static void InitializeDefaultMapping(CGamepadMapping& mapping) {
     mapping.actions[2]  = CGamepadMapping::X;             // Action/Interact
     mapping.actions[3]  = CGamepadMapping::RightShoulder; // Reload Right Weapon
     mapping.actions[4]  = CGamepadMapping::Y;             // Change Weapon
-    mapping.actions[13] = mapping.actions[4];             // Swap/Reload Left Weapon
+    mapping.actions[13] = mapping.actions[3];             // Swap/Reload Left Weapon (defaults to Reload Right Weapon)
     mapping.actions[5]  = CGamepadMapping::B;             // Melee
     mapping.actions[6]  = CGamepadMapping::DpadUp;        // Toggle Flashlight
     mapping.actions[7]  = CGamepadMapping::LeftTrigger;   // Throw Grenade

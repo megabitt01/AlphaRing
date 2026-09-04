@@ -96,7 +96,7 @@ void CGamepadMapping::ResetToDefaults() {
     actions[2]  = X;             // Action/Interact
     actions[3]  = RightShoulder; // Reload Right Weapon
     actions[4]  = Y;             // Change Weapon
-    actions[13] = actions[4];    // Swap/Reload Left Weapon
+    actions[13] = actions[3];    // Swap/Reload Left Weapon (defaults to Reload Right Weapon)
     actions[5]  = B;             // Melee
     actions[6]  = DpadUp;        // Toggle Flashlight
     actions[7]  = LeftTrigger;   // Throw Grenade
@@ -223,7 +223,6 @@ void CGamepadMapping::ImGuiContext() {
         int pressed = DetectPressedButton(binding_controller);
         if (pressed >= 0) {
             actions[binding_action] = static_cast<CGamepadMapping::eButton>(pressed);
-            if (binding_action == 4) actions[13] = actions[4]; // swap/reload left weapon
             if (binding_action == 7) actions[49] = actions[7]; // use left weapon
             binding_action = -1;
             result = true;
@@ -257,7 +256,6 @@ void CGamepadMapping::ImGuiContext() {
             if (ImGui::Combo(name, &value, button_names.data(), button_names.size())) {
                 // Convert index 16 back to None (-1) for storage
                 actions[i] = (value == 16) ? CGamepadMapping::None : static_cast<CGamepadMapping::eButton>(value);
-                if (i == 4) actions[13] = actions[4]; // Swap/Reload Left Weapon mirrors Change Weapon
                 if (i == 7) actions[49] = actions[7]; // Use Left Weapon mirrors Throw Grenade
                 result = true;
             }
