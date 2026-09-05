@@ -186,20 +186,7 @@ namespace MCC::Splitscreen {
                 );
                 ImGui::EndMenu();
             }
-#pragma region player count
-            ImGui::PushItemWidth(200);
-            // int count = p_setting->player_count;
-            // if (ImGui::InputInt("Players", &count) && count >= 1 && count <=4) {
-            //     p_setting->player_count = count;
-            // }
-            int count = p_setting->player_count;
-            if (ImGui::InputInt("Players", &count) && count >= 1 && count <= 4) {
-                p_setting->player_count = count;
-                dirty = true;
-            }
-            ImGui::PopItemWidth();
             ImGui::EndMenuBar();
-#pragma endregion
         }
 
         if (ImGui::BeginTabBar("Players")) {

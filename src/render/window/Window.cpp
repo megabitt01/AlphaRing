@@ -48,7 +48,13 @@ namespace AlphaRing::Render::Window {
             }
         }
 
-        if (ImGui_ImplWin32_WndProcHandler(hWnd, uMsg, wParam, lParam))
+        // Only feed ImGui real WndProc input while one of our menus is actually
+        // visible — otherwise ImGui silently queues mouse/keyboard events for the
+        // entire play session with nothing ever consuming them (NewFrame() is
+        // also gated on menu visibility), which causes a glitch/jump once the
+        // menu is finally opened again after a long session.
+        bool menuActive = xboxOpen || AlphaRing::Global::Global()->show_imgui;
+        if (menuActive && ImGui_ImplWin32_WndProcHandler(hWnd, uMsg, wParam, lParam))
             return true;
 
         // Keyboard trigger to open the menu (only reached when menu is closed)

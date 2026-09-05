@@ -1,6 +1,7 @@
 #include "Module.h"
 
 #include <functional>
+#include <cstring>
 
 #include "tinyxml2.h"
 
@@ -230,6 +231,118 @@ namespace MCC::Module {
                 ImGui::Text("Patches");
                 for (auto patch : p_patches->patches())
                     p_print(patch);
+
+                if (i == MODULE_HALOREACH) {
+                    auto hModule = GetSubModule((eModule)i)->info().hModule;
+
+                    constexpr __int64 base_offset = 0xB43C40;
+                    constexpr int entry_size = 20;
+                    constexpr int block_count = 5;
+                    constexpr int slot_count = 4;
+
+                    if (ImGui::CollapsingHeader("Splitscreen Config Editor")) {
+                        if (hModule == 0) {
+                            ImGui::TextColored(ImVec4(1, 0.3f, 0.3f, 1), "haloreach.dll not loaded");
+                        } else {
+                            static const char* block_labels[block_count] = {
+                                "0: alias of 4p", "1: 1 player", "2: 2 players",
+                                "3: 3 players", "4: 4 players"
+                            };
+
+                            auto write_bytes = [](void* dst, const void* src, size_t size) {
+                                DWORD oldProtect;
+                                if (VirtualProtect(dst, size, PAGE_EXECUTE_READWRITE, &oldProtect)) {
+                                    memcpy(dst, src, size);
+                                    VirtualProtect(dst, size, oldProtect, &oldProtect);
+                                }
+                            };
+
+                            ImGui::TextDisabled("Edits write directly to live game memory. No rebuild needed;");
+                            ImGui::TextDisabled("changes are lost on game restart unless also set as a patch.");
+
+                            if (ImGui::BeginTable("splitscreen_config", 6,
+                                                   ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg |
+                                                   ImGuiTableFlags_SizingFixedFit)) {
+                                ImGui::TableSetupColumn("Slot", ImGuiTableColumnFlags_WidthFixed, 120.0f);
+                                ImGui::TableSetupColumn("x0", ImGuiTableColumnFlags_WidthFixed, 80.0f);
+                                ImGui::TableSetupColumn("y0", ImGuiTableColumnFlags_WidthFixed, 80.0f);
+                                ImGui::TableSetupColumn("x1", ImGuiTableColumnFlags_WidthFixed, 80.0f);
+                                ImGui::TableSetupColumn("y1", ImGuiTableColumnFlags_WidthFixed, 80.0f);
+                                ImGui::TableSetupColumn("resolution", ImGuiTableColumnFlags_WidthFixed, 80.0f);
+                                ImGui::TableHeadersRow();
+
+                                for (int block = 0; block < block_count; ++block) {
+                                    ImGui::TableNextRow();
+                                    ImGui::TableSetColumnIndex(0);
+                                    ImGui::TextColored(ImVec4(0.6f, 0.8f, 1.0f, 1.0f), "%s", block_labels[block]);
+
+                                    for (int slot = 0; slot < slot_count; ++slot) {
+                                        int index = block * slot_count + slot;
+                                        auto p_entry = (unsigned char*)(hModule + base_offset + (__int64)index * entry_size);
+
+                                        float vals[4];
+                                        __int32 res;
+                                        memcpy(vals, p_entry, 16);
+                                        memcpy(&res, p_entry + 16, 4);
+
+                                        ImGui::TableNextRow();
+                                        ImGui::PushID(index);
+
+                                        ImGui::TableSetColumnIndex(0);
+                                        ImGui::Text("  slot %d", slot);
+
+                                        const char* field_labels[4] = {"##x0", "##y0", "##x1", "##y1"};
+                                        for (int f = 0; f < 4; ++f) {
+                                            ImGui::TableSetColumnIndex(1 + f);
+                                            ImGui::SetNextItemWidth(-1);
+                                            if (ImGui::InputFloat(field_labels[f], &vals[f], 0.0f, 0.0f, "%.4f"))
+                                                write_bytes(p_entry + f * 4, &vals[f], 4);
+                                        }
+
+                                        ImGui::TableSetColumnIndex(5);
+                                        ImGui::SetNextItemWidth(-1);
+                                        if (ImGui::InputInt("##res", &res, 0, 0))
+                                            write_bytes(p_entry + 16, &res, 4);
+
+                                        ImGui::PopID();
+                                    }
+                                }
+                                ImGui::EndTable();
+                            }
+                        }
+                    }
+
+                    if (ImGui::Button("Dump Splitscreen Config Table to Log")) {
+                        if (hModule == 0) {
+                            LOG_ERROR("Dump Splitscreen Config Table: haloreach.dll not loaded");
+                        } else {
+                            LOG_INFO("=== c_splitscreen_config::m_config_table @ base+0x{:X} ===", base_offset);
+
+                            for (int block = 0; block < block_count; ++block) {
+                                for (int slot = 0; slot < slot_count; ++slot) {
+                                    int index = block * slot_count + slot;
+                                    auto p_entry = (unsigned char*)(hModule + base_offset + (__int64)index * entry_size);
+
+                                    float f0, f1, f2, f3;
+                                    __int32 res;
+                                    memcpy(&f0, p_entry + 0, 4);
+                                    memcpy(&f1, p_entry + 4, 4);
+                                    memcpy(&f2, p_entry + 8, 4);
+                                    memcpy(&f3, p_entry + 12, 4);
+                                    memcpy(&res, p_entry + 16, 4);
+
+                                    LOG_INFO("block {} slot {} (entry {}, offset 0x{:X}): raw=({:.4f}, {:.4f}, {:.4f}, {:.4f}) res={}",
+                                              block, slot, index, base_offset + (__int64)index * entry_size, f0, f1, f2, f3, res);
+                                }
+                            }
+
+                            LOG_INFO("=== end dump ===");
+                        }
+                    }
+
+                    if (ImGui::IsItemHovered())
+                        ImGui::SetTooltip("Reads the live, unpatched-if-not-toggled bytes directly from haloreach.dll and logs them. Run this BEFORE toggling any Remove Black Bar checkbox to capture true defaults.");
+                }
 
                 ImGui::EndTabItem();
             }
