@@ -4,13 +4,24 @@
 
 #include "imgui.h"
 #include <cstdio>
+#include <cstring>
+#include <cwchar>
 
 void CUserProfile::ImGuiContext() {
     bool result = false;
     char buffer[1024];
 
-    sprintf(buffer, "%ls", ServiceTag);
+    // ServiceTag is a fixed wchar_t[4] with NO null terminator - a real
+    // 4-character tag fills every slot, so printing it with %ls reads past
+    // the array and can smash the stack buffer. Convert through a
+    // null-terminated copy instead.
+    wchar_t tagCopy[5] = {};
+    memcpy(tagCopy, ServiceTag, sizeof(ServiceTag));
+    snprintf(buffer, sizeof(buffer), "%ls", tagCopy);
     if (ImGui::InputText("ServiceTag", buffer, 5, ImGuiInputTextFlags_CallbackCompletion)) {
+        // Clear first: shortening a tag must not leave stale trailing
+        // characters (which would recreate an unterminated 4-char tag).
+        wmemset(ServiceTag, 0, 4);
         for (int i = 0; i < 4; ++i) {
             if (buffer[i] == 0) break;
             ServiceTag[i] = buffer[i];
