@@ -28,8 +28,8 @@ void renderMenu(
     int menuPosX = 0;
     int menuPosY = 0;
     // int unitSize = WINDOW_WIDTH * WINDOW_HEIGHT / 22217;
-    int unitSize = 75 + ((WINDOW_HEIGHT / 1080) * 35);
-    int buttonSize = unitSize - 5;
+    // int unitSize = 75 + ((WINDOW_HEIGHT / 1080) * 35);
+    int unitSize = 75 + ((WINDOW_HEIGHT / 720) * 45);
     float buttonOffset = 0.0f;
     float fontSize = 25.0f + ((WINDOW_HEIGHT / 1080.0f) * 3.5f);
 
@@ -84,16 +84,16 @@ void renderMenu(
     // BUTTON OFFSET (SUB MENU)
     // -------------------------
     if (state.phase == Phase::InShiftUp) {
-        buttonOffset = -(buttonSize * state.subOptionWindow[0]) + (buttonSize * alpha);
+        buttonOffset = -((menuHeight / 7) * state.subOptionWindow[0]) + ((menuHeight / 7) * alpha);
     }
     else if (state.phase == Phase::InShiftDown) {
-        buttonOffset = -(buttonSize * state.subOptionWindow[0]) - (buttonSize * alpha);
+        buttonOffset = -((menuHeight / 7) * state.subOptionWindow[0]) - ((menuHeight / 7) * alpha);
     }
     else if (
         state.phase == Phase::InIdle ||
         state.phase == Phase::InFadeIn
     ) {
-        buttonOffset = -(buttonSize * state.subOptionWindow[0]);
+        buttonOffset = -((menuHeight / 7) * state.subOptionWindow[0]);
     }
 
     // -------------------------
@@ -101,10 +101,10 @@ void renderMenu(
     // -------------------------
     float mainButtonOffset = 0.0f;
     if (state.phase == Phase::ShiftUp) {
-        mainButtonOffset = -(buttonSize * state.optionWindow[0]) + (buttonSize * alpha);
+        mainButtonOffset = -((menuHeight / 7) * state.optionWindow[0]) + ((menuHeight / 7) * alpha);
     }
     else if (state.phase == Phase::ShiftDown) {
-        mainButtonOffset = -(buttonSize * state.optionWindow[0]) - (buttonSize * alpha);
+        mainButtonOffset = -((menuHeight / 7) * state.optionWindow[0]) - ((menuHeight / 7) * alpha);
     }
     else if (
         state.phase == Phase::Idle ||
@@ -113,14 +113,14 @@ void renderMenu(
         state.phase == Phase::ShiftLeft ||
         state.phase == Phase::ShiftIn
     ) {
-        mainButtonOffset = -(buttonSize * state.optionWindow[0]);
+        mainButtonOffset = -((menuHeight / 7) * state.optionWindow[0]);
     }
 
     // -------------------------
     // PAGE TRANSITION OFFSETS
     // -------------------------
     auto pageOffset = [&](bool rightSide) -> int {
-        int updateSize = unitSize;
+        int updateSize = (menuWidth / 9);
 
         // if(state.phase == Phase::ShiftRight) {
         //     offset = -updateSize * (alpha) + 50;
@@ -128,27 +128,27 @@ void renderMenu(
         // }
         // testing unit size in place of +/- 50
         if (state.phase == Phase::ShiftRight)
-            return rightSide ? (-updateSize * alpha - unitSize) : (-updateSize * alpha + unitSize);
+            return rightSide ? (-updateSize * alpha - (menuWidth / 9)) : (-updateSize * alpha + (menuWidth / 9));
 
         if (state.phase == Phase::ShiftLeft)
-            return rightSide ? (updateSize * alpha - unitSize) : (updateSize * alpha + unitSize);
+            return rightSide ? (updateSize * alpha - (menuWidth / 9)) : (updateSize * alpha + (menuWidth / 9));
 
         if (state.phase == Phase::ShiftIn)
             return rightSide ? (-updateSize * alpha * (alpha * 4)) : (updateSize * alpha * (alpha * 4));
 
         if (state.phase == Phase::ShiftOut)
-            return rightSide ? (updateSize * alpha - unitSize) : (-updateSize * alpha + unitSize);
+            return rightSide ? (updateSize * alpha - (menuWidth / 9)) : (-updateSize * alpha + (menuWidth / 9));
                 
         if(state.phase == Phase::InShiftUp) {
-            return rightSide ? 0 : (((buttonSize*state.subOptionWindow[0]) * -1)) + (buttonSize * alpha);
+            return rightSide ? 0 : ((((menuHeight / 7)*state.subOptionWindow[0]) * -1)) + ((menuHeight / 7) * alpha);
         }
 
         if(state.phase == Phase::InShiftDown) {
-            return rightSide ? 0 : (((buttonSize*state.subOptionWindow[0]) * -1)) - (buttonSize * alpha);
+            return rightSide ? 0 : ((((menuHeight / 7)*state.subOptionWindow[0]) * -1)) - ((menuHeight / 7) * alpha);
         }
 
         if(state.phase == Phase::InIdle || state.phase == Phase::InFadeIn) 
-            return rightSide ? 0 : (buttonSize*state.subOptionWindow[0]) * -1;
+            return rightSide ? 0 : ((menuHeight / 7)*state.subOptionWindow[0]) * -1;
 
         return 0;
     };
@@ -165,7 +165,7 @@ void renderMenu(
         state.phase != Phase::InShiftDown
     ) {
         int offset = pageOffset(false);
-        int prefixSize = -unitSize;
+        int prefixSize = -(menuWidth / 9);
 
         int extra = (state.phase == Phase::ShiftRight || state.phase == Phase::ShiftLeft) ? 1 : 0;
 
@@ -181,7 +181,7 @@ void renderMenu(
                 font,
                 fontSize
             );
-            prefixSize -= unitSize;
+            prefixSize -= (menuWidth / 9);
         }
     }
 
@@ -190,8 +190,8 @@ void renderMenu(
     // -------------------------
     if(state.phase != Phase::Closing && state.phase != Phase::Opening) {   
         drawText(
-            menuPosX - (menuWidth / 2) + (unitSize * 0.5f),
-            menuPosY - (unitSize * 3.5f),
+            menuPosX - (menuWidth * 0.35f),
+            menuPosY - ((menuHeight/5) * 3),
             menuWidth,
             menuHeight,
             font,
@@ -203,7 +203,7 @@ void renderMenu(
         drawIcon(
             draw,
             menuPosX + (menuWidth * 0.85f),
-            menuPosY - unitSize,
+            menuPosY - ((menuHeight/15) * 3.5f),
             (unitSize*0.75f), 
             (unitSize*0.75f),
             mccIcon_png, 
@@ -261,7 +261,7 @@ void renderMenu(
         state.pageIndex <= pageCount - 1) {
 
         int offset = pageOffset(true);
-        int suffixSize = menuWidth + unitSize;
+        int suffixSize = menuWidth + (menuWidth / 9);
 
         int extra = (state.phase == Phase::ShiftRight || state.phase == Phase::ShiftLeft) ? 1 : 0;
 
@@ -277,7 +277,7 @@ void renderMenu(
                 font,
                 fontSize
             );
-            suffixSize += unitSize;
+            suffixSize += (menuWidth / 9);
         }
     }
 
@@ -322,7 +322,7 @@ void renderMenu(
             const auto& opt = page.options[i];
             OptionType type = opt.type;
 
-            int yBase = menuPosY + buttonCount * buttonSize + mainButtonOffset;
+            int yBase = menuPosY + buttonCount * (menuHeight / 7) + mainButtonOffset;
 
             if (type == OptionType::Increment ||
                 type == OptionType::Decrement ||
@@ -547,7 +547,7 @@ void renderMenu(
             OptionType type = state.menu.pages[state.pageIndex].options[state.optionIndex].subOptions[i].type;
             drawButton(
                 menuPosX,
-                menuPosY + buttonCount * buttonSize + buttonOffset,
+                menuPosY + buttonCount * (menuHeight / 7) + buttonOffset,
                 menuWidth,
                 menuHeight,
                 font,

@@ -63,6 +63,7 @@ static const std::map<std::string, CGamepadMapping::eButton ControllerProfileMap
     {"use_equipment",            &ControllerProfileMapping::useEquipment},
     {"action_interact",          &ControllerProfileMapping::actionInteract},
     {"reload_right_weapon",      &ControllerProfileMapping::reloadRightWeapon},
+    {"swap_reload_left_weapon",  &ControllerProfileMapping::swapReloadLeftWeapon},
     {"change_weapon",            &ControllerProfileMapping::changeWeapon},
     {"melee",                    &ControllerProfileMapping::melee},
     {"toggle_flashlight",        &ControllerProfileMapping::toggleFlashlight},
@@ -158,6 +159,7 @@ void MenuConfig::writeDefault(const std::string& path) {
            "d_use_equipment = LEFT_SHOULDER\n"
            "d_action_interact = X\n"
            "d_reload_right_weapon = X\n"
+           "d_swap_reload_left_weapon = X\n"
            "d_change_weapon = Y\n"
            "d_melee = RIGHT_SHOULDER\n"
            "d_toggle_flashlight = DPAD_LEFT\n"
@@ -173,6 +175,7 @@ void MenuConfig::writeDefault(const std::string& path) {
            "s_use_equipment = RIGHT_SHOULDER\n"
            "s_action_interact = X\n"
            "s_reload_right_weapon = X\n"
+           "s_swap_reload_left_weapon = X\n"
            "s_change_weapon = Y\n"
            "s_melee = LEFT_SHOULDER\n"
            "s_toggle_flashlight = DPAD_LEFT\n"
@@ -188,6 +191,7 @@ void MenuConfig::writeDefault(const std::string& path) {
            "b_use_equipment = LEFT_SHOULDER\n"
            "b_action_interact = X\n"
            "b_reload_right_weapon = X\n"
+           "b_swap_reload_left_weapon = X\n"
            "b_change_weapon = Y\n"
            "b_melee = LEFT_TRIGGER\n"
            "b_toggle_flashlight = DPAD_LEFT\n"
@@ -203,6 +207,7 @@ void MenuConfig::writeDefault(const std::string& path) {
            "g_use_equipment = LEFT_SHOULDER\n"
            "g_action_interact = X\n"
            "g_reload_right_weapon = X\n"
+           "g_swap_reload_left_weapon = X\n"
            "g_change_weapon = Y\n"
            "g_melee = RIGHT_THUMB\n"
            "g_toggle_flashlight = DPAD_LEFT\n"
@@ -218,6 +223,7 @@ void MenuConfig::writeDefault(const std::string& path) {
            "j_use_equipment = X\n"
            "j_action_interact = B\n"
            "j_reload_right_weapon = B\n"
+           "j_swap_reload_left_weapon = B\n"
            "j_change_weapon = Y\n"
            "j_melee = RIGHT_SHOULDER\n"
            "j_toggle_flashlight = DPAD_LEFT\n"
@@ -233,6 +239,7 @@ void MenuConfig::writeDefault(const std::string& path) {
            "r_use_equipment = LEFT_SHOULDER\n"
            "r_action_interact = RIGHT_SHOULDER\n"
            "r_reload_right_weapon = RIGHT_SHOULDER\n"
+           "r_swap_reload_left_weapon = RIGHT_SHOULDER\n"
            "r_change_weapon = Y\n"
            "r_melee = B\n"
            "r_toggle_flashlight = DPAD_LEFT\n"
@@ -310,6 +317,8 @@ void MenuConfig::ApplyControllerProfile(int profileIndex, CGamepadMapping& mappi
     if (profileIndex < 0 || profileIndex >= k_profileCount)
         profileIndex = 0;
 
+    // Also leaves Player Move Forward/Backward/Left/Right (H1A, actions 16-19)
+    // unbound — movement is handled by the analog stick, not the D-Pad.
     for (auto& action : mapping.actions)
         action = CGamepadMapping::None;
 
@@ -319,14 +328,18 @@ void MenuConfig::ApplyControllerProfile(int profileIndex, CGamepadMapping& mappi
     mapping.actions[2]  = p.actionInteract;
     mapping.actions[3]  = p.reloadRightWeapon;
     mapping.actions[4]  = p.changeWeapon;
-    mapping.actions[13] = p.changeWeapon;  // Swap/Reload Left Weapon mirrors Change Weapon
+    mapping.actions[13] = p.swapReloadLeftWeapon;
     mapping.actions[5]  = p.melee;
     mapping.actions[6]  = p.toggleFlashlight;
     mapping.actions[7]  = p.throwGrenade;
     mapping.actions[49] = p.throwGrenade;  // Use Left Weapon mirrors Throw Grenade
+    mapping.actions[28] = p.throwGrenade;  // Thrust mirrors Throw Grenade
+    mapping.actions[24] = p.throwGrenade;  // Vehicle Function 1 mirrors Throw Grenade
     mapping.actions[8]  = p.shoot;
     mapping.actions[9]  = p.crouch;
+    mapping.actions[21] = p.crouch;        // Vehicle Function 2 mirrors Crouch
     mapping.actions[10] = p.playerZoom;
     mapping.actions[20] = p.multiplayerScoreboard;
     mapping.actions[23] = p.useEquipment;
+    mapping.actions[22] = p.jump;          // Vehicle Function 3 mirrors Jump
 }

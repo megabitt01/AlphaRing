@@ -148,14 +148,16 @@ CGamepadMapping* CGameManager::retrive_gamepad_mapping(CGameManager *self, __int
     auto index = get_index(xid);
     auto p_setting = AlphaRing::Global::MCC::Splitscreen();
 
+    // Player 0's controller profile (Xbox menu button mapping) is not a splitscreen-only
+    // feature and must apply in every game/mode, so it's kept independent of b_override.
+    if (!index)
+        return &get_profile(0)->mapping;
+
     if (!p_setting->b_override)
         return ppOriginal.retrive_gamepad_mapping(self, xid);
-
-    if (!p_setting->b_override_profile && ((!index) || (index && p_setting->b_use_player0_profile)))
-        return ppOriginal.retrive_gamepad_mapping(self, get_xuid(0));
 
     if (p_setting->b_use_player0_profile)
         return &get_profile(0)->mapping;
 
-    return &get_profile(get_index(xid))->mapping;
+    return &get_profile(index)->mapping;
 }
