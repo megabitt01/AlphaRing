@@ -75,9 +75,9 @@ static struct {
 }}, {HaloReachEntrySet(), {
         {"splitscreen_patch1", "", OFFSET_HALOREACH_PF_COOP_JOIN, "\x31\xC0\xC3\x90", true},
         {"splitscreen_patch2", "", OFFSET_HALOREACH_PF_COOP_REJOIN, "\xEB", true},
-        {"Remove Black Bar1", "remove black bar", 0xB43CE0/*0xB43D10*/, "\xCD\xCC\x4C\x3D\x00\x00\x00\x00\x33\x33\x73\x3F\x00\x00\x00\x3F\x03\x00\x00\x00", false},
-        {"Remove Black Bar2", "remove black bar", 0xB43CF4/*0xB43D24*/, "\xCD\xCC\x4C\x3D\x00\x00\x00\x3F\x33\x33\x73\x3F\x00\x00\x80\x3F\x03\x00\x00\x00", false},
-        {"Remove Black Bar3", "remove black bar", 0xB43D30/*0xB43D60*/, "\xCD\xCC\x4C\x3D\x00\x00\x00\x00\x33\x33\x73\x3F\x00\x00\x00\x3F\x03\x00\x00\x00", false},
+        {"Remove Black Bar1", "remove black bar", 0xB43CE0/*0xB43D10*/, "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x80\x3F\x00\x00\x00\x3F\x01\x00\x00\x00", false},
+        {"Remove Black Bar2", "remove black bar", 0xB43CF4/*0xB43D24*/, "\x00\x00\x00\x00\x00\x00\x00\x3F\x00\x00\x80\x3F\x00\x00\x80\x3F\x01\x00\x00\x00", false},
+        {"Remove Black Bar3", "remove black bar", 0xB43D30/*0xB43D60*/, "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x80\x3F\x00\x00\x00\x3F\x01\x00\x00\x00", false},
         {"Disable Black Bar Overlay", "neuters the function that paints black-bar/divider overlays for 2p/3p/4p splitscreen (uses only slot 0's x0/x1 for pillarbox bars, spanning full height - assumes horizontal top/bottom splits only, paints over anything past slot 0's x1 for vertical/custom splits)", 0x2C6D84, "\x31\xC0\xC3\x90", false},
 }}};
 

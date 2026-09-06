@@ -121,25 +121,25 @@ bool MCC::Module::ReloadPatch(const char *xml_path) {
 #include "global/Global.h"
 
 namespace MCC::Module {
-    void ContextPatch();
+    void ContextDevTools();
     void ContextEngine();
 
     void ImGuiContext() {
-        static bool show_patch;
+        static bool show_devtools;
         static bool show_engine;
 
         if (ImGui::BeginMainMenuBar()) {
             if (ImGui::BeginMenu("Game")) {
                 ImGui::MenuItem("Engine", nullptr, &show_engine);
-                ImGui::MenuItem("Patch", nullptr, &show_patch);
                 ImGui::EndMenu();
             }
+            ImGui::MenuItem("Dev Tools", nullptr, &show_devtools);
             ImGui::EndMainMenuBar();
         }
 
-        if (show_patch) {
-            if (ImGui::Begin("Patch", &show_patch, ImGuiWindowFlags_MenuBar))
-                ContextPatch();
+        if (show_devtools) {
+            if (ImGui::Begin("Dev Tools", &show_devtools, ImGuiWindowFlags_MenuBar))
+                ContextDevTools();
             ImGui::End();
         }
 
@@ -197,7 +197,7 @@ namespace MCC::Module {
 #pragma endregion
     }
 
-    void ContextPatch() {
+    void ContextDevTools() {
         static int counter;
         auto p_print = [](CPatch* patch) {
             bool enabled = patch->enabled();
@@ -208,6 +208,12 @@ namespace MCC::Module {
 
             if (ImGui::IsItemHovered() && patch->have_desc())
                 ImGui::SetTooltip("%s", patch->desc());
+        };
+
+        auto find_patch = [](CPatchSet* p_patches, const char* name) -> CPatch* {
+            for (auto patch : p_patches->embed_patches())
+                if (strcmp(patch->name(), name) == 0) return patch;
+            return nullptr;
         };
 
         if (ImGui::BeginMenuBar()) {
@@ -225,8 +231,71 @@ namespace MCC::Module {
 
             if (ImGui::BeginTabItem(cModuleName[i])) {
                 ImGui::Text("Embed Patches");
-                for (auto patch : p_patches->embed_patches())
+                for (auto patch : p_patches->embed_patches()) {
+                    // HaloReach's black-bar patches get replaced below with two
+                    // controls scoped by which player/slot they actually affect,
+                    // instead of three raw, easy-to-misread checkboxes.
+                    if (i == MODULE_HALOREACH &&
+                        (strcmp(patch->name(), "Remove Black Bar1") == 0 ||
+                         strcmp(patch->name(), "Remove Black Bar2") == 0 ||
+                         strcmp(patch->name(), "Remove Black Bar3") == 0))
+                        continue;
+
                     p_print(patch);
+                }
+
+                if (i == MODULE_HALOREACH) {
+                    auto p_bar1 = find_patch(p_patches, "Remove Black Bar1");
+                    auto p_bar2 = find_patch(p_patches, "Remove Black Bar2");
+                    auto p_bar3 = find_patch(p_patches, "Remove Black Bar3");
+
+                    ImGui::Separator();
+                    ImGui::Text("Splitscreen Display");
+
+                    if (p_bar1 != nullptr && p_bar3 != nullptr) {
+                        bool top = p_bar1->enabled() && p_bar3->enabled();
+                        ImGui::PushID(counter++);
+                        if (ImGui::Checkbox("Remove Black Bars - Player 1 (Top, 2 or 3 Player)", &top)) {
+                            p_bar1->setState(top);
+                            p_bar3->setState(top);
+
+                            // The game's black-bar overlay is a single shared
+                            // painter that only ever reads Player 1's bounds,
+                            // so Player 2's bar physically cannot disappear
+                            // while Player 1 still has one - turning Player 1
+                            // back on makes that combination broken again.
+                            if (!top && p_bar2 != nullptr && p_bar2->enabled())
+                                p_bar2->setState(false);
+                        }
+                        ImGui::PopID();
+                        if (ImGui::IsItemHovered())
+                            ImGui::SetTooltip("Removes the black bar for whichever player occupies the top half of the screen. Applies to both 2-player and 3-player splitscreen - that slot is the same shape in either mode.");
+                    }
+
+                    if (p_bar2 != nullptr) {
+                        bool player1_on = p_bar1 != nullptr && p_bar1->enabled();
+                        bool bottom = p_bar2->enabled();
+
+                        ImGui::BeginDisabled(!player1_on);
+                        ImGui::PushID(counter++);
+                        if (ImGui::Checkbox("Remove Black Bars - Player 2 (Bottom, 2 Player Only)", &bottom))
+                            p_bar2->setState(bottom);
+                        ImGui::PopID();
+                        ImGui::EndDisabled();
+
+                        // ImGui suppresses IsItemHovered() by default for items inside
+                        // BeginDisabled()/EndDisabled() - AllowWhenDisabled is required
+                        // so the explanation tooltip still shows while greyed out.
+                        if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled)) {
+                            if (player1_on)
+                                ImGui::SetTooltip("Removes the black bar for player 2's bottom half of the screen. 2-player only - in 3-player mode, players 2 and 3 already fill their quarter of the screen with no black bars.");
+                            else
+                                ImGui::SetTooltip("Requires Player 1's black bar removed too - the game's bar-painting logic is shared and only reads Player 1's bounds, so Player 2's bar can't disappear on its own.");
+                        }
+                    }
+
+                    ImGui::Separator();
+                }
 
                 ImGui::Text("Patches");
                 for (auto patch : p_patches->patches())
