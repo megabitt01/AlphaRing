@@ -78,7 +78,10 @@ static struct {
         {"Remove Black Bar1", "remove black bar", 0xB43CE0/*0xB43D10*/, "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x80\x3F\x00\x00\x00\x3F\x01\x00\x00\x00", false},
         {"Remove Black Bar2", "remove black bar", 0xB43CF4/*0xB43D24*/, "\x00\x00\x00\x00\x00\x00\x00\x3F\x00\x00\x80\x3F\x00\x00\x80\x3F\x01\x00\x00\x00", false},
         {"Remove Black Bar3", "remove black bar", 0xB43D30/*0xB43D60*/, "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x80\x3F\x00\x00\x00\x3F\x01\x00\x00\x00", false},
-        {"Disable Black Bar Overlay", "neuters the function that paints black-bar/divider overlays for 2p/3p/4p splitscreen (uses only slot 0's x0/x1 for pillarbox bars, spanning full height - assumes horizontal top/bottom splits only, paints over anything past slot 0's x1 for vertical/custom splits)", 0x2C6D84, "\x31\xC0\xC3\x90", false},
+        // The black-bar/divider painter at 0x2C6D84 is now handled by a proper
+        // per-slot-aware detour (HaloReach::Entry::BlackBars, blackbars.cpp)
+        // instead of being NOP'd out wholesale - a raw byte-patch here would
+        // stomp the detour's installed hook on the same function.
 }}};
 
 static std::unordered_map<std::string, CModule*> map_modules {
