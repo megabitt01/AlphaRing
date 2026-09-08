@@ -258,14 +258,6 @@ namespace MCC::Module {
                         if (ImGui::Checkbox("Remove Black Bars - Player 1 (Top, 2 or 3 Player)", &top)) {
                             p_bar1->setState(top);
                             p_bar3->setState(top);
-
-                            // The game's black-bar overlay is a single shared
-                            // painter that only ever reads Player 1's bounds,
-                            // so Player 2's bar physically cannot disappear
-                            // while Player 1 still has one - turning Player 1
-                            // back on makes that combination broken again.
-                            if (!top && p_bar2 != nullptr && p_bar2->enabled())
-                                p_bar2->setState(false);
                         }
                         ImGui::PopID();
                         if (ImGui::IsItemHovered())
@@ -273,25 +265,15 @@ namespace MCC::Module {
                     }
 
                     if (p_bar2 != nullptr) {
-                        bool player1_on = p_bar1 != nullptr && p_bar1->enabled();
                         bool bottom = p_bar2->enabled();
 
-                        ImGui::BeginDisabled(!player1_on);
                         ImGui::PushID(counter++);
                         if (ImGui::Checkbox("Remove Black Bars - Player 2 (Bottom, 2 Player Only)", &bottom))
                             p_bar2->setState(bottom);
                         ImGui::PopID();
-                        ImGui::EndDisabled();
 
-                        // ImGui suppresses IsItemHovered() by default for items inside
-                        // BeginDisabled()/EndDisabled() - AllowWhenDisabled is required
-                        // so the explanation tooltip still shows while greyed out.
-                        if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled)) {
-                            if (player1_on)
-                                ImGui::SetTooltip("Removes the black bar for player 2's bottom half of the screen. 2-player only - in 3-player mode, players 2 and 3 already fill their quarter of the screen with no black bars.");
-                            else
-                                ImGui::SetTooltip("Requires Player 1's black bar removed too - the game's bar-painting logic is shared and only reads Player 1's bounds, so Player 2's bar can't disappear on its own.");
-                        }
+                        if (ImGui::IsItemHovered())
+                            ImGui::SetTooltip("Removes the black bar for player 2's bottom half of the screen. 2-player only - in 3-player mode, players 2 and 3 already fill their quarter of the screen with no black bars.");
                     }
 
                     ImGui::Separator();
