@@ -8,6 +8,7 @@
 #include "common.h"
 #include "offset_mcc.h"
 #include "mcc/CGameManager.h"
+#include "mcc/module/patch/PatchConfig.h"
 
 namespace MCC::Module {
     DefDetourFunction(void, __fastcall, module_load, module_info_t* info, int a2, __int64 a3) {
@@ -35,6 +36,8 @@ namespace MCC::Module {
         });
 
         assertm(result, "MCC:Module: failed to patch module \"kernel32.dll\"");
+
+        AlphaRing::PatchConfig::Load();
 
         // reload patch at startup
         ReloadPatch("../../../alpha_ring/patch.xml");
@@ -199,11 +202,14 @@ namespace MCC::Module {
 
     void ContextDevTools() {
         static int counter;
-        auto p_print = [](CPatch* patch) {
+        auto p_print = [](CPatch* patch, const char* module_name) {
             bool enabled = patch->enabled();
 
             ImGui::PushID(counter++);
-            if (ImGui::Checkbox(patch->name(), &enabled)) patch->setState(enabled);
+            if (ImGui::Checkbox(patch->name(), &enabled)) {
+                patch->setState(enabled);
+                AlphaRing::PatchConfig::Set(module_name, patch->name(), enabled);
+            }
             ImGui::PopID();
 
             if (ImGui::IsItemHovered() && patch->have_desc())
@@ -232,16 +238,15 @@ namespace MCC::Module {
             if (ImGui::BeginTabItem(cModuleName[i])) {
                 ImGui::Text("Embed Patches");
                 for (auto patch : p_patches->embed_patches()) {
-                    // HaloReach's black-bar patches get replaced below with two
+                    // Every game's black-bar patches get replaced below with
                     // controls scoped by which player/slot they actually affect,
                     // instead of three raw, easy-to-misread checkboxes.
-                    if (i == MODULE_HALOREACH &&
-                        (strcmp(patch->name(), "Remove Black Bar1") == 0 ||
-                         strcmp(patch->name(), "Remove Black Bar2") == 0 ||
-                         strcmp(patch->name(), "Remove Black Bar3") == 0))
+                    if (strcmp(patch->name(), "Remove Black Bar1") == 0 ||
+                        strcmp(patch->name(), "Remove Black Bar2") == 0 ||
+                        strcmp(patch->name(), "Remove Black Bar3") == 0)
                         continue;
 
-                    p_print(patch);
+                    p_print(patch, cModuleName[i]);
                 }
 
                 if (i == MODULE_HALOREACH) {
@@ -258,6 +263,8 @@ namespace MCC::Module {
                         if (ImGui::Checkbox("Remove Black Bars - Player 1 (Top, 2 or 3 Player)", &top)) {
                             p_bar1->setState(top);
                             p_bar3->setState(top);
+                            AlphaRing::PatchConfig::Set(cModuleName[i], p_bar1->name(), top);
+                            AlphaRing::PatchConfig::Set(cModuleName[i], p_bar3->name(), top);
                         }
                         ImGui::PopID();
                         if (ImGui::IsItemHovered())
@@ -268,8 +275,10 @@ namespace MCC::Module {
                         bool bottom = p_bar2->enabled();
 
                         ImGui::PushID(counter++);
-                        if (ImGui::Checkbox("Remove Black Bars - Player 2 (Bottom, 2 Player Only)", &bottom))
+                        if (ImGui::Checkbox("Remove Black Bars - Player 2 (Bottom, 2 Player Only)", &bottom)) {
                             p_bar2->setState(bottom);
+                            AlphaRing::PatchConfig::Set(cModuleName[i], p_bar2->name(), bottom);
+                        }
                         ImGui::PopID();
 
                         if (ImGui::IsItemHovered())
@@ -281,7 +290,7 @@ namespace MCC::Module {
 
                 ImGui::Text("Patches");
                 for (auto patch : p_patches->patches())
-                    p_print(patch);
+                    p_print(patch, cModuleName[i]);
 
                 if (i == MODULE_HALOREACH) {
                     auto hModule = GetSubModule((eModule)i)->info().hModule;
@@ -393,6 +402,72 @@ namespace MCC::Module {
 
                     if (ImGui::IsItemHovered())
                         ImGui::SetTooltip("Reads the live, unpatched-if-not-toggled bytes directly from haloreach.dll and logs them. Run this BEFORE toggling any Remove Black Bar checkbox to capture true defaults.");
+                } else if (i == MODULE_HALO3 || i == MODULE_HALO3ODST || i == MODULE_HALO4 || i == MODULE_GROUNDHOG) {
+                    // Same wholesale-NOP black-bar patches Reach shipped with before
+                    // its per-slot painter detour (see haloreach/blackbars.cpp). These
+                    // games haven't had that detour ported yet, so unlike Reach we
+                    // can't promise Player 1/2 toggle independently of each other -
+                    // the tooltips say so until that's verified per game.
+                    auto p_bar1 = find_patch(p_patches, "Remove Black Bar1");
+                    auto p_bar2 = find_patch(p_patches, "Remove Black Bar2");
+                    auto p_bar3 = find_patch(p_patches, "Remove Black Bar3");
+
+                    if (p_bar1 != nullptr || p_bar2 != nullptr || p_bar3 != nullptr) {
+                        ImGui::Separator();
+                        ImGui::Text("Splitscreen Display");
+
+                        // Confirmed (2026-09-10, in-game) that this game shares Reach's
+                        // pre-fix bug: the black-bar painter only reads Player 1's bounds,
+                        // so removing Player 2's bar alone does nothing/breaks things unless
+                        // Player 1's is also removed. Until this gets its own per-slot
+                        // detour (see haloreach/blackbars.cpp for the real fix), gate the
+                        // Player 2 checkbox behind Player 1's being on - same stopgap Reach
+                        // used before that fix existed.
+                        bool player1_on = (p_bar1 == nullptr || p_bar3 == nullptr)
+                                ? true : (p_bar1->enabled() && p_bar3->enabled());
+
+                        if (p_bar1 != nullptr && p_bar3 != nullptr) {
+                            bool top = player1_on;
+                            ImGui::PushID(counter++);
+                            if (ImGui::Checkbox("Remove Black Bars - Player 1 (Top)", &top)) {
+                                p_bar1->setState(top);
+                                p_bar3->setState(top);
+                                AlphaRing::PatchConfig::Set(cModuleName[i], p_bar1->name(), top);
+                                AlphaRing::PatchConfig::Set(cModuleName[i], p_bar3->name(), top);
+
+                                // Player 1 turning off makes Player 2 non-functional (see
+                                // above) - turn it off too so the checkbox doesn't sit
+                                // checked-but-disabled and inert.
+                                if (!top && p_bar2 != nullptr) {
+                                    p_bar2->setState(false);
+                                    AlphaRing::PatchConfig::Set(cModuleName[i], p_bar2->name(), false);
+                                }
+                            }
+                            ImGui::PopID();
+                            if (ImGui::IsItemHovered())
+                                ImGui::SetTooltip("Removes the black bar for whichever player occupies the top half of the screen.");
+                        }
+
+                        if (p_bar2 != nullptr) {
+                            bool bottom = p_bar2->enabled();
+
+                            ImGui::PushID(counter++);
+                            ImGui::BeginDisabled(!player1_on);
+                            if (ImGui::Checkbox("Remove Black Bars - Player 2 (Bottom)", &bottom)) {
+                                p_bar2->setState(bottom);
+                                AlphaRing::PatchConfig::Set(cModuleName[i], p_bar2->name(), bottom);
+                            }
+                            ImGui::EndDisabled();
+                            ImGui::PopID();
+
+                            if (ImGui::IsItemHovered())
+                                ImGui::SetTooltip(player1_on
+                                    ? "Removes the black bar for player 2's half of the screen."
+                                    : "Enable Player 1's black-bar removal first. On this game, Player 2's toggle only takes effect when Player 1's is also on - same shared-painter bug Reach had before its dedicated fix.");
+                        }
+
+                        ImGui::Separator();
+                    }
                 }
 
                 ImGui::EndTabItem();
