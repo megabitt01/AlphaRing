@@ -9,6 +9,7 @@
 #include "offset_mcc.h"
 #include "mcc/CGameManager.h"
 #include "mcc/module/patch/PatchConfig.h"
+#include "global/Global.h"
 
 namespace MCC::Module {
     DefDetourFunction(void, __fastcall, module_load, module_info_t* info, int a2, __int64 a3) {
@@ -304,6 +305,11 @@ namespace MCC::Module {
                         if (hModule == 0) {
                             ImGui::TextColored(ImVec4(1, 0.3f, 0.3f, 1), "haloreach.dll not loaded");
                         } else {
+                            auto p_global = AlphaRing::Global::Global();
+                            ImGui::Checkbox("Disable black-bar painter (debug)", &p_global->disable_splitscreen_bars_debug);
+                            if (ImGui::IsItemHovered())
+                                ImGui::SetTooltip("Skips the 2-player black-bar painter entirely (neither stock nor our per-slot fix runs). Needed when testing a non-stock viewport shape (e.g. left/right) below - the painter otherwise assumes every slot is a horizontal strip and paints over the other slot's half.");
+
                             static const char* block_labels[block_count] = {
                                 "0: alias of 4p", "1: 1 player", "2: 2 players",
                                 "3: 3 players", "4: 4 players"

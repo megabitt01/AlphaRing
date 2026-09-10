@@ -2,6 +2,8 @@
 
 #include "common.h"
 
+#include "global/Global.h"
+
 namespace HaloReach::Entry::BlackBars {
     typedef unsigned __int64 (*GetSplitscreenPlayerCount_t)();
     typedef void (*DrawFilledRect_t)(void* rect, unsigned int color);
@@ -33,6 +35,9 @@ namespace HaloReach::Entry::BlackBars {
     // handles independently-customized or fully-removed bars per slot.
     // 1p/3p/4p are untouched - falls through to the original function.
     HaloReachEntry(entry, OFFSET_HALOREACH_PF_DRAW_SPLITSCREEN_BLACK_BARS, void, detour) {
+        if (AlphaRing::Global::Global()->disable_splitscreen_bars_debug)
+            return;
+
         __int64 hModule = entry.m_target - entry.m_offset;
 
         auto GetSplitscreenPlayerCount = (GetSplitscreenPlayerCount_t)(hModule + OFFSET_HALOREACH_PF_GET_SPLITSCREEN_PLAYER_COUNT);
