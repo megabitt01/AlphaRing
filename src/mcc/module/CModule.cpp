@@ -1,5 +1,7 @@
 #include <unordered_map>
 #include "CModule.h"
+#include "mcc/module/patch/PatchConfig.h"
+#include "common.h"
 
 CModule::CModule(EntrySet *entrySet, std::initializer_list<CPatch> patches)
 : m_entries(entrySet), m_patches(patches) {};
@@ -12,6 +14,22 @@ void CModule::load_module(const module_info_t *p_info) {
     if (m_info.hModule == 0 || m_info.errorCode != 0) return;
 
     m_patches.update(m_info.hModule);
+
+    // Restore any Dev Tools patch states saved from a previous session before
+    // applying - this must happen before apply() so restored "on" states
+    // actually get written to the freshly-loaded module.
+    if (m_info.title >= MCC::Module::MODULE_HALO1 && m_info.title <= MCC::Module::MODULE_MCC) {
+        const char* module_name = MCC::Module::cModuleName[m_info.title];
+        bool saved;
+
+        for (auto patch : m_patches.embed_patches())
+            if (AlphaRing::PatchConfig::Get(module_name, patch->name(), saved))
+                patch->setState(saved);
+
+        for (auto patch : m_patches.patches())
+            if (AlphaRing::PatchConfig::Get(module_name, patch->name(), saved))
+                patch->setState(saved);
+    }
 
     m_patches.apply();
 
