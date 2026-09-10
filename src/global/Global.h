@@ -19,6 +19,13 @@ namespace AlphaRing::Global {
         bool show_imgui_mouse = false;
         bool pause_game_on_menu_shown = false;
         bool disable_input_on_menu_shown = true;
+
+        // Debug-only: skips HaloReach's 2-player black-bar painter entirely
+        // (neither the original function nor our per-slot detour runs). Needed
+        // when testing non-shipped splitscreen viewport shapes (e.g. left/right)
+        // via the Splitscreen Config Editor, since the painter otherwise assumes
+        // every slot is a horizontal strip and paints over the other slot's half.
+        bool disable_splitscreen_bars_debug = false;
     };
 
     namespace Halo3 {
