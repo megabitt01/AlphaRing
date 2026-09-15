@@ -7,9 +7,14 @@ namespace AlphaRing::Log {
 
     bool Init();
     bool Shutdown();
+
+    // Logs an assertion failure (reason, expression, and source location) before the
+    // process aborts, so the cause survives in alpha_ring_info.log even without a debugger.
+    void AssertFailure(const char* expr, const char* msg, const char* file, int line);
 }
 
 #define LOG_INFO(...) AlphaRing::Log::default_logger->info(__VA_ARGS__)
 #define LOG_ERROR(...) AlphaRing::Log::default_logger->error(__VA_ARGS__)
 #define LOG_WARNING(...) AlphaRing::Log::default_logger->warn(__VA_ARGS__)
 #define LOG_DEBUG(...) AlphaRing::Log::default_logger->debug(__VA_ARGS__)
+#define LOG_CRITICAL(...) AlphaRing::Log::default_logger->critical(__VA_ARGS__)

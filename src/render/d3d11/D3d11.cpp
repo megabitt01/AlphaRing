@@ -31,7 +31,11 @@ namespace AlphaRing::Render::D3d11 {
 
         ImGui::Render();
 
-        return ppOriginal_Present(Graphics()->pSwapChain, SyncInterval, Flags);
+        auto result = ppOriginal_Present(Graphics()->pSwapChain, SyncInterval, Flags);
+
+        ResetCompositeFrameCounter();
+
+        return result;
     }
 
     DefDetourFunction(HRESULT, __stdcall, ResizeBuffers, IDXGISwapChain* pSwapChain, UINT BufferCount, UINT Width, UINT Height, DXGI_FORMAT NewFormat, UINT SwapChainFlags) {

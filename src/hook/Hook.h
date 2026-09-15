@@ -49,6 +49,7 @@ namespace AlphaRing::Hook {
     bool Shutdown();
 
     bool IsWS();
+    bool IsWine();
 
     bool Detour(const std::initializer_list<Detour_t>& hooks);
     bool Detour(const std::initializer_list<DetourOffset>& hooks);

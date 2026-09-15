@@ -108,7 +108,7 @@ bool MCC::Module::ReloadPatch(const char *xml_path) {
                           std::strtoull(p_patch_offset, nullptr, 16),
                           p_converter(p_patch_data),patch_enable);
             } catch (std::exception& e) {
-                LOG_ERROR("Patch %s: %s", p_patch_name, e.what());
+                LOG_ERROR("Patch {}: {}", p_patch_name, e.what());
                 continue;
             }
         }
