@@ -1,12 +1,17 @@
 #include "Module.h"
 
 #include <functional>
+#include <cstring>
 
 #include "tinyxml2.h"
 
 #include "common.h"
 #include "offset_mcc.h"
 #include "mcc/CGameManager.h"
+#include "mcc/module/patch/PatchConfig.h"
+#include "mcc/module/patch/SplitscreenConfigStore.h"
+#include "global/Global.h"
+#include "log/DebugFlags.h"
 
 namespace MCC::Module {
     DefDetourFunction(void, __fastcall, module_load, module_info_t* info, int a2, __int64 a3) {
@@ -34,6 +39,8 @@ namespace MCC::Module {
         });
 
         assertm(result, "MCC:Module: failed to patch module \"kernel32.dll\"");
+
+        AlphaRing::PatchConfig::Load();
 
         // reload patch at startup
         ReloadPatch("../../../alpha_ring/patch.xml");
@@ -120,25 +127,25 @@ bool MCC::Module::ReloadPatch(const char *xml_path) {
 #include "global/Global.h"
 
 namespace MCC::Module {
-    void ContextPatch();
+    void ContextDevTools();
     void ContextEngine();
 
     void ImGuiContext() {
-        static bool show_patch;
+        static bool show_devtools;
         static bool show_engine;
 
         if (ImGui::BeginMainMenuBar()) {
             if (ImGui::BeginMenu("Game")) {
                 ImGui::MenuItem("Engine", nullptr, &show_engine);
-                ImGui::MenuItem("Patch", nullptr, &show_patch);
                 ImGui::EndMenu();
             }
+            ImGui::MenuItem("Dev Tools", nullptr, &show_devtools);
             ImGui::EndMainMenuBar();
         }
 
-        if (show_patch) {
-            if (ImGui::Begin("Patch", &show_patch, ImGuiWindowFlags_MenuBar))
-                ContextPatch();
+        if (show_devtools) {
+            if (ImGui::Begin("Dev Tools", &show_devtools, ImGuiWindowFlags_MenuBar))
+                ContextDevTools();
             ImGui::End();
         }
 
@@ -196,17 +203,26 @@ namespace MCC::Module {
 #pragma endregion
     }
 
-    void ContextPatch() {
+    void ContextDevTools() {
         static int counter;
-        auto p_print = [](CPatch* patch) {
+        auto p_print = [](CPatch* patch, const char* module_name) {
             bool enabled = patch->enabled();
 
             ImGui::PushID(counter++);
-            if (ImGui::Checkbox(patch->name(), &enabled)) patch->setState(enabled);
+            if (ImGui::Checkbox(patch->name(), &enabled)) {
+                patch->setState(enabled);
+                AlphaRing::PatchConfig::Set(module_name, patch->name(), enabled);
+            }
             ImGui::PopID();
 
             if (ImGui::IsItemHovered() && patch->have_desc())
                 ImGui::SetTooltip("%s", patch->desc());
+        };
+
+        auto find_patch = [](CPatchSet* p_patches, const char* name) -> CPatch* {
+            for (auto patch : p_patches->embed_patches())
+                if (strcmp(patch->name(), name) == 0) return patch;
+            return nullptr;
         };
 
         if (ImGui::BeginMenuBar()) {
@@ -224,12 +240,354 @@ namespace MCC::Module {
 
             if (ImGui::BeginTabItem(cModuleName[i])) {
                 ImGui::Text("Embed Patches");
-                for (auto patch : p_patches->embed_patches())
-                    p_print(patch);
+                for (auto patch : p_patches->embed_patches()) {
+                    // Every game's black-bar patches get replaced below with
+                    // controls scoped by which player/slot they actually affect,
+                    // instead of three raw, easy-to-misread checkboxes.
+                    if (strcmp(patch->name(), "Remove Black Bar1") == 0 ||
+                        strcmp(patch->name(), "Remove Black Bar2") == 0 ||
+                        strcmp(patch->name(), "Remove Black Bar3") == 0)
+                        continue;
+
+                    p_print(patch, cModuleName[i]);
+                }
+
+                if (i == MODULE_HALOREACH) {
+                    auto p_bar1 = find_patch(p_patches, "Remove Black Bar1");
+                    auto p_bar2 = find_patch(p_patches, "Remove Black Bar2");
+                    auto p_bar3 = find_patch(p_patches, "Remove Black Bar3");
+
+                    ImGui::Separator();
+                    ImGui::Text("Splitscreen Display");
+
+                    // THE BLACK-BAR PATCHES STAY USER-OWNED. Both they and the
+                    // Left/Right layout write m_config_table entries 8/9/12,
+                    // but the layout never changes or persists their state:
+                    // while Left/Right is selected SplitscreenConfigStore::Apply
+                    // rewrites every field of those entries each frame, so an
+                    // enabled patch's bytes never show, and the painter bypass
+                    // is derived in blackbars.cpp. Selecting Top/Bottom writes
+                    // the stock entries, then re-applies each enabled patch so
+                    // the user's saved bar choice comes back exactly as it was.
+                    // (The old exclusion rationale - D1F710 as a stale table
+                    // cache - was disproved: D1F710 is not table-derived.)
+                    auto layout = AlphaRing::SplitscreenConfigStore::GetTwoPlayerLayout();
+                    int layout_index = (int)layout;
+                    const char* layout_names[] = { "Top / Bottom", "Left / Right" };
+
+                    ImGui::PushID(counter++);
+                    ImGui::SetNextItemWidth(180.0f);
+                    if (ImGui::Combo("Two-player layout", &layout_index, layout_names, 2)) {
+                        layout = (AlphaRing::SplitscreenConfigStore::TwoPlayerLayout)layout_index;
+
+                        auto h = GetSubModule((eModule)i)->info().hModule;
+                        AlphaRing::SplitscreenConfigStore::SetTwoPlayerLayout(layout, h);
+
+                        if (layout == AlphaRing::SplitscreenConfigStore::TwoPlayerLayout::TopBottom) {
+                            CPatch* bars[3] = { p_bar1, p_bar2, p_bar3 };
+                            for (auto p_bar : bars)
+                                if (p_bar != nullptr && p_bar->enabled())
+                                    p_bar->apply();
+                        }
+                    }
+                    ImGui::PopID();
+                    if (ImGui::IsItemHovered())
+                        ImGui::SetTooltip("Selects the 2- and 3-player rectangles explicitly. Left / Right: 2 players get equal full-height halves; 3 players put player 1 on the full left half (as in 2 players) and players 2/3 on the right half. 1 and 4 players always use Reach's own layout.");
+
+                    const bool left_right =
+                            layout == AlphaRing::SplitscreenConfigStore::TwoPlayerLayout::LeftRight;
+                    if (left_right)
+                        ImGui::TextDisabled("Black-bar settings are kept and return with Top / Bottom.");
+
+                    if (left_right) ImGui::BeginDisabled();
+
+                    if (p_bar1 != nullptr && p_bar3 != nullptr) {
+                        bool top = p_bar1->enabled() && p_bar3->enabled();
+                        ImGui::PushID(counter++);
+                        if (ImGui::Checkbox("Remove Black Bars - Player 1 (Top, 2 or 3 Player)", &top)) {
+                            p_bar1->setState(top);
+                            p_bar3->setState(top);
+                            AlphaRing::PatchConfig::Set(cModuleName[i], p_bar1->name(), top);
+                            AlphaRing::PatchConfig::Set(cModuleName[i], p_bar3->name(), top);
+                        }
+                        ImGui::PopID();
+                        if (ImGui::IsItemHovered())
+                            ImGui::SetTooltip("Removes the black bar for whichever player occupies the top half of the screen. Applies to both 2-player and 3-player splitscreen - that slot is the same shape in either mode.");
+                    }
+
+                    if (p_bar2 != nullptr) {
+                        bool bottom = p_bar2->enabled();
+
+                        ImGui::PushID(counter++);
+                        if (ImGui::Checkbox("Remove Black Bars - Player 2 (Bottom, 2 Player Only)", &bottom)) {
+                            p_bar2->setState(bottom);
+                            AlphaRing::PatchConfig::Set(cModuleName[i], p_bar2->name(), bottom);
+                        }
+                        ImGui::PopID();
+
+                        if (ImGui::IsItemHovered())
+                            ImGui::SetTooltip("Removes the black bar for player 2's bottom half of the screen. 2-player only - in 3-player mode, players 2 and 3 already fill their quarter of the screen with no black bars.");
+                    }
+
+                    if (left_right) ImGui::EndDisabled();
+
+                    ImGui::Separator();
+                }
 
                 ImGui::Text("Patches");
                 for (auto patch : p_patches->patches())
-                    p_print(patch);
+                    p_print(patch, cModuleName[i]);
+
+                if (i == MODULE_HALOREACH) {
+                    auto hModule = GetSubModule((eModule)i)->info().hModule;
+
+                    constexpr __int64 base_offset = 0xB43C40;
+                    constexpr int entry_size = 20;
+                    constexpr int block_count = 5;
+                    constexpr int slot_count = 4;
+
+                    auto write_bytes = [](void* dst, const void* src, size_t size) {
+                        DWORD oldProtect;
+                        if (VirtualProtect(dst, size, PAGE_EXECUTE_READWRITE, &oldProtect)) {
+                            memcpy(dst, src, size);
+                            VirtualProtect(dst, size, oldProtect, &oldProtect);
+                        }
+                    };
+
+                    // NB: restoring saved Splitscreen Config Editor values used
+                    // to happen here. It now happens in CModule::load_module and
+                    // is re-asserted per frame by HaloReach::Entry::Render - see
+                    // SplitscreenConfigStore::Apply. Restoring from this draw
+                    // path meant the saved config was only ever applied if the
+                    // user opened the F1 menu, and always after a level had
+                    // finished loading.
+                    if (ImGui::CollapsingHeader("Splitscreen Config Editor")) {
+                        if (hModule == 0) {
+                            ImGui::TextColored(ImVec4(1, 0.3f, 0.3f, 1), "haloreach.dll not loaded");
+                        } else {
+                            auto p_global = AlphaRing::Global::Global();
+                            const bool left_right_layout =
+                                    AlphaRing::SplitscreenConfigStore::GetTwoPlayerLayout()
+                                    == AlphaRing::SplitscreenConfigStore::TwoPlayerLayout::LeftRight;
+                            if (left_right_layout) ImGui::BeginDisabled();
+                            if (ImGui::Checkbox("Disable black-bar painter (debug)", &p_global->disable_splitscreen_bars_debug)) {
+                                AlphaRing::SplitscreenConfigStore::Set(-1, "bars_painter_off_debug",
+                                                                        p_global->disable_splitscreen_bars_debug ? 1.0f : 0.0f);
+                            }
+                            if (left_right_layout) ImGui::EndDisabled();
+                            if (ImGui::IsItemHovered())
+                                ImGui::SetTooltip("Skips the 2-player black-bar painter entirely (neither stock nor our per-slot fix runs). While Left / Right is active the painter is bypassed (2 players) or replaced by centre dividers (3 players) regardless of this setting, which is kept for Top / Bottom.");
+
+                            ImGui::Separator();
+                            ImGui::Text("Splitscreen FOV (Alpha Ring-owned)");
+                            if (!AlphaRing::DebugFlags::g_splitscreenFovBaseline) {
+                                ImGui::TextDisabled("Disabled in this build.");
+                            } else {
+                                ImGui::TextDisabled("Split-screen only. Off = Reach's native split-screen FOV.");
+                                ImGui::TextDisabled("Same scale as MCC's FOV slider; vehicle FOV stays native.");
+                            }
+                            ImGui::BeginDisabled(!AlphaRing::DebugFlags::g_splitscreenFovBaseline);
+                            {
+                                auto persist_fov = [&](int slot, const char* suffix, float v) {
+                                    AlphaRing::SplitscreenConfigStore::Set(
+                                            -1, ("fov_slot" + std::to_string(slot) + suffix).c_str(), v);
+                                };
+
+                                const char* slot_labels[4] = { "Player 1 FOV", "Player 2 FOV",
+                                                               "Player 3 FOV", "Player 4 FOV" };
+                                for (int slot = 0; slot < 4; ++slot) {
+                                    ImGui::PushID(counter++);
+                                    if (ImGui::Checkbox("##fov_on", &p_global->splitscreen_fov_set[slot]))
+                                        persist_fov(slot, "_on", p_global->splitscreen_fov_set[slot] ? 1.0f : 0.0f);
+                                    ImGui::SameLine();
+                                    ImGui::BeginDisabled(!p_global->splitscreen_fov_set[slot]);
+                                    ImGui::SetNextItemWidth(160.0f);
+                                    // MCC's native UniversalFOV slider range (Data/settings/optionsdata.xml).
+                                    if (ImGui::SliderFloat(slot_labels[slot], &p_global->splitscreen_fov_deg[slot],
+                                                            70.0f, 120.0f, "%.0f", ImGuiSliderFlags_AlwaysClamp))
+                                        persist_fov(slot, "_deg", p_global->splitscreen_fov_deg[slot]);
+                                    ImGui::EndDisabled();
+                                    ImGui::PopID();
+                                }
+                                if (ImGui::IsItemHovered())
+                                    ImGui::SetTooltip("Sets this player's FOV independently, using the same values as MCC's FOV slider. Weapon zoom and nameplates follow it. Vehicle FOV is unchanged.");
+                            }
+                            ImGui::EndDisabled();
+
+
+                            static const char* block_labels[block_count] = {
+                                "0: alias of 4p", "1: 1 player", "2: 2 players",
+                                "3: 3 players", "4: 4 players"
+                            };
+
+                            ImGui::TextDisabled("Edits write directly to live game memory and are saved automatically -");
+                            ImGui::TextDisabled("restored next time haloreach.dll loads, no patch needed.");
+
+                            if (ImGui::BeginTable("splitscreen_config", 6,
+                                                   ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg |
+                                                   ImGuiTableFlags_SizingFixedFit)) {
+                                ImGui::TableSetupColumn("Slot", ImGuiTableColumnFlags_WidthFixed, 120.0f);
+                                ImGui::TableSetupColumn("x0", ImGuiTableColumnFlags_WidthFixed, 80.0f);
+                                ImGui::TableSetupColumn("y0", ImGuiTableColumnFlags_WidthFixed, 80.0f);
+                                ImGui::TableSetupColumn("x1", ImGuiTableColumnFlags_WidthFixed, 80.0f);
+                                ImGui::TableSetupColumn("y1", ImGuiTableColumnFlags_WidthFixed, 80.0f);
+                                ImGui::TableSetupColumn("resolution", ImGuiTableColumnFlags_WidthFixed, 80.0f);
+                                ImGui::TableHeadersRow();
+
+                                for (int block = 0; block < block_count; ++block) {
+                                    ImGui::TableNextRow();
+                                    ImGui::TableSetColumnIndex(0);
+                                    ImGui::TextColored(ImVec4(0.6f, 0.8f, 1.0f, 1.0f), "%s", block_labels[block]);
+
+                                    for (int slot = 0; slot < slot_count; ++slot) {
+                                        int index = block * slot_count + slot;
+                                        auto p_entry = (unsigned char*)(hModule + base_offset + (__int64)index * entry_size);
+
+                                        float vals[4];
+                                        __int32 res;
+                                        memcpy(vals, p_entry, 16);
+                                        memcpy(&res, p_entry + 16, 4);
+
+                                        ImGui::TableNextRow();
+                                        ImGui::PushID(index);
+
+                                        ImGui::TableSetColumnIndex(0);
+                                        ImGui::Text("  slot %d", slot);
+
+                                        static const char* field_labels[4] = {"##x0", "##y0", "##x1", "##y1"};
+                                        static const char* field_names[4] = {"x0", "y0", "x1", "y1"};
+                                        for (int f = 0; f < 4; ++f) {
+                                            ImGui::TableSetColumnIndex(1 + f);
+                                            ImGui::SetNextItemWidth(-1);
+                                            if (ImGui::InputFloat(field_labels[f], &vals[f], 0.0f, 0.0f, "%.4f")) {
+                                                write_bytes(p_entry + f * 4, &vals[f], 4);
+                                                AlphaRing::SplitscreenConfigStore::Set(index, field_names[f], vals[f]);
+                                            }
+                                        }
+
+                                        ImGui::TableSetColumnIndex(5);
+                                        ImGui::SetNextItemWidth(-1);
+                                        if (ImGui::InputInt("##res", &res, 0, 0)) {
+                                            write_bytes(p_entry + 16, &res, 4);
+                                            AlphaRing::SplitscreenConfigStore::Set(index, "res", (float)res);
+                                        }
+
+                                        ImGui::PopID();
+                                    }
+                                }
+                                ImGui::EndTable();
+                            }
+                        }
+                    }
+
+                    if (ImGui::Button("Dump Splitscreen Config Table to Log")) {
+                        if (hModule == 0) {
+                            LOG_ERROR("Dump Splitscreen Config Table: haloreach.dll not loaded");
+                        } else {
+                            LOG_INFO("=== c_splitscreen_config::m_config_table @ base+0x{:X} ===", base_offset);
+
+                            for (int block = 0; block < block_count; ++block) {
+                                for (int slot = 0; slot < slot_count; ++slot) {
+                                    int index = block * slot_count + slot;
+                                    auto p_entry = (unsigned char*)(hModule + base_offset + (__int64)index * entry_size);
+
+                                    float f0, f1, f2, f3;
+                                    __int32 res;
+                                    memcpy(&f0, p_entry + 0, 4);
+                                    memcpy(&f1, p_entry + 4, 4);
+                                    memcpy(&f2, p_entry + 8, 4);
+                                    memcpy(&f3, p_entry + 12, 4);
+                                    memcpy(&res, p_entry + 16, 4);
+
+                                    LOG_INFO("block {} slot {} (entry {}, offset 0x{:X}): raw=({:.4f}, {:.4f}, {:.4f}, {:.4f}) res={}",
+                                              block, slot, index, base_offset + (__int64)index * entry_size, f0, f1, f2, f3, res);
+                                }
+                            }
+
+                            LOG_INFO("=== end dump ===");
+                        }
+                    }
+
+                    if (ImGui::IsItemHovered())
+                        ImGui::SetTooltip("Reads the live, unpatched-if-not-toggled bytes directly from haloreach.dll and logs them. Run this BEFORE toggling any Remove Black Bar checkbox to capture true defaults.");
+
+                    // Per-resolution HUD FOV/scale lookup table (the runtime-loaded map/tag
+                    // data D1F6F0/D1F6F4 are read from inside UpdatePlayerHudView, RVA
+                    // 0x2D94BC - not visible in Ghidra's static view, since it's content
+                    // data loaded at runtime, not baked into the DLL). Replicates the exact
+                    // addressing chain from that function's disassembly: per-player-slot
+                    // token -> HUD profile category -> candidate-resolution row select
+                    // (bitmask match against the row's own flags, same as FUN_1802d91bc) ->
+                    // raw (int) width/height at the row's +0x94/+0x98. Read-only, no writes
+                    // to game memory - only needs an active splitscreen game so the
+                    // per-player view container is populated.
+                    if (ImGui::Button("Dump Resolution/FOV Table to Log")) {
+                        if (hModule == 0) {
+                            LOG_ERROR("Dump Resolution/FOV Table: haloreach.dll not loaded");
+                        } else {
+                            typedef unsigned int (*GetSplitscreenSlotToken_t)(int);
+                            typedef int (*ResolveHudProfile_t)(unsigned int);
+                            typedef int (*SelectResolutionRow_t)(void*, int, unsigned char);
+                            auto GetSplitscreenSlotToken = (GetSplitscreenSlotToken_t)(hModule + 0x53EC8);
+                            auto ResolveHudProfile = (ResolveHudProfile_t)(hModule + 0x2C2F60);
+                            auto SelectResolutionRow = (SelectResolutionRow_t)(hModule + 0x2D91BC);
+
+                            __int64 container = *(__int64*)(hModule + 0x4E38C68);
+                            if (container == 0) {
+                                LOG_INFO("Dump Resolution/FOV Table: no live per-player view container yet (not in a game?)");
+                            } else {
+                                void* viewContext = *(void**)(hModule + 0x4E389A8);
+                                int candidates[] = {0, 1, 2, 3, 5};
+
+                                LOG_INFO("=== HUD FOV/scale table dump ===");
+
+                                for (int slot = 0; slot < 4; ++slot) {
+                                    unsigned int token = GetSplitscreenSlotToken(slot);
+                                    int category = ResolveHudProfile(token);
+
+                                    unsigned int uVar11 = *(unsigned int*)(container + 4);
+                                    __int64 localB8 = (__int64)uVar11 + (__int64)category * 0x14d;
+                                    __int64 poolBase1 = *(__int64*)(hModule + 0x4E39F20 + (size_t)(uVar11 >> 0x1c) * 8);
+
+                                    if (poolBase1 == 0) {
+                                        LOG_INFO("slot={} token={:#x} category={} - poolBase1 null, skipping", slot, token, category);
+                                        continue;
+                                    }
+
+                                    int rowCount = *(int*)(poolBase1 + 0x2dc + localB8 * 4);
+                                    if (rowCount < 1) {
+                                        LOG_INFO("slot={} token={:#x} category={} - no rows (rowCount={})", slot, token, category, rowCount);
+                                        continue;
+                                    }
+
+                                    unsigned int categoryBase = *(unsigned int*)(poolBase1 + 0x2e0 + localB8 * 4);
+                                    __int64 poolBase2 = *(__int64*)(hModule + 0x4E39F20 + (size_t)(categoryBase >> 0x1c) * 8);
+
+                                    if (poolBase2 == 0) {
+                                        LOG_INFO("slot={} category={} - poolBase2 null, skipping", slot, category);
+                                        continue;
+                                    }
+
+                                    for (int candidateRes : candidates) {
+                                        int rowIndex = SelectResolutionRow(viewContext, category, (unsigned char)candidateRes);
+                                        __int64 rowPtr = poolBase2 + ((__int64)rowIndex * 0x43 + categoryBase) * 4;
+
+                                        int rawW, rawH;
+                                        memcpy(&rawW, (void*)(rowPtr + 0x94), 4);
+                                        memcpy(&rawH, (void*)(rowPtr + 0x98), 4);
+
+                                        LOG_INFO("slot={} candidateRes={} -> rowIndex={}/{} rawW={} rawH={} (x1.2419146 if res==2: {:.2f})",
+                                                 slot, candidateRes, rowIndex, rowCount, rawW, rawH, (float)rawW * 1.2419146f);
+                                    }
+                                }
+
+                                LOG_INFO("=== end dump ===");
+                            }
+                        }
+                    }
+                    if (ImGui::IsItemHovered())
+                        ImGui::SetTooltip("Reads the real per-resolution HUD FOV/scale table values (what D1F6F0/D1F6F4 are drawn from) for every candidate resolution, per slot. Run this while actually in a splitscreen game.");
+                }
 
                 ImGui::EndTabItem();
             }
