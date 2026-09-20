@@ -1,5 +1,6 @@
 #include "CPatch.h"
 #include "CPatchSet.h"
+#include <cstring>
 #include <Windows.h>
 
 bool CPatch::apply(void *dst, const void *src, size_t size, void *backup)  {
@@ -28,8 +29,16 @@ bool CPatch::setState(bool state) {
 
 bool CPatch::apply()  {
     auto dst = (void*)(m_parent->moduleAddress() + m_offset);
-    if (m_enabled)
+    if (m_enabled) {
+        // Idempotent: a redundant apply() while already enabled (e.g.
+        // CModule::load_module restoring a saved "on" state via setState(),
+        // then CPatchSet::apply() sweeping every enabled patch again) must not
+        // recapture m_backup from the bytes this same patch just wrote - that
+        // would silently replace a correctly captured stock backup with the
+        // patched pattern itself, making a later disable restore nothing.
+        if (memcmp(dst, m_data.data(), m_data.size()) == 0)
+            return true;
         return apply(dst, m_data.data(), m_data.size(), m_backup.data());
-    else
+    } else
         return apply(dst, m_backup.data(), m_backup.size());
 }

@@ -3,6 +3,7 @@
 #include "common.h"
 
 #include "global/Global.h"
+#include "mcc/module/patch/SplitscreenConfigStore.h"
 
 namespace HaloReach::Entry::BlackBars {
     typedef unsigned __int64 (*GetSplitscreenPlayerCount_t)();
@@ -34,6 +35,13 @@ namespace HaloReach::Entry::BlackBars {
     // original when both slots share bounds (the default), and correctly
     // handles independently-customized or fully-removed bars per slot.
     // 1p/3p/4p are untouched - falls through to the original function.
+    //
+    // While Left/Right is the ACTIVE layout (derived per frame, never stored
+    // over the user's painter setting): 2p draws nothing, since the stock
+    // horizontal-strip bars would cover the other player's half; 3p draws only
+    // a full-height centre divider plus a divider between players 2 and 3 on
+    // the right half. The stock 3p branch cannot be reused - it sizes player 1's
+    // pillarbox bars from entry 8, not from the 3p block.
     HaloReachEntry(entry, OFFSET_HALOREACH_PF_DRAW_SPLITSCREEN_BLACK_BARS, void, detour) {
         if (AlphaRing::Global::Global()->disable_splitscreen_bars_debug)
             return;
@@ -43,7 +51,13 @@ namespace HaloReach::Entry::BlackBars {
         auto GetSplitscreenPlayerCount = (GetSplitscreenPlayerCount_t)(hModule + OFFSET_HALOREACH_PF_GET_SPLITSCREEN_PLAYER_COUNT);
         int player_count = (int)GetSplitscreenPlayerCount();
 
-        if (player_count != 2) {
+        bool leftRight = AlphaRing::SplitscreenConfigStore::ResolveActiveLayout(player_count)
+                         == AlphaRing::SplitscreenConfigStore::ActiveLayout::LeftRight;
+
+        if (leftRight && player_count == 2)
+            return;
+
+        if (!leftRight && player_count != 2) {
             ((detour_t)entry.m_pOriginal)();
             return;
         }
@@ -54,6 +68,23 @@ namespace HaloReach::Entry::BlackBars {
 
         short screenWidth = *(short*)(hModule + 0xB43A90);
         short screenHeight = *(short*)(hModule + 0xB43A94);
+
+        if (leftRight) {
+            // Same 2px-band arithmetic as the stock 3p/4p dividers.
+            short halfW = (short)(screenWidth >> 1);
+            short halfH = (short)(screenHeight >> 1);
+
+            RenderSetup1(0, 1);
+            RenderSetup2(0);
+
+            ScreenRect vertical{ 0, (short)(halfW - 1), screenHeight, (short)(screenWidth - halfW + 1) };
+            DrawFilledRect(&vertical, 0xff000000);
+
+            // Players 2 and 3 share the right half (kLeftRight3P).
+            ScreenRect rightHorizontal{ (short)(halfH - 1), halfW, (short)(screenHeight - halfH + 1), screenWidth };
+            DrawFilledRect(&rightHorizontal, 0xff000000);
+            return;
+        }
 
         auto configFor = [&](int slot) -> SplitscreenViewConfig* {
             return (SplitscreenViewConfig*)(hModule + 0xB43C40 + (size_t)(slot + 2 * 4) * 20);
