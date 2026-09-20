@@ -20,6 +20,17 @@ namespace AlphaRing::Hook {
         return distro == WindowsStore;
     }
 
+    // Detects Wine/Proton by probing for a function ntdll only exports under Wine.
+    // Cheap, reliable, and avoids depending on env vars Proton may or may not set.
+    bool IsWine() {
+        static const bool is_wine = [] {
+            HMODULE hNtdll = GetModuleHandleA("ntdll.dll");
+            return hNtdll != nullptr && GetProcAddress(hNtdll, "wine_get_version") != nullptr;
+        }();
+
+        return is_wine;
+    }
+
     bool Initialize() {
         bool result;
         char buffer[1024];
@@ -29,6 +40,7 @@ namespace AlphaRing::Hook {
         assertm(result, "failed to initialize minhook");
 
 		LOG_INFO("Initializing AlphaRing...");
+        LOG_INFO("Running under Wine/Proton: {}", IsWine());
         LOG_INFO("Created by WinterSquire, updated by thejackbitt\n");
 		LOG_WARNING("** CURRENTLY IN BETA - STRAP IN FOR A BUMPY RIDE **");
 		LOG_WARNING(" == This version only supports the steam version of the game ==");

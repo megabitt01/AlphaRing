@@ -11,4 +11,10 @@
 #undef NDEBUG
 #include <assert.h>
 
-#define assertm(exp, msg) assert(((void)msg, (exp)))
+#define assertm(exp, msg) \
+    do { \
+        if (!(exp)) { \
+            AlphaRing::Log::AssertFailure(#exp, msg, __FILE__, __LINE__); \
+        } \
+        assert(((void)msg, (exp))); \
+    } while (0)

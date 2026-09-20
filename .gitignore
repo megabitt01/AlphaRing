@@ -4,3 +4,4 @@ out/
 dep/
 vcpkg/
 vcpkg_installed/
+.claude/

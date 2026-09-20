@@ -22,6 +22,8 @@ namespace MCC {
     }
 
     bool Initialize() {
+        LOG_INFO("MCC: initializing");
+
         bool result;
         CGameEngine** ppGameEngine;
         CGameManager* game_manager;
@@ -40,13 +42,19 @@ namespace MCC {
         assertm(game_manager != nullptr, "MCC: failed to get pGameManager");
         assertm(device_manager != nullptr, "MCC: failed to get ppDeviceManager");
 
+        LOG_DEBUG("MCC: resolved offsets");
+
         result = CGameEngine::Initialize(ppGameEngine);
 
         assertm(result, "MCC: failed to initialize GameEngine");
 
+        LOG_DEBUG("MCC: initialized GameEngine");
+
         result = CGameManager::Initialize(game_manager);
 
         assertm(result, "MCC: failed to initialize GameManager");
+
+        LOG_DEBUG("MCC: initialized GameManager");
 
         assertm(GameManager() != nullptr, "MCC:Splitscreen: GameManager is null"); // static instance
 
@@ -54,17 +62,25 @@ namespace MCC {
 
         assertm(result, "MCC: failed to initialize DeviceManager");
 
+        LOG_DEBUG("MCC: initialized DeviceManager");
+
         if (!Module::Initialize())
         {
+            LOG_ERROR("MCC: failed to initialize Module");
 			MessageBox(nullptr, "MCC: failed to initialize Module", "Error", MB_OK);
             return false;
         }
 
+        LOG_DEBUG("MCC: initialized Module");
+
         if (!Splitscreen::Initialize())
         {
+            LOG_ERROR("MCC: failed to initialize Splitscreen");
 			MessageBox(nullptr, "MCC: failed to initialize Splitscreen", "Error", MB_OK);
             return false;
         }
+
+        LOG_DEBUG("MCC: initialized Splitscreen");
 
 		////Ask user if they want to enable network
   //      if (MessageBox(nullptr, "Would you like to enable network?", "Network", MB_YESNO) == IDYES)
@@ -75,6 +91,8 @@ namespace MCC {
   //              return false;
   //          }
   //      }
+
+        LOG_INFO("MCC: initialized successfully");
 
         return true;
     }

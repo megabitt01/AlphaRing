@@ -16,33 +16,33 @@ static bool Initialize() {
 
     assertm(result, "failed to initialize hook");
 
-    //LOG_INFO("Initialized AlphaRing.");
-    
+    LOG_INFO("Initialized hook.");
+
     result = AlphaRing::Filesystem::Init();
 
     assertm(result, "failed to initialize filesystem");
 
-	//LOG_INFO("Initialized filesystem.");
+	LOG_INFO("Initialized filesystem.");
 
     result = AlphaRing::Input::Init();
 
     assertm(result, "failed to initialize input");
 
-	//LOG_INFO("Initialized input.");
+	LOG_INFO("Initialized input.");
 
     result = AlphaRing::Render::Initialize();
 
     assertm(result, "failed to initialize render");
 
-	//LOG_INFO("Initialized render.");
+	LOG_INFO("Initialized render.");
 
     result = MCC::Initialize();
 
     assertm(result, "failed to initialize mcc");
 
-	//LOG_INFO("Initialized mcc.");
+	LOG_INFO("Initialized mcc.");
 
-    //LOG_INFO("Game Version[{}]: {}", AlphaRing::Hook::IsWS() ? "Windows Store" : "Steam", GAME_VERSION);
+    LOG_INFO("AlphaRing initialization complete.");
 
     return true;
 }
