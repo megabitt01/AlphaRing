@@ -18,7 +18,7 @@ bool Entry::update(__int64 hModule) {
 
     if (hModule == 0) return false;
 
-    if (m_target) MH_RemoveHook((void*)m_target, true);
+    remove();
 
     m_target = m_offset + hModule;
 
@@ -31,6 +31,13 @@ bool Entry::update(__int64 hModule) {
     if (status != MH_OK) return false;
 
     return true;
+}
+
+void Entry::remove() {
+    if (m_target == 0) return;
+    MH_RemoveHook((void*)m_target, true);
+    m_target = 0;
+    m_pOriginal = nullptr;
 }
 
 void EntrySet::append(Entry *entry) {
@@ -46,4 +53,8 @@ bool EntrySet::update(__int64 hModule) {
     for (int i = 0; i < entryCount; ++i) result &= entryArray[i]->update(hModule);
 
     return result;
+}
+
+void EntrySet::remove() {
+    for (int i = 0; i < entryCount; ++i) entryArray[i]->remove();
 }
