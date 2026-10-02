@@ -229,6 +229,8 @@ const OffsetPatterns kHaloreachPatterns[] = {
     {&OFFSET_HALOREACH_DAT_HUD_SCREEN_SCALE_AND_OFFSET, 0xd1f790, Data, {
         Rel("F3 0F 58 05 ?? ?? ?? ?? F3 44 0F 10 65 97 45 33 D2 F3 44 0F 10 55 9B", 0x4, 0x8, 0x0),
         Rel("F3 0F 10 05 ?? ?? ?? ?? 48 8D 55 A0 F3 0F 10 0D ?? ?? ?? ?? 41 B8 10 00 00 00", 0x4, 0x8, 0x0)}},
+    {&OFFSET_HALOREACH_V_HUD_WIDGET_TRANSFORM_RETURN, 0x2d9443, Code, {
+        At("41 FF D2 84 C0 74 51 48 8B 0D ?? ?? ?? ?? 48 85 C9 74 ?? 48 8B 01", 0x3)}},
     {&OFFSET_HALOREACH_PF_GET_SPLITSCREEN_SLOT_TOKEN, 0x53ec8, Code, {
         At("83 C8 FF 83 F9 03 77 27 8B 15 ?? ?? ?? ?? 65 48 8B 04 25 58 00 00 00 41 B8 58 01 00 00 48 63 C9 48 8B 04 D0 4A 8B 04 00 8B 84 88 B8 00 00 00", 0x0),
         Rel("E8 ?? ?? ?? ?? 48 8D 4F 04 8B D8 33 D2 41 B8 9C 01 00 00 E8", 0x1, 0x5, 0x0)}},

@@ -21,3 +21,8 @@ DefOffset(OFFSET_HALO1_PV_SCREEN_BOUNDS, 0x1B7D3DC) // int16 top, left, bottom, 
 DefOffset(OFFSET_HALO1_SCOPE_GRID_SET, 0xAC73DC) // in the scope effects' texture transforms: the view's grid place is set
 DefOffset(OFFSET_HALO1_PF_FILL_RECT, 0xAC63F4) // void (short rect[4] {top, left, bottom, right}, unsigned argb)
 DefOffset(OFFSET_HALO1_PV_ANNIVERSARY_SHOWN, 0x1B7AA84) // int, nonzero while Anniversary graphics are on screen (Back switches it; 0x745B0 is bool () "Classic")
+
+// Per-player HUD (mcc/hud, module/entry/halo1/hud.cpp)
+DefOffset(OFFSET_HALO1_PF_HUD_CALCULATE_POINT, 0xB56A58) // (player, placement, header, -, bool, float, short2* out, int mcc element)
+DefOffset(OFFSET_HALO1_PV_HUD_VIEWPORT_BOUNDS, 0x29AF2F0) // int16 top, left, bottom, right of the view being drawn
+DefOffset(OFFSET_HALO1_PV_HUD_DRAWING_PLAYER, 0x29AF2B8) // int16 local player whose HUD is being drawn

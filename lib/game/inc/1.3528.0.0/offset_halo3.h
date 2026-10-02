@@ -56,6 +56,10 @@ DefOffset(OFFSET_HALO3_PF_VIEW_SETUP, 0x282EC4) // void (view*, int slot, int pl
 DefOffset(OFFSET_HALO3_PF_TITLE_SAFE, 0x272010) // void (short rect[4] {top, left, bottom, right}) - the screen's title-safe box, 5% in from each edge
 DefOffset(OFFSET_HALO3_VIEW_SETUP_TITLE_SAFE_RETURN, 0x282F10) // where the view setup's call to it returns
 
+// Per-player HUD (mcc/hud)
+DefOffset(OFFSET_HALO3_PV_HUD_DRAWING_PLAYER, 0xAD317C) // int user whose HUD is being drawn
+DefOffset(OFFSET_HALO3_PV_HUD_CANVAS, 0xAD3148) // float width, height of that user's HUD virtual canvas
+
 struct halo3_teb_data_definition {
     void* zero;
     void* actor;

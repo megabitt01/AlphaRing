@@ -32,3 +32,7 @@ DefOffset(OFFSET_HALO3ODST_PF_HUD_LAYOUT, 0x3284B4) // record* - +0x94 int canva
 DefOffset(OFFSET_HALO3ODST_PF_VIEW_SETUP, 0x2ABAC8) // void (view*, int slot, int players, int, int, void*) - as Halo 3's
 DefOffset(OFFSET_HALO3ODST_PF_TITLE_SAFE, 0x29F634) // void (short rect[4]) - the screen's title-safe box, 5% in from each edge
 DefOffset(OFFSET_HALO3ODST_VIEW_SETUP_TITLE_SAFE_RETURN, 0x2ABB14) // where the view setup's call to it returns
+
+// Per-player HUD (mcc/hud); see offset_halo3.h
+DefOffset(OFFSET_HALO3ODST_PV_HUD_DRAWING_PLAYER, 0xB1AA04)
+DefOffset(OFFSET_HALO3ODST_PV_HUD_CANVAS, 0xB1A9D8)

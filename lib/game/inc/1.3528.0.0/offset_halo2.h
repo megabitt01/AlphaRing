@@ -38,3 +38,11 @@ DefOffset(OFFSET_HALO2_PV_SPLIT_MODE, 0x165C168) // int - the frame's grid mode,
 DefOffset(OFFSET_HALO2_PV_SPLIT_VIEWS, 0x165C16C) // int - the frame's views
 DefOffset(OFFSET_HALO2_PV_ANNIVERSARY, 0xE21280) // int, nonzero while the Anniversary renderer is up
 DefOffset(OFFSET_HALO2_PV_CLASSIC_SHOWN, 0x1E8CE73) // bool, the player switched to Classic graphics
+
+// Per-player HUD (mcc/hud). With "HUD anchor: Centered" on a screen wider than 16:9, 0x954DD0 insets the whole-screen
+// HUD frame to a centred 16:9 box, which 0x7E0A40 splits among the players.
+DefOffset(OFFSET_HALO2_PF_HUD_ASPECT_LOCK, 0x954DF2) // je (74 3C) that skips the centred 16:9 HUD frame when the profile's aspect lock is off
+DefOffset(OFFSET_HALO2_PV_HUD_ASPECT_LOCK, 0x197EE40) // bool: the profiles' LockMaxAspectRatio ("HUD anchor: Centered"), the last loaded wins
+DefOffset(OFFSET_HALO2_PV_HUD_DRAWING_PLAYER, 0x165C398) // int local player whose HUD is being drawn
+DefOffset(OFFSET_HALO2_PV_HUD_VIEW_BOUNDS, 0x165C298) // int16 top, left, bottom, right of that player's HUD (window bounds)
+DefOffset(OFFSET_HALO2_PV_HUD_UNIT_SCALE, 0xE14F28) // float: pixels per HUD offset unit (times the element's scale)
