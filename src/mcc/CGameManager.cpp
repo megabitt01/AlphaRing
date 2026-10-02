@@ -87,6 +87,9 @@ bool CGameManager::Initialize(CGameManager* mng) {
         {pGameManager->table->set_state, set_state, (void**)&ppOriginal.set_state},
         {pGameManager->table->game_restart, game_restart, (void**)&ppOriginal.game_restart},
         {pGameManager->table->game_setup, game_setup, (void**)&ppOriginal.game_setup},
+        {pGameManager->table->get_hud_element_anchor, get_hud_element_anchor, (void**)&ppOriginal.get_hud_element_anchor},
+        {pGameManager->table->get_hud_element_transform, get_hud_element_transform, (void**)&ppOriginal.get_hud_element_transform},
+        {pGameManager->table->transform_hud_color, transform_hud_color, (void**)&ppOriginal.transform_hud_color},
     });
 }
 

@@ -7,6 +7,8 @@
 
 #include "CGameEngine.h"
 
+#include <cstddef>
+
     struct CGameManager {
     public:
         struct Profile_t {
@@ -48,6 +50,11 @@
         static bool __fastcall get_xbox_user_id(CGameManager* self, __int64* pId, wchar_t *pName, int size, int index);
         static bool __fastcall get_key_state(CGameManager* self, DWORD index, input_data_t* p_input);
         static CGamepadMapping* __fastcall retrive_gamepad_mapping(CGameManager* self, __int64 xid);
+
+        // CGameManagerHud.cpp
+        static bool __fastcall get_hud_element_anchor(CGameManager* self, int element, int* anchor);
+        static bool __fastcall get_hud_element_transform(CGameManager* self, int element, float* dx, float* dy, float* scale);
+        static unsigned __fastcall transform_hud_color(CGameManager* self, int user, unsigned argb);
 
         static void __fastcall set_state(CGameManager* self, eState state);
         static void* __fastcall game_restart(CGameManager* self, int type, const char* reason);
@@ -93,7 +100,15 @@
             // 0x2C0i64 get_xbox_user_id
             bool (__fastcall* get_xbox_user_id)(CGameManager* self, __int64* pId, wchar_t* pName, int size, int index);
 
-            char pad5[0xD8];
+            char pad5[0x30];
+
+            // 0x2F8..0x308: the games ask MCC for an override of each HUD element before placing it, and
+            // Halo 3, ODST and Reach pass every HUD colour, with the user it's drawn for, through +0x308.
+            bool (__fastcall* get_hud_element_anchor)(CGameManager* self, int element, int* anchor);
+            bool (__fastcall* get_hud_element_transform)(CGameManager* self, int element, float* dx, float* dy, float* scale);
+            unsigned (__fastcall* transform_hud_color)(CGameManager* self, int user, unsigned argb);
+
+            char pad6[0x90];
 
             // 0x3A0i64 retrieve gamepad mapping
             CGamepadMapping* (__fastcall* retrive_gamepad_mapping)(CGameManager* self,  __int64 xid);
@@ -104,6 +119,11 @@
         FunctionTable* table;
         Microsoft::Xbox::Telemetry::CELL* cell;
     };
+
+static_assert(offsetof(CGameManager::FunctionTable, get_hud_element_anchor) == 0x2F8);
+static_assert(offsetof(CGameManager::FunctionTable, get_hud_element_transform) == 0x300);
+static_assert(offsetof(CGameManager::FunctionTable, transform_hud_color) == 0x308);
+static_assert(offsetof(CGameManager::FunctionTable, retrive_gamepad_mapping) == 0x3A0);
 
 extern CGameManager* pGameManager;
 inline CGameManager* GameManager() { return pGameManager; }
