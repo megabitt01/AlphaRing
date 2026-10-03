@@ -10,6 +10,8 @@
 #include "log/MatchLog.h"
 #include "LeftRight.h"
 
+#include <atomic>
+
 namespace MCC::Splitscreen {
     DefDetourFunction(__int64, __fastcall, get_index_by_xuid, void* a1, __int64 xuid) {
         auto p_setting = AlphaRing::Global::MCC::Splitscreen();
@@ -39,6 +41,10 @@ namespace MCC::Splitscreen {
 
         return true;
     }
+
+    static std::atomic<int> s_anniversary_quad_game{-1}; // the Halo CE / Halo 2 game whose mission started with it
+
+    bool AnniversaryQuadActive(int game) { return s_anniversary_quad_game == game; }
 
     ClassicGraphicsScope::ClassicGraphicsScope(unsigned char* game_options, int game) {
         auto p_setting = AlphaRing::Global::MCC::Splitscreen();

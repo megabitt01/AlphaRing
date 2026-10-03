@@ -21,3 +21,10 @@ namespace MCC::Splitscreen {
         unsigned char m_saved = 0;
     };
 }
+
+namespace MCC::Splitscreen {
+    // Halo CE and Halo 2 with 3-4 players in Anniversary graphics: whether the mission running in `game`
+    // (CGameGlobal::Halo1 or Halo2) started with them chosen. Such a mission draws its 3-4 views whenever
+    // Anniversary graphics are on screen.
+    bool AnniversaryQuadActive(int game);
+}
