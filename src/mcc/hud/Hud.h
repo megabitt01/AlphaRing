@@ -37,9 +37,11 @@ namespace MCC::Hud {
 
     constexpr int kPlayers = 4;
 
-    // A player's settings: read by the games' HUD drawing, edited by the HUD window, and what a
-    // profile would save and load. A default PlayerHud changes nothing.
-    PlayerHud& Player(int player);
+    // A player's settings, as the games' HUD drawing reads them: a copy, and a whole new set put in
+    // place at once (the HUD window publishes its edits so). What a profile would save and load. A
+    // default PlayerHud changes nothing.
+    PlayerHud Settings(int player);
+    void SetSettings(int player, const PlayerHud& settings);
 
     // Host callbacks (CGameManagerHud.cpp): true when `element` of the player whose HUD is being
     // drawn has an override, composed onto MCC's own values. `caller`: the game's return address.
