@@ -336,6 +336,21 @@ Multipliers: high `3.0` (light-count group `10.0`), mid `1.0`, low `0.5` (water 
 
 **Not done:** a forced-2P tier as a middle setting for 3P/4P (deliberately deferred — same 5 bytes, would need mutual exclusion with the 1P patch). Open: a per-game Performance-preset capture (low/mid tier values are currently derived, not measured); frame-cost measurement; portability to other Halo titles.
 
+## Per-player HUD (Halo CE, 2, 3, ODST, Reach)
+
+**Known — mechanism.** MCC's host object (`CGameManager`) has three HUD methods the games call while drawing: `+0x2F8` `get_hud_element_anchor(element, int* anchor)`, `+0x300` `get_hud_element_transform(element, float* dx, float* dy, float* scale)` and `+0x308` `transform_hud_color(user, argb)`; MCC's own versions back a feature-flagged HUD editor and the colour-blind filter. Halo CE, 2, 3, ODST and Reach ask for a transform right before placing each HUD element (MCC element ids: 1 motion sensor, 2-5 grenades, 6 shield/health, 7 weapon, 9 crosshair, 11 equipment, 12 messages) and keep the player being drawn in a global; Halo 3, ODST and Reach also pass every HUD colour, with its user, through `+0x308`. `src/mcc/hud` answers for the drawing player, on top of MCC's answer.
+
+| Game | Drawing player | Offset units |
+| --- | --- | --- |
+| Halo CE | `0x29AF2B8` (int16) | host offsets go to x only, so offsets are added by a hook on `hud_calculate_point` (`0xB56A58`) to each placed point, in the view being drawn (`0x29AF2F0`); scale and hiding still go through the host |
+| Halo 2 | `0x165C398` | offset × unit scale (`0xE14F28`) × the element's scale = pixels, in the view's bounds (`0x165C298`, int16 t, l, b, r) |
+| Halo 3 | `0xAD317C` | the HUD's virtual canvas (`0xAD3148`, float width, height) |
+| ODST | `0xB1AA04` | canvas `0xB1A9D8` |
+| Reach | `0xD1F71C` | canvas `0xD1F6F0` |
+
+- **Reach asks for the motion sensor twice.** `UpdatePlayerHudView` (`0x2D94BC`) asks once per view (call at `0x2D96B7`) and bakes the answer into the radar centre the dish and blips draw from (`0xD1F6FC`...); the per-widget lookup `0x2D93A4` (widget anchor string_id → element: `0x80630` motion sensor → 1, `0x80631` → 2 grenades, `0x80632` → 6 shield, `0x80633` → 7 weapon, `0x80634` → 9 crosshair, `0x80635` → 11 equipment) asks again, returning to `0x2D9443`. That second ask is left to MCC, or a dish widget would get its offset and scale twice.
+- **Halo 2 and "HUD anchor: Centered"** (the profiles' `LockMaxAspectRatio`, a global at `0x197EE40`, the last loaded profile's). On a screen wider than 16:9, `0x954DD0` insets the whole-screen HUD frame to a centred 16:9 box and `0x7E0A40` splits that box among the players, so every split-screen HUD bunches toward the middle of the screen and the crosshairs leave their views' centres. The embedded patch "HUD at screen edges" (`0x954DF2` `74` → `EB`) skips the inset - MCC's "HUD anchor: Edge" - with any number of players. Halo 3's `chud_draw_begin` (`0x2ED0D4`) insets each player's own view instead, so it doesn't bunch.
+
 ## Other durable findings
 
 ### `CPatch` backup-capture idempotency (generic, not Reach-specific)
