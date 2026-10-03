@@ -49,4 +49,7 @@ namespace MCC::Hud {
 
     // Halo CE: pixels to move `element` of `player`'s HUD within a view of the given size.
     bool OffsetCE(int player, int game_element, float view_width, float view_height, float* dx, float* dy);
+
+    // The HUD window (overlay menu bar).
+    void ImGuiContext();
 }

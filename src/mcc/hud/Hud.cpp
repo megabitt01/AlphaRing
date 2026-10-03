@@ -12,8 +12,11 @@
 #include <offset_halo3odst.h>
 #include <offset_haloreach.h>
 
+#include "imgui.h"
+
 #include <algorithm>
 #include <cmath>
+#include <cstdio>
 #include <iterator>
 
 // Halo CE's placement hook (module/entry/halo1/hud.cpp)
@@ -237,5 +240,120 @@ namespace MCC::Hud {
         if (user < 0 || user >= kPlayers) return argb;
         auto& player = s_players[user];
         return player.recolor ? Recolor(argb, player.hue, player.strength) : argb;
+    }
+
+    // --- the HUD window ---------------------------------------------------------------------------
+
+    static const char* kElementNames[kElementCount] = {"Motion tracker", "Shield / health", "Weapon / ammo",
+                                                       "Grenades", "Crosshair", "Equipment", "Messages"};
+
+    static const char* const kAreaNames[kAreaCount] = {"Game default", "Screen edges", "21:9 box", "16:9 box",
+                                                       "4:3 box"};
+
+    static void PlayerTab(int p) {
+        auto& player = Player(p);
+        constexpr ImGuiSliderFlags kClamp = ImGuiSliderFlags_AlwaysClamp;
+
+        ImGui::SeparatorText("Size");
+        ImGui::SetNextItemWidth(260);
+        ImGui::SliderFloat("Whole HUD", &player.scale, 0.25f, 3.0f, "%.2fx", kClamp);
+
+        // presets by the shape of screen the player looks at, for views wider than their eyes follow
+        ImGui::SetNextItemWidth(260);
+        ImGui::Combo("HUD area", &player.area, kAreaNames, kAreaCount);
+        ImGui::SameLine();
+        ImGui::TextDisabled("(?)");
+        if (ImGui::IsItemHovered())
+            ImGui::SetTooltip("Lays the HUD out in a box of this shape in the middle of the player's view: pull it\n"
+                              "in from the far edges of an ultrawide (21:9) or multi-monitor view to a TV-shaped\n"
+                              "(16:9) or classic (4:3) box, or spread Halo CE's HUD (always a 4:3 box) out to the\n"
+                              "screen edges.");
+
+        ImGui::SeparatorText("Colour (Halo 3, ODST, Reach)");
+        ImGui::Checkbox("Recolour this player's HUD", &player.recolor);
+        ImGui::BeginDisabled(!player.recolor);
+        ImGui::ColorButton("##preview", ImColor::HSV(player.hue / 360.0f, 0.75f, 1.0f), ImGuiColorEditFlags_NoTooltip,
+                           ImVec2(ImGui::GetFrameHeight() * 2, ImGui::GetFrameHeight()));
+        ImGui::SameLine();
+        ImGui::SetNextItemWidth(260);
+        ImGui::SliderFloat("Hue", &player.hue, 0.0f, 360.0f, "%.0f", kClamp);
+        ImGui::SetNextItemWidth(260);
+        ImGui::SliderFloat("Strength", &player.strength, 0.0f, 1.0f, "%.2f", kClamp);
+        ImGui::EndDisabled();
+        ImGui::TextDisabled("Whites and enemy reds keep their colour.");
+
+        ImGui::SeparatorText("Elements");
+        if (ImGui::BeginTable("elements", 5, ImGuiTableFlags_SizingFixedFit | ImGuiTableFlags_RowBg)) {
+            ImGui::TableSetupColumn("Element");
+            ImGui::TableSetupColumn("Left / right");
+            ImGui::TableSetupColumn("Down / up");
+            ImGui::TableSetupColumn("Size");
+            ImGui::TableSetupColumn("Hide");
+            ImGui::TableHeadersRow();
+            for (int e = 0; e < kElementCount; ++e) {
+                auto& l = player.elements[e];
+                ImGui::PushID(e);
+                ImGui::TableNextRow();
+                ImGui::TableSetColumnIndex(0);
+                ImGui::TextUnformatted(kElementNames[e]);
+                // the aim point doesn't move with the crosshair's picture, so it can only be resized or hidden
+                ImGui::BeginDisabled(e == Crosshair);
+                ImGui::TableSetColumnIndex(1);
+                ImGui::SetNextItemWidth(150);
+                ImGui::SliderFloat("##x", &l.x, -0.5f, 0.5f, "%+.2f", kClamp);
+                ImGui::TableSetColumnIndex(2);
+                ImGui::SetNextItemWidth(150);
+                ImGui::SliderFloat("##y", &l.y, -0.5f, 0.5f, "%+.2f", kClamp);
+                ImGui::EndDisabled();
+                ImGui::TableSetColumnIndex(3);
+                ImGui::SetNextItemWidth(130);
+                ImGui::SliderFloat("##scale", &l.scale, 0.25f, 3.0f, "%.2fx", kClamp);
+                ImGui::TableSetColumnIndex(4);
+                ImGui::Checkbox("##hide", &l.hidden);
+                ImGui::PopID();
+            }
+            ImGui::EndTable();
+        }
+        ImGui::TextDisabled("Offsets are fractions of the player's view. Messages move in Halo CE and Halo 2, equipment");
+        ImGui::TextDisabled("in Halo 3, ODST and Reach; Halo 2's shield moves with its motion tracker.");
+
+        ImGui::Spacing();
+        if (ImGui::Button("Reset this player")) player = PlayerHud();
+        ImGui::SameLine();
+        if (ImGui::Button("Copy to all players"))
+            for (auto& other : s_players) other = player;
+    }
+
+    static void Window() {
+        ImGui::TextWrapped("Move, resize, hide or recolour each player's HUD - in Halo CE, Halo 2, Halo 3, ODST and "
+                           "Halo Reach. Changes show up right away and last until MCC closes; they aren't saved.");
+        if (ImGui::BeginTabBar("players")) {
+            for (int p = 0; p < kPlayers; ++p) {
+                char label[16];
+                snprintf(label, sizeof(label), "Player %d", p + 1);
+                if (ImGui::BeginTabItem(label)) {
+                    PlayerTab(p);
+                    ImGui::EndTabItem();
+                }
+            }
+            ImGui::EndTabBar();
+        }
+    }
+
+    void ImGuiContext() {
+        static bool show_hud;
+
+        if (ImGui::BeginMainMenuBar()) {
+            ImGui::MenuItem("HUD", nullptr, &show_hud);
+            ImGui::EndMainMenuBar();
+        }
+
+        if (show_hud) {
+            // nothing of it is saved, its place in imgui.ini included
+            ImGui::SetNextWindowSize(ImVec2(760, 0), ImGuiCond_FirstUseEver);
+            if (ImGui::Begin("HUD", &show_hud, ImGuiWindowFlags_NoSavedSettings))
+                Window();
+            ImGui::End();
+        }
     }
 }
