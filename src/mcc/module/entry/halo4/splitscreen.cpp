@@ -13,8 +13,9 @@ namespace Halo4::Entry::Splitscreen {
     EntryFeature("Halo 4 Left/Right split screen", OFFSET_HALO4_PV_SPLITSCREEN_TABLE, OFFSET_HALO4_PV_SCREEN_SIZE,
                  OFFSET_HALO4_PF_SPLITSCREEN_PLAYER_COUNT, OFFSET_HALO4_PF_FILL_RECT, OFFSET_HALO4_PF_RT_POOL_RELEASE,
                  OFFSET_HALO4_PF_RT_POOL_INIT, OFFSET_HALO4_PF_RENDER_SETUP_1, OFFSET_HALO4_PF_RENDER_SETUP_2);
-    // A half's HUD only fits it with hud_fit.cpp's hooks (without them it keeps to the half's top half): on a build
-    // without one of them, none of these go in either and Halo 4 keeps its stock split.
+    // A half's HUD only fits it with hud_fit.cpp's hooks (without them it keeps to the half's top half), and Frame
+    // below runs from one of them: on a build without one of them, none of these go in either and Halo 4 keeps its
+    // stock split.
     const bool s_requires_hud_fit = (entry_feature->Requires(HudFit::Hooks()), true);
 
     // The bar painter sets the render state up itself before drawing (as Reach's does, blackbars.cpp).
@@ -71,12 +72,10 @@ namespace Halo4::Entry::Splitscreen {
             s_viewmodel_divide = divide + 3;
     }
 
-    Halo4SplitscreenEntry(entry_render, OFFSET_HALO4_PF_RENDER, void, render) {
-        __int64 module = entry_render.m_target - entry_render.m_offset;
+    void Frame(__int64 module) {
+        if (!entry_feature->Available()) return; // only with the hooks above and below
         LeftRight::Frame(kGame, module, s_state);
-        HudFit::Refresh(module);
         ViewmodelAspect(module, LeftRight::Active(LeftRight::Players(kGame, module)));
-        ((render_t)entry_render.m_pOriginal)();
     }
 
     Halo4SplitscreenEntry(entry_bars, OFFSET_HALO4_PF_DRAW_SPLITSCREEN_BARS, void, draw_bars) {
