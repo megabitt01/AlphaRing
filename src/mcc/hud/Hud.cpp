@@ -144,6 +144,26 @@ namespace MCC::Hud {
         return game_element >= 0 && game_element < 16 ? game.elements[game_element] : -1;
     }
 
+    // Halo 3, ODST and Reach ask for the motion sensor while they set each view's HUD up, before they store that
+    // view's canvas (Halo 3 0x2ED267, then 0x2ED40C; ODST 0x3287F5, then 0x328991; Reach 0x2D96B7, then 0x2D984E):
+    // the canvas then is still the previous view's. Every other element is asked for after, so each user's canvas
+    // is kept from those asks, and the motion sensor's ask gets its own view's, as of the frame before.
+    struct Canvas { float width, height; };
+    static std::atomic<Canvas> s_view_canvas[std::size(kGames)][kPlayers]; // {0, 0}: not seen yet
+
+    static void ViewCanvas(const Game& game, int user, int game_element, float* width, float* height) {
+        if (user < 0 || user >= kPlayers) return;
+        auto& kept = s_view_canvas[&game - kGames][user];
+        if (ElementOf(game, game_element) != MotionSensor) {
+            kept.store({*width, *height}, std::memory_order_relaxed);
+            return;
+        }
+        Canvas canvas = kept.load(std::memory_order_relaxed);
+        if (canvas.width <= 0.0f) return; // first frame: the game's
+        *width = canvas.width;
+        *height = canvas.height;
+    }
+
     // What `settings` do to one element of `game` in a view `aspect` wide per unit of height
     // (0: no area presets); false when nothing.
     static bool Effective(const Game& game, const PlayerHud& settings, int game_element, float aspect, float* x,
@@ -171,6 +191,9 @@ namespace MCC::Hud {
             ElementOf(*game, game_element) == MotionSensor)
             return false;
 
+        auto user_at = module + *game->drawing_user;
+        int user = game->user_is_short ? *(short*)user_at : *(int*)user_at;
+
         // the size of the drawing player's view: the HUD's virtual canvas, or pixels (Halo 2);
         // Halo CE takes only sizes from here (its offsets: OffsetCE)
         float width = 0.0f, height = 1.0f;
@@ -178,14 +201,13 @@ namespace MCC::Hud {
             auto canvas = (const float*)(module + *game->size); // width, height
             width = canvas[0];
             height = canvas[1];
+            ViewCanvas(*game, user, game_element, &width, &height);
         } else if (game->units == Units::Pixels) {
             auto& rect = *(const Splitscreen::LeftRight::Rect*)(module + *game->size);
             width = rect.right - rect.left;
             height = rect.bottom - rect.top;
         }
 
-        auto user_at = module + *game->drawing_user;
-        int user = game->user_is_short ? *(short*)user_at : *(int*)user_at;
         float aspect = height > 0.0f && (!game->box_is_area || game->box_is_area(module)) ? width / height : 0.0f;
         float x, y, s;
         if (!Effective(*game, Settings(user), game_element, aspect, &x, &y, &s)) return false;
