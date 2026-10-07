@@ -5,6 +5,7 @@
 #include "common.h"
 
 #include "global/Global.h"
+#include "input/MenuConfig.h"
 #include "mcc/mcc.h"
 #include "mcc/CGameGlobal.h"
 #include "mcc/CGameManager.h"
@@ -209,6 +210,10 @@ namespace MCC::Spawn {
         } else if (game < 0) {
             ImGui::TextWrapped("Spawning isn't available in this game (supported: Halo CE, Halo 2, Halo 3, ODST).");
         } else {
+            if (g_menuConfig.spawnMenuMask)
+                ImGui::TextDisabled("Tip: in game, each player can press %s for their own spawn menu.",
+                                    g_menuConfig.spawnMenuMask == XINPUT_GAMEPAD_DPAD_DOWN ? "D-pad Down" : "the spawn button");
+
             int player_count = LocalPlayerCount();
             if (player >= player_count) player = 0;
 

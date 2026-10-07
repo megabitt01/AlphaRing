@@ -20,6 +20,7 @@
 #include "mcc/mcc.h"
 #include "mcc/CGameGlobal.h"
 #include "mcc/settings/MenuSettings.h"
+#include "mcc/spawn/Spawn.h"
 
 static ICContext* pages[7] {
         nullptr,
@@ -32,6 +33,10 @@ static ICContext* pages[7] {
 };
 
 namespace AlphaRing::Render::ImGui {
+    static ImFont* s_menu_font;
+
+    ImFont* MenuFont() { return s_menu_font; }
+
     // The advanced menu was asked for while the Xbox menu was still closing.
     static bool s_advancedPending = false;
     static bool s_advancedPendingMouse = false;
@@ -105,6 +110,12 @@ namespace AlphaRing::Render::ImGui {
             xboxFont = io.Fonts->AddFontDefault(&cfg);
         }
 
+        // The players' spawn menus are read from the couch, and drawn up to this size in a view.
+        if (AlphaRing::Filesystem::Exist(segoe_path))
+            s_menu_font = io.Fonts->AddFontFromFileTTF(segoe_path, 34.0f * scale);
+        if (!s_menu_font)
+            s_menu_font = xboxFont;
+
         ::ImGui::GetStyle().ScaleAllSizes(scale);
 
         // SDL audio subsystem for Xbox menu sounds
@@ -133,7 +144,9 @@ namespace AlphaRing::Render::ImGui {
         if (s_advancedWasShown && !advancedShown)
             AlphaRing::MenuSettings::SaveAll();
         s_advancedWasShown = advancedShown;
-        if (!AlphaRing::Global::Global()->show_imgui && !xboxOpen)
+        bool overlay = AlphaRing::Global::Global()->show_imgui;
+        // the players' spawn menus (mcc/spawn) are also drawn with neither shown
+        if (!overlay && !xboxOpen && !MCC::Spawn::AnyPlayerMenuOpen())
             return;
 
         ImGui_ImplDX11_NewFrame();
@@ -143,7 +156,7 @@ namespace AlphaRing::Render::ImGui {
         bool inGame = MCC::IsInGame();
         auto pGameGlobal = GameGlobal();
 
-        if (!AlphaRing::Global::Global()->show_imgui_mouse)
+        if (!AlphaRing::Global::Global()->show_imgui_mouse || (!overlay && !xboxOpen))
             ::ImGui::SetMouseCursor(ImGuiMouseCursor_None);
 
         if (xboxOpen)
@@ -169,6 +182,8 @@ namespace AlphaRing::Render::ImGui {
                 ::ImGui::EndMainMenuBar();
             }
         }
+
+        MCC::Spawn::RenderPlayerMenus();
 
         ::ImGui::Render();
         Graphics()->SetRenderTargetView();

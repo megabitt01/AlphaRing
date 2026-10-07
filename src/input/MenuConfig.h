@@ -30,6 +30,8 @@ struct MenuConfig {
     WORD debugComboMask      = XINPUT_GAMEPAD_START | XINPUT_GAMEPAD_RIGHT_THUMB;
     int  keyboardVKey        = VK_F4;
     int  debugKeyboardVKey   = VK_F1;
+    // Opens a player's own spawn menu in game (mcc/spawn), on that player's controller; 0 = off.
+    WORD spawnMenuMask       = XINPUT_GAMEPAD_DPAD_DOWN;
 
     // The built-in profiles: 0 = Default, 1 = Southpaw, 2 = Boxer, 3 = Green Thumb,
     // 4 = Bumper Jumper, 5 = Recon. They only seed the custom profiles the first

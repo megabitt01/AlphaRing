@@ -1,5 +1,8 @@
 #pragma once
 
+#include <Windows.h>
+#include <Xinput.h>
+
 #include <functional>
 #include <string>
 #include <vector>
@@ -43,6 +46,14 @@ namespace MCC::Spawn {
 
     // The Spawn window (overlay menu bar).
     void ImGuiContext();
+
+    // Each player's own menu, in their part of the screen (PlayerMenu.cpp). Called from the game's
+    // input poll with local player `player`'s pad: true while that player's menu has the pad, when
+    // the game must see it released.
+    bool HandlePlayerInput(int player, const XINPUT_GAMEPAD& pad);
+    bool AnyPlayerMenuOpen();
+    // Draws the open menus and acts on their input; call inside an ImGui frame.
+    void RenderPlayerMenus();
 }
 
 // Shared by the Spawn window and the players' menus (implementation detail of mcc/spawn).

@@ -10,6 +10,8 @@
 
 using AlphaRing::MatchLog::Describe;
 using AlphaRing::MatchLog::FirstThisMatch;
+#include "input/MenuConfig.h"
+#include "mcc/spawn/Spawn.h"
 
 #include <atomic>
 
@@ -132,6 +134,16 @@ bool CGameManager::get_xbox_user_id(CGameManager *self, __int64 *pId, wchar_t *p
     return result;
 }
 
+// One player, without AlphaRing's split screen: MCC reads the pads itself, and player 1's spawn menu (mcc/spawn)
+// reads the controller the dashboard gives player 1. True while the menu has it.
+static bool PlayerOneSpawnMenuHasPad() {
+    auto profile = CGameManager::get_profile(0);
+    XINPUT_STATE state;
+    return g_menuConfig.spawnMenuMask && profile && profile->controller_index >= 0 && profile->controller_index < 4 &&
+           AlphaRing::Input::GetXInputGetState(profile->controller_index, &state) &&
+           MCC::Spawn::HandlePlayerInput(0, state.Gamepad);
+}
+
 bool CGameManager::get_key_state(CGameManager *self, DWORD index, input_data_t *p_input) {
     bool result;
     LARGE_INTEGER qpc;
@@ -156,8 +168,11 @@ bool CGameManager::get_key_state(CGameManager *self, DWORD index, input_data_t *
             return true;
     }
 
-    if (!p_profile->b_override)
+    if (!p_profile->b_override) {
+        if (index == 0 && PlayerOneSpawnMenuHasPad())
+            return true; // the game sees player 1 released while their spawn menu is open
         return ppOriginal.get_key_state(self, index, p_input);
+    }
 
     if (index >= p_profile->player_count)
         return false;
@@ -193,6 +208,10 @@ bool CGameManager::get_key_state(CGameManager *self, DWORD index, input_data_t *
         if (index < 8 && p_device->state.Gamepad.wButtons != 0 && FirstThisMatch(s_press_seen[index]))
             MATCH_LOG("input player={} first press buttons={:#06x} (input_user={})", index,
                       p_device->state.Gamepad.wButtons, p_device->input_user);
+
+        // While the player's spawn menu is open it has the pad; the game sees it released.
+        if (MCC::Spawn::HandlePlayerInput(index, p_device->state.Gamepad))
+            memset(&p_device->state.Gamepad, 0, sizeof(p_device->state.Gamepad));
     }
 
     result = p_device
