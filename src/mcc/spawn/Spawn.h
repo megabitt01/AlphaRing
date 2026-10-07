@@ -49,8 +49,9 @@ namespace MCC::Spawn {
 
     // Each player's own menu, in their part of the screen (PlayerMenu.cpp). Called from the game's
     // input poll with local player `player`'s pad: true while that player's menu has the pad, when
-    // the game must see it released.
-    bool HandlePlayerInput(int player, const XINPUT_GAMEPAD& pad);
+    // the game must see it released; otherwise takes out of `pad` what was held as the menu closed,
+    // each input until it's released.
+    bool HandlePlayerInput(int player, XINPUT_GAMEPAD& pad);
     bool AnyPlayerMenuOpen();
     // Draws the open menus and acts on their input; call inside an ImGui frame.
     void RenderPlayerMenus();

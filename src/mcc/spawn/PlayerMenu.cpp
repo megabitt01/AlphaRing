@@ -77,6 +77,19 @@ namespace MCC::Spawn {
             return pad.wButtons | (pad.bLeftTrigger > 128 ? kLeftTrigger : 0) | (pad.bRightTrigger > 128 ? kRightTrigger : 0);
         }
 
+        // What's held at all, as Buttons() bits: a trigger past XInput's own threshold counts.
+        WORD Held(const XINPUT_GAMEPAD& pad) {
+            return pad.wButtons | (pad.bLeftTrigger > XINPUT_GAMEPAD_TRIGGER_THRESHOLD ? kLeftTrigger : 0) |
+                   (pad.bRightTrigger > XINPUT_GAMEPAD_TRIGGER_THRESHOLD ? kRightTrigger : 0);
+        }
+
+        // Takes `kept` (Held() bits) out of `pad`.
+        void Release(XINPUT_GAMEPAD& pad, WORD kept) {
+            pad.wButtons &= ~kept;
+            if (kept & kLeftTrigger) pad.bLeftTrigger = 0;
+            if (kept & kRightTrigger) pad.bRightTrigger = 0;
+        }
+
         // Up/down on the D-pad or the left stick: -1 up, 1 down.
         int Vertical(const XINPUT_GAMEPAD& pad) {
             return (pad.wButtons & XINPUT_GAMEPAD_DPAD_UP) || pad.sThumbLY > 20000 ? -1
@@ -109,11 +122,17 @@ namespace MCC::Spawn {
             WORD handled = 0;           // Buttons() already acted on (render thread)
             Repeat rows, weapon_turns;  // up/down through the list, LT/RT through the weapons
             int first_row = 0;          // scroll position
-            bool held = false;          // closed, but the pad is kept until its buttons are released
+            WORD kept = 0;              // closed: Held() as it closed, kept from the game until each is released
         };
 
         std::mutex s_mutex;
         Menu s_menus[kMaxPlayers];
+
+        // What's held as it closes stays with the menu until released: B would melee, RT fire, LT throw.
+        void Close(Menu& m) {
+            m.open = false;
+            m.kept = Held(m.pad);
+        }
 
         // Screen area of `player`'s view (x, y, width, height), as the games' split-screen tables
         // lay them out: stacked halves for two players; for three, player 1 on the top half and
@@ -303,7 +322,26 @@ namespace MCC::Spawn {
         }
     }
 
-    bool HandlePlayerInput(int player, const XINPUT_GAMEPAD& pad) {
+    // Whether `pad`'s press of the menu button opens `m`; sets it up if so.
+    static bool Open(Menu& m, const XINPUT_GAMEPAD& pad, WORD pressed) {
+        WORD button = g_menuConfig.spawnMenuMask;
+        if (button == 0 || (pad.wButtons & button) != button || !(pressed & button)) return false;
+        // not while the debug overlay or the dashboard has the controllers
+        if (AlphaRing::Global::Global()->show_imgui || (g_pXboxContext && g_pXboxContext->isOpen())) return false;
+        // games without spawning (Reach) still get the HUD page
+        bool spawning = Catalog::CurrentGame() >= 0;
+        if (!spawning && HudRows() == 0) return false;
+        m.open = true;
+        m.kept = 0;
+        if (!spawning) m.category = kHudPage;
+        m.refresh = true;
+        // the press that opened the menu isn't a menu action, nor the start of a scroll
+        m.handled = Buttons(pad);
+        m.rows = {Vertical(pad), ~0ull};
+        return true;
+    }
+
+    bool HandlePlayerInput(int player, XINPUT_GAMEPAD& pad) {
         if (player < 0 || player >= kMaxPlayers) return false;
 
         std::lock_guard<std::mutex> lock(s_mutex);
@@ -311,24 +349,10 @@ namespace MCC::Spawn {
         WORD pressed = pad.wButtons & ~m.seen;
         m.seen = pad.wButtons;
 
-        if (!m.open) {
-            // the buttons that closed the menu stay with it until released (B would melee)
-            if (m.held && pad.wButtons) return true;
-            m.held = false;
-
-            WORD button = g_menuConfig.spawnMenuMask;
-            if (button == 0 || (pad.wButtons & button) != button || !(pressed & button)) return false;
-            // not while the debug overlay or the dashboard has the controllers
-            if (AlphaRing::Global::Global()->show_imgui || (g_pXboxContext && g_pXboxContext->isOpen())) return false;
-            // games without spawning (Reach) still get the HUD page
-            bool spawning = Catalog::CurrentGame() >= 0;
-            if (!spawning && HudRows() == 0) return false;
-            m.open = true;
-            if (!spawning) m.category = kHudPage;
-            m.refresh = true;
-            // the press that opened the menu isn't a menu action, nor the start of a scroll
-            m.handled = Buttons(pad);
-            m.rows = {Vertical(pad), ~0ull};
+        if (!m.open && !Open(m, pad, pressed)) {
+            m.kept &= Held(pad); // each kept input until it's released
+            Release(pad, m.kept);
+            return false;
         }
         m.pad = pad;
         return true;
@@ -358,14 +382,14 @@ namespace MCC::Spawn {
                 std::lock_guard<std::mutex> lock(s_mutex);
                 auto& m = s_menus[player];
                 if (!m.open) continue;
-                if ((game < 0 && hud_rows == 0) || player >= count) { m.open = false; m.held = true; continue; }
+                if ((game < 0 && hud_rows == 0) || player >= count) { Close(m); continue; }
                 int pages = Pages(hud_rows);
 
                 WORD buttons = Buttons(m.pad);
                 WORD pressed = buttons & ~m.handled;
                 m.handled = buttons;
 
-                if (pressed & XINPUT_GAMEPAD_B) { m.open = false; m.held = true; continue; }
+                if (pressed & XINPUT_GAMEPAD_B) { Close(m); continue; }
                 if (pressed & XINPUT_GAMEPAD_LEFT_SHOULDER) m.category = Cycle(m.category, -1, pages);
                 if (pressed & XINPUT_GAMEPAD_RIGHT_SHOULDER) m.category = Cycle(m.category, 1, pages);
                 if (game < 0) m.category = kHudPage; // nothing to spawn in this game
