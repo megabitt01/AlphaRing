@@ -44,9 +44,6 @@ namespace Halo1::Entry::Anniversary {
     // hooks, none of these go in either and 3-4 player missions start in Classic.
     const bool s_requires_split_screen = (entry_feature->Requires(Splitscreen::Hooks()), true);
 
-    // Everything the mode hooks and reaches is in this build (MCC::Splitscreen::ClassicGraphicsScope asks).
-    bool Available() { return entry_feature->Available(); }
-
     int LocalPlayers(__int64 module) { return *(short*)(module + OFFSET_HALO1_PV_PLAYER_COUNT); }
     int Views(__int64 module) { return std::clamp(LocalPlayers(module), 0, 4); }
     // The mode is set up for a 3-4 player mission that started with it chosen (its cameras made as split screen
@@ -71,26 +68,24 @@ namespace Halo1::Entry::Anniversary {
         return view >= 0 && view < CameraCount(module) ? Cameras(module)[view] : nullptr;
     }
 
-    // ---- render targets: quarter-size children beside the split ones. The texture manager finds textures by
-    // name, so ours carry their size, and a resize makes new ones. They're made when quad mode first draws after
-    // the game made its split children (MakeChildren), so a game that never runs the mode doesn't get them.
+    // ---- render targets: quarter-size children beside the split ones, made as the game makes those (its parent is
+    // alive then) while the mode is chosen, so a game that never runs it doesn't get them. The texture manager finds
+    // textures by name, so ours carry their size, and a resize makes new ones; the manager keeps them until the module
+    // goes, and a parent's set made again at a size it had takes them back.
 
     std::string SizedName(const char* name, int width, int height) {
         return std::string(name) + "_" + std::to_string(width) + "x" + std::to_string(height);
     }
 
-    struct QuadChild {
-        std::string name;        // to make at width x height, with the split child's flags; empty once taken
-        int width = 0, height = 0, flags = 0;
-        char* texture = nullptr; // ours, once made
-    };
     struct QuadChildren {
         char* parent;
-        QuadChild child[2];
+        char* children[2];    // ours, or the game's split ones while ours are in the parent
+        bool swapped = false; // ours are in the parent (the frame, below)
     };
     std::mutex s_children_mutex;
     std::vector<QuadChildren> s_children;
-    std::atomic<bool> s_children_wanted = false; // the game made a split child since MakeChildren last looked
+    std::atomic<char*> s_image = nullptr; // our full-screen image the quadrants are copied into (the composite)
+    std::atomic<bool> s_children_logged = false;
 
     extern ::Entry entry_create_child;
     // the fifth argument is unused; the sixth's low word is the texture's flags (+0x7C)
@@ -106,57 +101,71 @@ namespace Halo1::Entry::Anniversary {
         char* child = original(parent, name, width, height, unused, flags);
         int which = EndsWith(name, "_SPLIT_1") ? 0 : EndsWith(name, "_SPLIT_2") ? 1 : -1;
         if (which >= 0 && child != nullptr) {
+            // chosen, or the mission running in the mode (the choice taken off in it holds until the next one)
+            bool wanted = MCC::Splitscreen::AnniversaryQuadChosen() ||
+                          MCC::Splitscreen::AnniversaryQuadActive(CGameGlobal::Halo1);
+            char* quad = wanted
+                ? original(parent, SizedName((std::string(name) + "_QUAD").c_str(), width / 2, height).c_str(),
+                           width / 2, height, unused, flags)
+                : nullptr;
             std::lock_guard<std::mutex> lock(s_children_mutex);
             auto it = std::find_if(s_children.begin(), s_children.end(), [&](auto& e) { return e.parent == parent; });
-            if (it == s_children.end()) it = s_children.insert(s_children.end(), {parent});
-            it->child[which] = {SizedName((std::string(name) + "_QUAD").c_str(), width / 2, height), width / 2, height, flags};
-            s_children_wanted = true;
+            if (it == s_children.end()) it = s_children.insert(s_children.end(), {parent, {nullptr, nullptr}});
+            it->children[which] = quad;
+            if (quad != nullptr && !s_children_logged.exchange(true))
+                LOG_INFO("Halo CE Anniversary 3-4 players: quarter-size render targets made beside the split ones");
         }
         return child;
     }
     ::Entry entry_create_child(Halo1EntrySet(), OFFSET_HALO1_PF_SABER_TEXTURE_CREATE_CHILD, (void*)&CreateChild,
                                entry_feature);
 
-    // Render thread, before a quad frame: the children wanted, made outside our lock (the game's texture creation
-    // takes locks of its own), each kept unless the game made its split child again meanwhile.
-    void MakeChildren() {
-        if (!s_children_wanted.exchange(false)) return;
-        struct Wanted {
-            char* parent;
-            int which;
-            QuadChild child;
-        };
-        std::vector<Wanted> wanted;
-        {
-            std::lock_guard<std::mutex> lock(s_children_mutex);
-            for (auto& e : s_children)
-                for (int which = 0; which < 2; ++which)
-                    if (!e.child[which].name.empty()) {
-                        wanted.push_back({e.parent, which, e.child[which]});
-                        e.child[which].name.clear();
-                    }
-        }
-        auto create = (create_child_t)entry_create_child.m_pOriginal;
-        int made = 0;
-        for (auto& w : wanted) {
-            char* texture = create(w.parent, w.child.name.c_str(), w.child.width, w.child.height, 0, w.child.flags);
-            if (texture == nullptr) continue;
-            std::lock_guard<std::mutex> lock(s_children_mutex);
-            auto it = std::find_if(s_children.begin(), s_children.end(), [&](auto& e) { return e.parent == w.parent; });
-            if (it == s_children.end() || !it->child[w.which].name.empty()) continue;
-            it->child[w.which].texture = texture;
-            ++made;
-        }
-        if (made > 0) LOG_INFO("Halo CE Anniversary 3-4 players: {} quarter-size render targets made", made);
+    // Everything the mode hooks and reaches is in this build, and every split render target the game has made has
+    // ours beside it - it made none while the mode wasn't chosen (MCC::Splitscreen::ClassicGraphicsScope asks as a
+    // mission starts; a choice made after this module's render targets takes effect the next time Halo CE loads).
+    bool Available() {
+        if (!entry_feature->Available()) return false;
+        std::lock_guard<std::mutex> lock(s_children_mutex);
+        return std::none_of(s_children.begin(), s_children.end(),
+                            [](auto& e) { return e.children[0] == nullptr || e.children[1] == nullptr; });
     }
 
-    void SwapChildren() {
+    void Swap(QuadChildren& e) {
+        std::swap(*(char**)(e.parent + 0xA8), e.children[0]);
+        std::swap(*(char**)(e.parent + 0xB0), e.children[1]);
+        e.swapped = !e.swapped;
+    }
+
+    // For the frame: ours into every split target that has both (in), the game's back (out).
+    void SwapChildren(bool in) {
         std::lock_guard<std::mutex> lock(s_children_mutex);
-        for (auto& e : s_children) {
-            if (e.child[0].texture == nullptr || e.child[1].texture == nullptr) continue;
-            std::swap(*(char**)(e.parent + 0xA8), e.child[0].texture);
-            std::swap(*(char**)(e.parent + 0xB0), e.child[1].texture);
+        for (auto& e : s_children)
+            if (e.swapped != in && e.children[0] != nullptr && e.children[1] != nullptr) Swap(e);
+    }
+
+    // The texture manager deleting its texture `index` (a render target set let go on a resize, for one): nothing of
+    // ours may point at it after. A parent takes whatever is in its +0xA8/+0xB0 with it, so the game's own children
+    // go back in first.
+    Halo1Entry(entry_delete_texture, OFFSET_HALO1_PF_SABER_DELETE_TEXTURE, void, delete_texture, char* manager,
+               int index) {
+        if (char* texture = (*(char***)(manager + 0x1B8))[index]) {
+            std::lock_guard<std::mutex> lock(s_children_mutex);
+            for (auto it = s_children.begin(); it != s_children.end();) {
+                if (it->swapped && (it->parent == texture || *(char**)(it->parent + 0xA8) == texture ||
+                                    *(char**)(it->parent + 0xB0) == texture || it->children[0] == texture ||
+                                    it->children[1] == texture))
+                    Swap(*it);
+                if (it->parent == texture) {
+                    it = s_children.erase(it);
+                    continue;
+                }
+                for (char*& child : it->children)
+                    if (child == texture) child = nullptr;
+                ++it;
+            }
+            s_image.compare_exchange_strong(texture, nullptr);
         }
+        ((delete_texture_t)entry_delete_texture.m_pOriginal)(manager, index);
     }
 
     // ---- cameras: the renderer makes one for the second view; the third and fourth are ours. They are made by
@@ -485,7 +494,6 @@ namespace Halo1::Entry::Anniversary {
     bool s_quad = false;     // this frame is drawn in quarters
     int s_frame_pair = 0;    // and shows this pair
     int s_frame_views = 0;
-    char* s_image = nullptr; // our full-screen image the quadrants are copied into
 
     // 3 players: the second pair's frames have nobody's second view
     bool NoFourthView(int index) { return s_frame_pair == 1 && index == 1 && s_frame_views < 4; }
@@ -514,10 +522,9 @@ namespace Halo1::Entry::Anniversary {
         if (!s_quad) return ((frame_t)entry_frame.m_pOriginal)(a, b, c, d);
         s_frame_pair = s_listed_pair;
         s_frame_views = Views(module);
-        MakeChildren();
-        SwapChildren();
+        SwapChildren(true);
         auto result = ((frame_t)entry_frame.m_pOriginal)(a, b, c, d);
-        SwapChildren();
+        SwapChildren(false);
         return result;
     }
 
@@ -527,17 +534,18 @@ namespace Halo1::Entry::Anniversary {
         char* view = *(char**)(module + OFFSET_HALO1_PV_SABER_VIEW_IMAGES
                                + 8 * (__int64)*(int*)(module + OFFSET_HALO1_PV_SABER_VIEW_IMAGE_INDEX));
         int width = ScreenWidth(module), height = ScreenHeight(module);
+        char* image = s_image;
         if (view != nullptr) {
-            if (s_image == nullptr || TextureWidth(s_image) != width || TextureHeight(s_image) != height)
-                s_image = ((create_child_t)entry_create_child.m_pOriginal)(
+            if (image == nullptr || TextureWidth(image) != width || TextureHeight(image) != height)
+                s_image = image = ((create_child_t)entry_create_child.m_pOriginal)(
                     view, SizedName("ALPHARING_QUAD_IMAGE", width, height).c_str(), width, height,
                     0, *(unsigned short*)(view + 0x7C));
-            if (s_image != nullptr && !NoFourthView(camera))
-                Copy(module, view, s_image, (camera & 1) * (width / 2), s_frame_pair * (height / 2));
+            if (image != nullptr && !NoFourthView(camera))
+                Copy(module, view, image, (camera & 1) * (width / 2), s_frame_pair * (height / 2));
         }
         ((composite_t)entry_composite.m_pOriginal)(camera);
         char* target = *(char**)(module + OFFSET_HALO1_PV_SABER_SCREEN_IMAGE);
-        if (camera == 1 && s_image != nullptr && target != nullptr) Copy(module, s_image, target, 0, 0);
+        if (camera == 1 && image != nullptr && target != nullptr) Copy(module, image, target, 0, 0);
     }
 
     // ---- the classic HUD over the image: its pass draws views 0 and 1 in the screen's halves, then view -1 (the
@@ -622,8 +630,8 @@ namespace Halo1::Entry::Anniversary {
             std::lock_guard<std::mutex> lock(s_children_mutex);
             s_children.clear();
         }
-        s_children_wanted = false;
         s_image = nullptr;
+        s_children_logged = false;
         s_extra_cameras[0] = s_extra_cameras[1] = nullptr; // the renderer's heap goes with the module
         s_quarters = false;
         s_quad = false;

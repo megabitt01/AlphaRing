@@ -126,6 +126,9 @@ const OffsetPatterns kHalo1Patterns[] = {
     {&OFFSET_HALO1_PF_SABER_TEXTURE_CREATE_CHILD, 0x1f9d20, Code, {
         At("48 89 5C 24 10 48 89 6C 24 18 48 89 74 24 20 57 48 83 EC 40 8B 99 88 00 00 00", 0x0),
         Rel("E8 ?? ?? ?? ?? 4C 8B E8 48 8D 84 24 90 00 00 00 48 3B F8 74", 0x1, 0x5, 0x0)}},
+    {&OFFSET_HALO1_PF_SABER_DELETE_TEXTURE, 0x1f6bf0, Code, {
+        At("48 89 5C 24 10 56 57 41 56 48 83 EC 20 48 63 C2", 0x0),
+        Rel("E8 ?? ?? ?? ?? 81 A3 28 01 00 00 FF FF FF DF 48 83 C4 20 5B", 0x1, 0x5, 0x0)}},
     {&OFFSET_HALO1_PF_SABER_CLASSIC_HUD, 0x740b0, Code, {
         At("48 8B C4 57 48 81 EC A0 00 00 00 48 C7 40 98 FE FF FF FF", 0x0),
         Rel("48 8D 05 ?? ?? ?? ?? 48 89 05 ?? ?? ?? ?? 48 8D 05 ?? ?? ?? ?? 48 89 05 ?? ?? ?? ?? 4C 89 6D 90", 0x3, 0x7, 0x0)}},

@@ -52,6 +52,9 @@ DefOffset(OFFSET_HALO1_PV_SABER_VIEW_IMAGES, 0x2D62890) // texture*[2], current 
 DefOffset(OFFSET_HALO1_PV_SABER_VIEW_IMAGE_INDEX, 0x1B7B11C)
 DefOffset(OFFSET_HALO1_PV_SABER_SCREEN_IMAGE, 0x2E3D0D0) // texture*, the frame's full-screen image
 DefOffset(OFFSET_HALO1_PF_SABER_TEXTURE_CREATE_CHILD, 0x1F9D20) // texture* (parent*, name, width, height, -, flags)
+// void (manager*, int index) - the texture manager deletes its texture `index` (texture*[] at +0x1B8): its split
+// children (+0xA8, +0xB0) first, then the texture itself; a render target set's release (0x20B000) gets here
+DefOffset(OFFSET_HALO1_PF_SABER_DELETE_TEXTURE, 0x1F6BF0)
 DefOffset(OFFSET_HALO1_PF_SABER_CLASSIC_HUD, 0x740B0) // void () - the classic HUD over the image: views 0 and 1, then view -1
 DefOffset(OFFSET_HALO1_PF_HUD_VIEW, 0xB29438) // void (int view) - the HUD's view (window, drawing player)
 DefOffset(OFFSET_HALO1_PF_HUD_VIEW_DRAW, 0xBABD38) // void (int view, state*) - the view's HUD, state 0x29E07C0

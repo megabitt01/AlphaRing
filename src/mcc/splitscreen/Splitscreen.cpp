@@ -53,7 +53,8 @@ namespace MCC::Splitscreen {
     void ChooseAnniversaryQuad(bool on) { AlphaRing::SplitscreenConfigStore::SetAnniversaryQuad(on); }
     bool AnniversaryQuadActive(int game) { return s_anniversary_quad_game == game; }
 
-    // The game's 3-4 player mode has all its offsets in this MCC build (always in the one they were written for).
+    // The game's 3-4 player mode has all its offsets in this MCC build (always in the one they were written for), and
+    // for Halo CE the render targets it draws into.
     static bool AnniversaryQuadAvailable(int game) {
         return game == CGameGlobal::Halo1 ? Halo1::Entry::Anniversary::Available()
              : game == CGameGlobal::Halo2 ? Halo2::Entry::Anniversary::Available()
