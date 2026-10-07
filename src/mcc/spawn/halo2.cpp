@@ -18,6 +18,8 @@
 #include <cstring>
 #include <map>
 
+namespace Halo2::Entry::Players { int Handle(__int64 module, int local); }
+
 namespace MCC::Spawn::Halo2 {
     static constexpr int kGame = CGameGlobal::Halo2;
 
@@ -83,8 +85,10 @@ namespace MCC::Spawn::Halo2 {
         return (char*)(((pool + 0x57) & ~0xFll) + *(int*)(header + 8));
     }
 
+    // Local player `player`'s player: the players globals' handle per local player (module/entry/halo2/players.cpp).
     static bool PlayerView(int player, Vector3& origin, Vector3& facing) {
-        auto datum = Datum(OFFSET_HALO2_PV_PLAYERS, player, 0x224);
+        int handle = ::Halo2::Entry::Players::Handle(MCC::Command::ModuleBase(kGame), player);
+        auto datum = handle == -1 ? nullptr : Datum(OFFSET_HALO2_PV_PLAYERS, handle, 0x224);
         int unit = datum ? *(int*)(datum + 0x2C) : -1;
         auto object = unit == -1 ? nullptr : ObjectData(unit);
         if (object == nullptr) return false;
@@ -302,6 +306,7 @@ namespace MCC::Spawn::Halo2 {
         OFFSET_HALO2_PF_HS_COMPILE, OFFSET_HALO2_PV_SHARED_TAG_BASE, OFFSET_HALO2_PV_TAG_BASE, OFFSET_HALO2_PV_SCENARIO,
         OFFSET_HALO2_PV_TAG_INSTANCES, OFFSET_HALO2_PV_TAG_COUNT, OFFSET_HALO2_PV_TAG_NAMES,
         OFFSET_HALO2_PV_TAG_NAME_OFFSETS, OFFSET_HALO2_PV_OBJECTS, OFFSET_HALO2_PV_OBJECT_MEMORY, OFFSET_HALO2_PV_PLAYERS,
+        OFFSET_HALO2_PV_RESPAWN,
         OFFSET_HALO2_PF_OBJECT_GET_ORIGIN, OFFSET_HALO2_PF_OBJECT_PLACEMENT_DATA_NEW, OFFSET_HALO2_PF_OBJECT_NEW});
     const AlphaRing::Feature& Offsets() { return s_offsets; }
     static const Backend s_backend = {List, Spawn, &s_offsets};

@@ -26,6 +26,7 @@ DefOffset(OFFSET_HALO3ODST_PF_OBJECT_NEW, 0x37CF34)
 DefOffset(OFFSET_HALO3ODST_PF_OBJECT_POST_CREATE, 0x20B80)
 DefOffset(OFFSET_HALO3ODST_PF_AI_PLACE, 0x5BE6A0) // (int ai_index, bool); ai index type 4 = a squad's single location
 DefOffset(OFFSET_HALO3ODST_PF_TAG_LOADED, 0x14D4C8) // bool (int tag): in the loaded zone set (object_new refuses others)
+DefOffset(OFFSET_HALO3ODST_PF_PLAYER_OF_INPUT_USER, 0x108EA8) // as Halo 3's (player mapping globals: slot +0x108, set at 0x108D44)
 
 // c_splitscreen_config::m_config_table; the black-bar patches rewrite entries 8, 9 and 12 (0x8F1FB0, 0x8F1FC4, 0x8F2000)
 DefOffset(OFFSET_HALO3ODST_PV_SPLITSCREEN_TABLE, 0x8F1F10)//0x8F1F20

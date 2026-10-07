@@ -35,6 +35,7 @@ namespace MCC::Spawn::Gen3 {
         const AlphaRing::Offset &tags_header, &tag_base, &tag_names, &scenario;
         const AlphaRing::Offset &placement_new, &object_new, &post_create, &ai_place, &tag_loaded;
         const AlphaRing::Offset& world; // the simulation tick commands run on (module/entry/halo3/world.cpp, halo3odst)
+        const AlphaRing::Offset& player_of_user; // int (int input user): the player it controls (player mapping)
 
         // scenario layout (Assembly Halo3MCC / ODSTMCC scnr plugins)
         int squads, squad_size, squad_objective; // objective index, task index follows it
@@ -52,7 +53,7 @@ namespace MCC::Spawn::Gen3 {
         OFFSET_HALO3_PV_TAGS_HEADER, OFFSET_HALO3_PV_TAG_BASE, OFFSET_HALO3_PV_TAG_NAMES, OFFSET_HALO3_PV_SCENARIO,
         OFFSET_HALO3_PF_OBJECT_PLACEMENT_DATA_NEW, OFFSET_HALO3_PF_OBJECT_NEW, OFFSET_HALO3_PF_OBJECT_POST_CREATE,
         OFFSET_HALO3_PF_AI_PLACE, OFFSET_HALO3_PF_TAG_LOADED,
-        OFFSET_HALO3_PF_WORLD,
+        OFFSET_HALO3_PF_WORLD, OFFSET_HALO3_PF_PLAYER_OF_INPUT_USER,
         0x384, 0x40, 0x2C,
         0x390, 0x40, 0x28,
         0x3A8, 0x120,
@@ -66,7 +67,7 @@ namespace MCC::Spawn::Gen3 {
         OFFSET_HALO3ODST_PV_SCENARIO,
         OFFSET_HALO3ODST_PF_OBJECT_PLACEMENT_DATA_NEW, OFFSET_HALO3ODST_PF_OBJECT_NEW,
         OFFSET_HALO3ODST_PF_OBJECT_POST_CREATE, OFFSET_HALO3ODST_PF_AI_PLACE, OFFSET_HALO3ODST_PF_TAG_LOADED,
-        OFFSET_HALO3ODST_PF_WORLD,
+        OFFSET_HALO3ODST_PF_WORLD, OFFSET_HALO3ODST_PF_PLAYER_OF_INPUT_USER,
         0x3B8, 0x6C, 0x2A,
         0x3C4, 0x3C, 0x24,
         0x3E8, 0x13C,
@@ -171,12 +172,14 @@ namespace MCC::Spawn::Gen3 {
         return g.id == CGameGlobal::Halo3 ? halo3 : odst;
     }
 
-    // Local player `player`'s unit position and facing.
+    // Local player `player`'s unit position and facing: the player that input user controls, by the engine's
+    // player mapping (-1: none).
     static bool PlayerView(const Game& g, int player, Vector3& origin, Vector3& facing) {
         auto players = FindArray(g, "players", Slots(g).players);
         auto objects = FindArray(g, "object", Slots(g).objects);
         if (players == nullptr || objects == nullptr) return false;
-        auto datum = players->Get(player);
+        int handle = Call<int>(g, g.player_of_user, player);
+        auto datum = handle == -1 ? nullptr : players->Get(handle);
         if (datum == nullptr) return false;
         int unit = *(int*)(datum + 0x28);
         auto header = unit == -1 ? nullptr : objects->Get(unit);
@@ -535,7 +538,7 @@ namespace MCC::Spawn::Gen3 {
 
     static AlphaRing::Feature Offsets(const char* name, const Game& g) {
         return {name, {g.tags_header, g.tag_base, g.tag_names, g.scenario, g.placement_new, g.object_new, g.post_create,
-                       g.ai_place, g.tag_loaded, g.world}};
+                       g.ai_place, g.tag_loaded, g.world, g.player_of_user}};
     }
 
     static const AlphaRing::Feature s_halo3_offsets = Offsets("Halo 3 spawning", kHalo3);

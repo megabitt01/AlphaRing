@@ -37,10 +37,16 @@ namespace MCC::Spawn::Halo1 {
     // actor_variant: +0x14 'unit' tag reference, whose tag index sits 12 bytes in.
     static int ActorVariantUnit(int actor_variant) { return *(int*)(TagData(actor_variant) + 0x20); }
 
+    // The unit of the player local player `player` controls. Players globals keep the engine's player mapping
+    // (as Halo 3's): the player datum per input user at +0x4, -1 for none (set at 0xAE43FC, with the unit at +0x14).
     static int PlayerUnit(int player) {
+        constexpr int kPlayerSlots = 16;
+        auto globals = EngineGlobal<char*>(kGame, OFFSET_HALO1_PV_LOCAL_PLAYERS);
         auto array = EngineGlobal<char*>(kGame, OFFSET_HALO1_PV_PLAYERS);
-        if (array == nullptr || player < 0 || player >= kMaxPlayers) return -1;
-        auto element = array + *(int*)(array + 0x34) + player * 0xC20;
+        if (globals == nullptr || array == nullptr || player < 0 || player >= kMaxPlayers) return -1;
+        int handle = *(int*)(globals + 0x4 + 4 * player);
+        if (handle == -1 || (handle & 0xFFFF) >= kPlayerSlots) return -1;
+        auto element = array + *(int*)(array + 0x34) + (handle & 0xFFFF) * 0xC20;
         if (*(short*)element == 0) return -1; // free slot
         return *(int*)(element + 0x64);
     }
@@ -127,7 +133,7 @@ namespace MCC::Spawn::Halo1 {
     // With the console hook's (module/entry/halo1/console.cpp), which runs the commands and goes in only with these.
     static const AlphaRing::Feature s_offsets("Halo CE spawning", {
         OFFSET_HALO1_PF_HS_COMPILE, OFFSET_HALO1_PF_TAG_ITERATOR_NEXT, OFFSET_HALO1_PF_TAG_GET_NAME,
-        OFFSET_HALO1_PF_TAG_GET, OFFSET_HALO1_PV_PLAYERS, OFFSET_HALO1_PF_OBJECT_TRY_AND_GET,
+        OFFSET_HALO1_PF_TAG_GET, OFFSET_HALO1_PV_PLAYERS, OFFSET_HALO1_PV_LOCAL_PLAYERS, OFFSET_HALO1_PF_OBJECT_TRY_AND_GET,
         OFFSET_HALO1_PF_OBJECT_GET_ORIGIN, OFFSET_HALO1_PF_OBJECT_PLACEMENT_DATA_NEW, OFFSET_HALO1_PF_OBJECT_NEW,
         OFFSET_HALO1_PF_ACTOR_CUSTOMIZE_UNIT, OFFSET_HALO1_PF_AI_ATTACH_FREE});
     const AlphaRing::Feature& Offsets() { return s_offsets; }
