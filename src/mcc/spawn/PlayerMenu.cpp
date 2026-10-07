@@ -123,15 +123,19 @@ namespace MCC::Spawn {
             Repeat rows, weapon_turns;  // up/down through the list, LT/RT through the weapons
             int first_row = 0;          // scroll position
             WORD kept = 0;              // closed: Held() as it closed, kept from the game until each is released
+            bool closed = false;        // closed since the last poll: `kept` comes from the next pad (input thread)
         };
 
         std::mutex s_mutex;
         Menu s_menus[kMaxPlayers];
 
-        // What's held as it closes stays with the menu until released: B would melee, RT fire, LT throw.
+        // What's held as it closes stays with the menu until released: B would melee, RT fire, LT throw. It's read
+        // from the first pad polled after the close (HandlePlayerInput): no input has reached the game since, and
+        // the menu's own last pad can be a poll or more old - a whole overlay's worth with the debug overlay up,
+        // which stops the game's input polls.
         void Close(Menu& m) {
             m.open = false;
-            m.kept = Held(m.pad);
+            m.closed = true;
         }
 
         // The debug overlay or the dashboard is up: it has the controllers, so no menu is open meanwhile.
@@ -337,6 +341,7 @@ namespace MCC::Spawn {
         if (!spawning && HudRows() == 0) return false;
         m.open = true;
         m.kept = 0;
+        m.closed = false;
         if (!spawning) m.category = kHudPage;
         m.refresh = true;
         // the press that opened the menu isn't a menu action, nor the start of a scroll or a weapon turn
@@ -357,7 +362,9 @@ namespace MCC::Spawn {
 
         if (m.open && OverlayHasInput()) Close(m);
         if (!m.open && !Open(m, pad, pressed)) {
-            m.kept &= Held(pad); // each kept input until it's released
+            // what's held as it closed, then each until it's released
+            m.kept = m.closed ? Held(pad) : m.kept & Held(pad);
+            m.closed = false;
             Release(pad, m.kept);
             return false;
         }
