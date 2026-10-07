@@ -61,17 +61,20 @@ namespace MCC::Spawn {
 namespace MCC::Spawn::Catalog {
     // The game whose catalog applies right now, or -1 outside a mission / without a backend.
     int CurrentGame();
-    // Ask the game thread for a new catalog of `game` (automatic when the map changes).
+    // Ask the game thread for a new catalog of `game` (automatic when the map changes); before
+    // reading it in a frame, so a new map's catalog replaces the last one's.
     void Refresh(int game, bool force);
     // Calls `f` with `game`'s items of `category` under the catalog lock, or nullptr while
-    // the catalog is loading.
+    // the catalog is loading. Only a catalog listed in the map loaded now is read.
     void Read(int game, Category category, const std::function<void(const std::vector<Item>*)>& f);
     int Size(int game, Category category);
     bool Get(int game, Category category, int index, Item& item);
     std::string Status(int player);
-    // Spawns `item` in front of `player`; a character carries the Weapons item at
-    // `weapon_index`, or its usual weapon when there's none.
-    void Spawn(Category category, const Item& item, int player, Team team, int weapon_index);
+    // Spawns item `index` of `category` in front of `player`; a character carries the Weapons
+    // item at `weapon_index`, or its usual weapon when there's none. False when there's no such
+    // item in the catalog of the map loaded now; the command carries that map, and is dropped in
+    // any other.
+    bool Spawn(int game, Category category, int index, int player, Team team, int weapon_index);
     // Name of the weapon a character will carry for `weapon_index`.
     std::string WeaponName(int game, int weapon_index);
 }

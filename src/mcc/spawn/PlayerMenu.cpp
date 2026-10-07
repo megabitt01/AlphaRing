@@ -388,6 +388,8 @@ namespace MCC::Spawn {
         bool left_right = MCC::Splitscreen::LeftRight::OnScreen(shown, count);
         // three players in Halo CE Anniversary's quarters: laid out as four
         int layout = count == 3 && MCC::Splitscreen::AnniversaryQuartersShown(shown) ? 4 : count;
+        // before any menu reads or picks from the catalog: a new map's replaces the last one's
+        if (AnyPlayerMenuOpen()) Catalog::Refresh(game, false);
 
         for (int player = 0; player < kMaxPlayers; ++player) {
             Snapshot snapshot;
@@ -442,10 +444,10 @@ namespace MCC::Spawn {
             // outside the lock: the HUD settings have a lock of their own
             if (hud_reset) MCC::Hud::SetSettings(player, MCC::Hud::PlayerHud());
             if (hud_turn) TurnHud(player, hud_row, hud_turn);
-            Catalog::Refresh(game, refresh); // also picks up a newly loaded map
-            Item item;
-            if (spawn && Catalog::Get(game, (Category)snapshot.category, snapshot.selected, item))
-                Catalog::Spawn((Category)snapshot.category, item, player, (Team)snapshot.team, snapshot.weapon);
+            if (refresh) Catalog::Refresh(game, true); // the menu just opened, or Y
+            if (spawn)
+                Catalog::Spawn(game, (Category)snapshot.category, snapshot.selected, player, (Team)snapshot.team,
+                               snapshot.weapon);
 
             Draw(player, snapshot, game, hud_rows, ViewRect(player, layout, display, left_right));
         }

@@ -43,10 +43,17 @@ namespace MCC::Spawn {
         std::mutex mutex;
         int game = -1;
         unsigned generation = 0; // CGameManager::load_generation() the request was made for
+        unsigned built = 0;      // ... and the one the items were listed in (game thread)
         bool requested = false;
         std::vector<Item> items[kCategoryCount];
         std::string status[kMaxPlayers];
     } s_catalog;
+
+    // The items are `game`'s and the map they were listed in is still the one loaded: a tag or palette index of
+    // another map's would be another object, or a tag the engine can't take. Under the catalog lock.
+    static bool Fresh(int game) {
+        return game >= 0 && s_catalog.game == game && s_catalog.built == CGameManager::load_generation();
+    }
 
     static bool ContainsNoCase(const std::string& text, const char* part) {
         auto end = part + strlen(part);
@@ -74,6 +81,7 @@ namespace MCC::Spawn {
 
         std::lock_guard<std::mutex> lock(s_catalog.mutex);
         s_catalog.game = game;
+        s_catalog.built = CGameManager::load_generation();
         for (int c = 0; c < kCategoryCount; ++c)
             s_catalog.items[c] = std::move(items[c]);
         LOG_INFO("Spawn: catalog for game {}: {} vehicles, {} weapons, {} equipment, {} characters", game,
@@ -81,14 +89,20 @@ namespace MCC::Spawn {
                  s_catalog.items[Equipment].size(), s_catalog.items[Characters].size());
     }
 
-    // "@ar spawn <category> <id> <player> <team> <weapon>"
+    // "@ar spawn <category> <id> <player> <team> <weapon> <generation>": the ids are those of the catalog listed in
+    // map load `generation`, so they're only taken in that map (Halo CE and Halo 2 get commands through MCC's
+    // console, which knows nothing of maps).
     static void CmdSpawn(int game, const Command::Args& args) {
         auto backend = BackendOf(game);
-        if (backend == nullptr || args.size() < 6) return;
+        if (backend == nullptr || args.size() < 7) return;
 
         auto category = (Category)std::atoi(args[1].c_str());
         int player = std::atoi(args[3].c_str());
         if (category < 0 || category >= kCategoryCount || player < 0 || player >= kMaxPlayers) return;
+        if (std::strtoul(args[6].c_str(), nullptr, 10) != CGameManager::load_generation()) {
+            ReportStatus(player, "Not spawned: the map changed");
+            return;
+        }
 
         ReportStatus(player, backend->spawn(category, std::atoi(args[2].c_str()), player,
                                             (Team)std::atoi(args[4].c_str()), std::atoi(args[5].c_str())));
@@ -141,18 +155,18 @@ namespace MCC::Spawn {
 
     void Catalog::Read(int game, Category category, const std::function<void(const std::vector<Item>*)>& f) {
         std::lock_guard<std::mutex> lock(s_catalog.mutex);
-        f(game >= 0 && s_catalog.game == game ? &s_catalog.items[category] : nullptr);
+        f(Fresh(game) ? &s_catalog.items[category] : nullptr);
     }
 
     int Catalog::Size(int game, Category category) {
         std::lock_guard<std::mutex> lock(s_catalog.mutex);
-        return game >= 0 && s_catalog.game == game ? (int)s_catalog.items[category].size() : 0;
+        return Fresh(game) ? (int)s_catalog.items[category].size() : 0;
     }
 
     bool Catalog::Get(int game, Category category, int index, Item& item) {
         std::lock_guard<std::mutex> lock(s_catalog.mutex);
         auto& items = s_catalog.items[category];
-        if (game < 0 || s_catalog.game != game || index < 0 || index >= (int)items.size()) return false;
+        if (!Fresh(game) || index < 0 || index >= (int)items.size()) return false;
         item = items[index];
         return true;
     }
@@ -162,16 +176,23 @@ namespace MCC::Spawn {
         return (player >= 0 && player < kMaxPlayers) ? s_catalog.status[player] : std::string();
     }
 
-    void Catalog::Spawn(Category category, const Item& item, int player, Team team, int weapon_index) {
-        int weapon = kUsualWeapon;
+    bool Catalog::Spawn(int game, Category category, int index, int player, Team team, int weapon_index) {
+        if (player < 0 || player >= kMaxPlayers) return false;
+        int id, weapon = kUsualWeapon;
+        unsigned built;
         {
             std::lock_guard<std::mutex> lock(s_catalog.mutex);
+            auto& items = s_catalog.items[category];
+            if (!Fresh(game) || index < 0 || index >= (int)items.size()) return false;
+            id = items[index].id;
             auto& weapons = s_catalog.items[Weapons];
             if (category == Characters && weapon_index >= 0 && weapon_index < (int)weapons.size())
                 weapon = weapons[weapon_index].id;
-            s_catalog.status[player] = "Spawning " + item.name + "...";
+            built = s_catalog.built;
+            s_catalog.status[player] = "Spawning " + items[index].name + "...";
         }
-        Command::Post("spawn %d %d %d %d %d", category, item.id, player, team, weapon);
+        // outside the lock: some games run posted commands right away
+        return Command::Post("spawn %d %d %d %d %d %u", category, id, player, team, weapon, built);
     }
 
     std::string Catalog::WeaponName(int game, int weapon_index) {
@@ -205,6 +226,9 @@ namespace MCC::Spawn {
             return;
         }
 
+        // before anything is read or picked: a new map's catalog replaces the last one's
+        Catalog::Refresh(game, refresh);
+
         if (!MCC::IsInGame()) {
             ImGui::TextWrapped("Start a campaign mission, then open this menu to spawn vehicles, weapons and characters.");
         } else if (game < 0) {
@@ -228,7 +252,7 @@ namespace MCC::Spawn {
             ImGui::SetNextItemWidth(260);
             ImGui::InputTextWithHint("##filter", "Search", filter, sizeof(filter));
             ImGui::SameLine();
-            refresh |= ImGui::Button("Refresh list");
+            if (ImGui::Button("Refresh list")) Catalog::Refresh(game, true);
 
             if (ImGui::BeginTabBar("categories")) {
                 for (int c = 0; c < kCategoryCount; ++c) {
@@ -271,14 +295,10 @@ namespace MCC::Spawn {
             });
             ImGui::EndChild();
             // spawn outside the catalog lock: posting can run the command right away
-            Item item;
-            if (picked >= 0 && Catalog::Get(game, (Category)category, picked, item))
-                Catalog::Spawn((Category)category, item, player, (Team)team, weapon);
+            if (picked >= 0) Catalog::Spawn(game, (Category)category, picked, player, (Team)team, weapon);
 
             ImGui::TextDisabled("%s", Catalog::Status(player).c_str());
         }
         ImGui::End();
-
-        Catalog::Refresh(game, refresh);
     }
 }
