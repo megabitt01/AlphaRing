@@ -7,6 +7,9 @@ const OffsetPatterns kHalo1Patterns[] = {
         At("40 57 48 83 EC 40 48 C7 44 24 20 FE FF FF FF 48 89 5C 24 50 48 89 6C 24 60 48 89 74 24 68 8B F2", 0x0)}},
     {&OFFSET_HALO1_PF_GAME_START, 0x939d0, Code, {
         At("40 53 56 57 48 81 EC 50 02 00 00 48 8B 05 ?? ?? ?? ?? 48 33 C4", 0x0)}},
+    {&OFFSET_HALO1_PF_HS_COMPILE, 0xb21470, Code, {
+        At("48 89 5C 24 10 48 89 74 24 18 57 48 81 EC 40 04 00 00", 0x0),
+        Rel("66 89 0D ?? ?? 22 02 48 8B CA 66 89 05 ?? ?? 22 02 E8 ?? ?? ?? ?? C6 05 ?? ?? ?? ?? 00", 0x12, 0x16, 0x0)}},
     {&OFFSET_HALO1_PF_4PLAYERS, 0x67492, Code, {
         At("85 C0 75 11 C7 05 ?? ?? ?? ?? 04 00 00 00 48 89 35 ?? ?? ?? ?? C6 05 ?? ?? ?? ?? 01", 0x2)}},
     {&OFFSET_HALO1_PF_PAUSE, 0x427978, Code, {
@@ -16,6 +19,35 @@ const OffsetPatterns kHalo1Patterns[] = {
     {&OFFSET_HALO1_PV_PLAYER_COUNT, 0x1b7b910, Data, {
         Rel("0F BF 15 ?? ?? ?? ?? 45 33 FF 48 63 F8 45 8D 77 01 41 2B D6", 0x3, 0x7, 0x0),
         Rel("0F B7 05 ?? ?? ?? ?? 66 89 81 24 01 00 00 0F B7 8A 58 01 00 00", 0x3, 0x7, 0x0)}},
+    {&OFFSET_HALO1_PV_PLAYERS, 0x1c40480, Data, {
+        Rel("48 8B 05 ?? ?? ?? ?? 83 4D FC FF 48 89 45 F0 66 89 7D F8 EB", 0x3, 0x7, 0x0),
+        Rel("48 8B 35 ?? ?? ?? ?? 33 DB 0F 1F 80 00 00 00 00 44 0F B7 46 22", 0x3, 0x7, 0x0)}},
+    {&OFFSET_HALO1_PF_TAG_ITERATOR_NEXT, 0xa9b43c, Code, {
+        At("48 8B 05 ?? ?? ?? ?? 83 CA FF 44 0F BF 41 08 4C 8B C9 44 8B 58 0C", 0x0),
+        Rel("C7 44 24 68 74 69 6E 75 E8 ?? ?? ?? ?? 41 BE 08 00 00 00 EB", 0x9, 0xd, 0x0)}},
+    {&OFFSET_HALO1_PF_TAG_GET_NAME, 0xa9b25c, Code, {
+        At("48 8B 05 ?? ?? ?? ?? 48 0F BF D1 48 C1 E2 05 48 63 4C 02 10", 0x0),
+        Rel("E8 ?? ?? ?? ?? 48 89 46 50 48 8B CE 41 0F 10 80 80 00 00 00", 0x1, 0x5, 0x0)}},
+    {&OFFSET_HALO1_PF_TAG_GET, 0xa9b648, Code, {
+        At("48 8B 05 ?? ?? ?? ?? 48 0F BF D1 48 C1 E2 05 48 63 4C 02 14", 0x0),
+        Rel("E8 ?? ?? ?? ?? 4C 8B C0 41 8B D2 48 63 80 E8 02 00 00 85 C0", 0x1, 0x5, 0x0)}},
+    {&OFFSET_HALO1_PF_OBJECT_PLACEMENT_DATA_NEW, 0xb35ebc, Code, {
+        At("48 89 5C 24 08 48 89 74 24 10 57 48 83 EC 20 41 8B F0 8B DA", 0x0),
+        Rel("E8 ?? ?? ?? ?? F2 41 0F 10 45 00 F2 0F 11 45 A3 41 8B 45 08", 0x1, 0x5, 0x0)}},
+    {&OFFSET_HALO1_PF_OBJECT_NEW, 0xb35f80, Code, {
+        At("48 83 EC 28 8A 05 ?? ?? ?? ?? 4C 8B C9 F6 D8 45 1B C0 41 83 E0 04", 0x0),
+        Rel("F3 0F 11 55 B4 E8 ?? ?? ?? ?? 41 83 CB FF 8B D8 41 3B C3 0F 84", 0x6, 0xa, 0x0)}},
+    {&OFFSET_HALO1_PF_OBJECT_GET_ORIGIN, 0xb37de0, Code, {
+        At("48 89 5C 24 08 48 89 74 24 10 57 48 83 EC 20 48 8B 35 ?? ?? ?? ?? 4C 8B D2", 0x0),
+        Rel("E8 ?? ?? ?? ?? F3 0F 10 06 F3 0F 5C 44 24 20 F3 0F 10 4E 04", 0x1, 0x5, 0x0)}},
+    {&OFFSET_HALO1_PF_OBJECT_TRY_AND_GET, 0xb389a4, Code, {
+        At("40 53 48 83 EC 20 8B DA 8B D1 48 8B 0D ?? ?? ?? ?? E8 ?? ?? ?? ?? 4C 8B D8 33 C0 4D 85 DB 74 ?? 41 0F B6 4B 03", 0x0),
+        Rel("E8 ?? ?? ?? ?? 83 C9 FF 48 85 C0 0F 45 CB 8B C1 48 83 C4 20", 0x1, 0x5, 0x0)}},
+    {&OFFSET_HALO1_PF_ACTOR_CUSTOMIZE_UNIT, 0xc01dd0, Code, {
+        At("48 8B C4 48 89 58 18 55 56 57 41 54 41 55 41 56 41 57 48 81 EC 10 01 00 00", 0x0),
+        Rel("E8 ?? ?? ?? ?? 8B 06 B9 02 00 00 00 44 88 7C 24 58 45 8B CE", 0x1, 0x5, 0x0)}},
+    {&OFFSET_HALO1_PF_AI_ATTACH_FREE, 0xbff120, Code, {
+        At("48 83 EC 68 48 8B 05 ?? ?? ?? ?? 41 BB 02 00 00 00 44 8B C2", 0x0)}},
     {&OFFSET_HALO1_PF_SPLIT_GRID, 0xac4108, Code, {
         At("48 89 5C 24 08 BB 01 00 00 00 4D 8B D8 44 8B CB", 0x0),
         Rel("E8 ?? ?? ?? ?? 44 8B 5C 24 58 41 8B C3 0F AF 44 24 50 3B C3", 0x1, 0x5, 0x0)}},
