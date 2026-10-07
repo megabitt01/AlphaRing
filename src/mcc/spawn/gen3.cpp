@@ -305,9 +305,19 @@ namespace MCC::Spawn::Gen3 {
         char* cell; // ODST: the designer cell a single location is placed through
     };
 
+    // Squads lent to a spawn and not put back yet (RestoreLater; game thread). Lent again, a squad
+    // would have the first spawn's changes saved as its own, and put back over the original.
+    static struct { unsigned generation = ~0u; std::vector<const char*> squads; } s_lent;
+
+    static std::vector<const char*>& LentSquads() {
+        if (s_lent.generation != CGameManager::load_generation()) s_lent = {CGameManager::load_generation(), {}};
+        return s_lent.squads;
+    }
+
     // The spawn point nearest to `position` among empty squads: it lies in a loaded part of
     // the map, and the squad's own members won't mix with the spawned character.
     static bool NearestSpawnPoint(const Game& g, const Vector3& position, SpawnPoint& out) {
+        auto& lent = LentSquads();
         auto scenario = Scenario(g);
         float best = 1e30f;
         auto consider = [&](const SpawnPoint& point) {
@@ -318,6 +328,7 @@ namespace MCC::Spawn::Gen3 {
         for (int s = 0; s < Count(scenario + g.squads); ++s) {
             if (!SquadIsEmpty(g, s)) continue;
             auto squad = Element(g, scenario + g.squads, s, g.squad_size);
+            if (std::find(lent.begin(), lent.end(), squad) != lent.end()) continue;
             if (g.single_locations) {
                 for (int p = 0; p < Count(squad + 0x3C) && p < 0x100; ++p) {
                     auto location = Element(g, squad + 0x3C, p, g.location_size);
@@ -363,12 +374,15 @@ namespace MCC::Spawn::Gen3 {
         std::vector<Borrowed> borrowed;
         int squad, player;
         std::string name;
+        const char* squad_data;
     };
 
     static void RestoreLater(const Game& g, std::shared_ptr<PendingRestore> pending, int ticks) {
         MCC::Command::Schedule(g.id, [&g, pending, ticks] {
             if (ticks > 0) return RestoreLater(g, pending, ticks - 1);
             for (auto& b : pending->borrowed) memcpy(b.address, b.saved.data(), b.saved.size());
+            auto& lent = LentSquads();
+            lent.erase(std::remove(lent.begin(), lent.end(), pending->squad_data), lent.end());
             if (SquadIsEmpty(g, pending->squad))
                 ReportStatus(pending->player, "Couldn't spawn " + pending->name + " here");
         });
@@ -444,7 +458,7 @@ namespace MCC::Spawn::Gen3 {
             return "This mission has no free squads to spawn characters with";
         if (weapon == kUsualWeapon) weapon = UsualWeapon(g, character);
 
-        auto pending = std::make_shared<PendingRestore>(PendingRestore{{}, spawn.squad, player, name});
+        auto pending = std::make_shared<PendingRestore>(PendingRestore{{}, spawn.squad, player, name, spawn.squad_data});
         for (auto [address, size] : {std::pair{spawn.squad_data, g.squad_size}, {spawn.fire_team_data, 0x60},
                                      {spawn.location, g.location_size}, {spawn.cell, 0x84}})
             if (address) {
@@ -474,6 +488,7 @@ namespace MCC::Spawn::Gen3 {
         Call<void>(g, g.ai_place, ai, false);
 
         for (auto& b : pending->borrowed) MCC::Command::ForgetChange(b.address); // RestoreLater's now
+        LentSquads().push_back(spawn.squad_data);
         RestoreLater(g, std::move(pending), 60);
         return SpawnResult(true, weapon_index != -1 ? WithWeapon(name, TagName(g, weapon)) : name);
     }
