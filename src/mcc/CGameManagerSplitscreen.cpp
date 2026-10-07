@@ -40,7 +40,13 @@ static constexpr int kDeferredJoinStartPlayers = 2;
 static constexpr ULONGLONG kDeferredJoinDelayMs = 3000;
 static std::atomic<ULONGLONG> s_running_since; // 0 until the current session first runs
 
+static std::atomic<unsigned> s_load_generation;
+
+unsigned CGameManager::load_generation() { return s_load_generation; }
+
 void CGameManager::track_state(eState state) {
+    if (state == Loading)
+        ++s_load_generation;
     if (state == Running && !s_running_since) // also re-sent after level transitions
         s_running_since = GetTickCount64();
 }

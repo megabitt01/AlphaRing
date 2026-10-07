@@ -4,6 +4,7 @@
 
 #include "mcc/network/Network.h"
 #include "mcc/splitscreen/Splitscreen.h"
+#include "mcc/spawn/Spawn.h"
 #include "mcc/hud/Hud.h"
 #include "mcc/module/Module.h"
 
@@ -57,6 +58,8 @@ void CMCCContext::render() {
     MCC::Module::ImGuiContext();
 
     MCC::Splitscreen::ImGuiContext();
+
+    MCC::Spawn::ImGuiContext();
 
     MCC::Hud::ImGuiContext();
 
