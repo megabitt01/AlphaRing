@@ -44,6 +44,39 @@ namespace MCC::Command {
         return true;
     }
 
+    // Tasks due on a tick of their own (ScheduleAfter), per game; its simulation thread only.
+    struct Delayed {
+        unsigned long long due;
+        unsigned generation;
+        std::function<void()> task;
+    };
+    static struct { unsigned long long tick = 0; std::vector<Delayed> tasks; } s_delayed[kGames];
+
+    bool ScheduleAfter(int game, int ticks, const std::function<void()>& task) {
+        if ((unsigned)game >= kGames || s_schedulers[game] == nullptr) return false;
+        auto& delayed = s_delayed[game];
+        delayed.tasks.push_back({delayed.tick + ticks, CGameManager::load_generation(), task});
+        return true;
+    }
+
+    void Tick(int game) {
+        if ((unsigned)game >= kGames) return;
+        auto& delayed = s_delayed[game];
+        ++delayed.tick;
+        if (delayed.tasks.empty()) return;
+
+        // taken out first: a task may schedule another
+        std::vector<std::function<void()>> due;
+        unsigned generation = CGameManager::load_generation();
+        for (size_t i = 0; i < delayed.tasks.size();) {
+            auto& entry = delayed.tasks[i];
+            if (entry.generation == generation && entry.due > delayed.tick) { ++i; continue; }
+            if (entry.generation == generation) due.push_back(std::move(entry.task)); // else another map's: dropped
+            delayed.tasks.erase(delayed.tasks.begin() + i);
+        }
+        for (auto& task : due) task();
+    }
+
     __int64 ModuleBase(int game) {
         auto p_module = MCC::Module::GetSubModule(game);
         return p_module ? p_module->info().hModule : 0;

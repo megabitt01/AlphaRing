@@ -28,6 +28,7 @@ namespace Halo3::Entry::World {
     }
 
     void Prologue() {
+        MCC::Command::Tick(CGameGlobal::Halo3); // spawning's tasks due on this tick (mcc/spawn/Command.h)
         ExecuteTask();
     }
 

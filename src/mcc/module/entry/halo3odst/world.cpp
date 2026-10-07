@@ -27,6 +27,7 @@ namespace Halo3ODST::Entry::World {
     }
 
     void Prologue() {
+        MCC::Command::Tick(CGameGlobal::Halo3ODST); // spawning's tasks due on this tick (mcc/spawn/Command.h)
         ExecuteTask();
     }
 

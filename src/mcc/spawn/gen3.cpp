@@ -364,7 +364,11 @@ namespace MCC::Spawn::Gen3 {
     }
 
     // Borrowed squad data is put back a moment later: the engine finishes placing the actor
-    // over the next ticks and reads the spawn point again while doing so.
+    // over the next ticks and reads the spawn point again while doing so. On the 61st simulation
+    // tick after the spawn's, whatever else is queued for the game thread (as in the kirklandsig
+    // fork, whose queue ran every task due on a tick).
+    constexpr int kRestoreTicks = 61;
+
     struct Borrowed {
         char* address;
         std::vector<char> saved;
@@ -377,15 +381,17 @@ namespace MCC::Spawn::Gen3 {
         const char* squad_data;
     };
 
-    static void RestoreLater(const Game& g, std::shared_ptr<PendingRestore> pending, int ticks) {
-        MCC::Command::Schedule(g.id, [&g, pending, ticks] {
-            if (ticks > 0) return RestoreLater(g, pending, ticks - 1);
-            for (auto& b : pending->borrowed) memcpy(b.address, b.saved.data(), b.saved.size());
-            auto& lent = LentSquads();
-            lent.erase(std::remove(lent.begin(), lent.end(), pending->squad_data), lent.end());
-            if (SquadIsEmpty(g, pending->squad))
-                ReportStatus(pending->player, "Couldn't spawn " + pending->name + " here");
-        });
+    static void Restore(const Game& g, const PendingRestore& pending) {
+        for (auto& b : pending.borrowed) memcpy(b.address, b.saved.data(), b.saved.size());
+        auto& lent = LentSquads();
+        lent.erase(std::remove(lent.begin(), lent.end(), pending.squad_data), lent.end());
+        if (SquadIsEmpty(g, pending.squad))
+            ReportStatus(pending.player, "Couldn't spawn " + pending.name + " here");
+    }
+
+    static void RestoreLater(const Game& g, std::shared_ptr<PendingRestore> pending) {
+        if (!MCC::Command::ScheduleAfter(g.id, kRestoreTicks, [&g, pending] { Restore(g, *pending); }))
+            Restore(g, *pending); // no tick to wait for: at once rather than never
     }
 
     // Halo 3: the fire team and its starting location both carry character and loadout.
@@ -489,7 +495,7 @@ namespace MCC::Spawn::Gen3 {
 
         for (auto& b : pending->borrowed) MCC::Command::ForgetChange(b.address); // RestoreLater's now
         LentSquads().push_back(spawn.squad_data);
-        RestoreLater(g, std::move(pending), 60);
+        RestoreLater(g, std::move(pending));
         return SpawnResult(true, weapon_index != -1 ? WithWeapon(name, TagName(g, weapon)) : name);
     }
 

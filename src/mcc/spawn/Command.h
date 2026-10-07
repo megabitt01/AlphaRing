@@ -31,6 +31,13 @@ namespace MCC::Command {
     // unless another map has loaded by then. False without a scheduler.
     bool Schedule(int game, const std::function<void()>& task);
 
+    // Run `task` on the `ticks`th simulation tick after this one, beside the queue: every task due
+    // on a tick runs then. Dropped if another map loads first. From `game`'s simulation thread;
+    // false without a scheduler (its tick hook calls Tick).
+    bool ScheduleAfter(int game, int ticks, const std::function<void()>& task);
+    // Each simulation tick of `game`, from its tick hook (module/entry/halo3/world.cpp, halo3odst).
+    void Tick(int game);
+
     // Game data a handler changes for the length of a call into the game. A fault in the game is
     // a structured exception, which skips C++ destructors on its way to the dispatcher, so a
     // handler records such a change first (`size` bytes at `at`, saved as they are now) and
