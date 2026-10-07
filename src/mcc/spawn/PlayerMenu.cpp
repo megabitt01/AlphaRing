@@ -12,6 +12,7 @@
 #include "mcc/CGameGlobal.h"
 #include "mcc/hud/Hud.h"
 #include "mcc/splitscreen/LeftRight.h"
+#include "mcc/splitscreen/Splitscreen.h"
 #include "render/imgui/ImGui.h"
 #include "render/imgui/game/xbox/CXboxContext.h"
 
@@ -346,6 +347,8 @@ namespace MCC::Spawn {
         auto p_global = GameGlobal();
         int shown = p_global ? p_global->current_game : -1;
         bool left_right = MCC::Splitscreen::LeftRight::OnScreen(shown, count);
+        // three players in Halo CE Anniversary's quarters: laid out as four
+        int layout = count == 3 && MCC::Splitscreen::AnniversaryQuartersShown(shown) ? 4 : count;
 
         for (int player = 0; player < kMaxPlayers; ++player) {
             Snapshot snapshot;
@@ -405,7 +408,7 @@ namespace MCC::Spawn {
             if (spawn && Catalog::Get(game, (Category)snapshot.category, snapshot.selected, item))
                 Catalog::Spawn((Category)snapshot.category, item, player, (Team)snapshot.team, snapshot.weapon);
 
-            Draw(player, snapshot, game, hud_rows, ViewRect(player, count, display, left_right));
+            Draw(player, snapshot, game, hud_rows, ViewRect(player, layout, display, left_right));
         }
     }
 }

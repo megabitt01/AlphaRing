@@ -623,6 +623,9 @@ namespace Halo1::Entry::Anniversary {
     ::Entry entry_overlay_rect(Halo1EntrySet(), OFFSET_HALO1_SABER_VIEW_OVERLAY_RECT,
                                MidFunctionThunk(&OverlayRect, &entry_overlay_rect.m_pOriginal, nullptr, 0), entry_feature);
 
+    // Quad mode is drawing, as of the last sync: three players are in quarters, as four are.
+    bool QuadShown() { return s_sync_quad; }
+
     // ---- the module unloading (MCC reloads it for the next game): nothing of ours may point into it
 
     void Reset() {

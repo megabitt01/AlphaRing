@@ -32,4 +32,7 @@ namespace MCC::Splitscreen {
     bool AnniversaryQuadChosen();
     void ChooseAnniversaryQuad(bool on);
     bool AnniversaryQuadActive(int game);
+    // The mode is drawing Halo CE (module/entry/halo1/anniversary.cpp) and puts three players in quarters, as four;
+    // Halo 2's keeps its own grid, player 1 on the top half.
+    bool AnniversaryQuartersShown(int game);
 }

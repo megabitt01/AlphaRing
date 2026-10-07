@@ -14,7 +14,7 @@
 
 #include <atomic>
 
-namespace Halo1::Entry::Anniversary { bool Available(); }
+namespace Halo1::Entry::Anniversary { bool Available(); bool QuadShown(); }
 namespace Halo2::Entry::Anniversary { bool Available(); }
 
 namespace MCC::Splitscreen {
@@ -52,6 +52,9 @@ namespace MCC::Splitscreen {
     bool AnniversaryQuadChosen() { return AlphaRing::SplitscreenConfigStore::GetAnniversaryQuad(); }
     void ChooseAnniversaryQuad(bool on) { AlphaRing::SplitscreenConfigStore::SetAnniversaryQuad(on); }
     bool AnniversaryQuadActive(int game) { return s_anniversary_quad_game == game; }
+    bool AnniversaryQuartersShown(int game) {
+        return game == CGameGlobal::Halo1 && Halo1::Entry::Anniversary::QuadShown();
+    }
 
     // The game's 3-4 player mode has all its offsets in this MCC build (always in the one they were written for), and
     // for Halo CE the render targets it draws into.
