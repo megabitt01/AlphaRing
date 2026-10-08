@@ -93,7 +93,7 @@ void CModule::unload_module() {
 }
 
 #include "mcc/module/entry/halo1/halo1.h"
-#include "offset_halo2.h"
+#include "mcc/module/entry/halo2/halo2.h"
 #include "mcc/module/entry/halo3/halo3.h"
 #include "mcc/module/entry/halo3odst/halo3odst.h"
 #include "mcc/module/entry/haloreach/haloreach.h"
@@ -113,11 +113,16 @@ static struct {
         {"splitscreen_patch1", "", OFFSET_HALO1_PF_4PLAYERS, "\xEB\x18", true},
         {"splitscreen_patch2", "", OFFSET_HALO1_PF_PAUSE, "\xEB", true},
         {"splitscreen_patch3", "", OFFSET_HALO1_PF_IDK, "\x90\x90\x90\x90\x90\x90", true}, // fix [issue](https://github.com/WinterSquire/AlphaRing/issues/19)
-}}, {nullptr, {
+}}, {Halo2EntrySet(), {
         {"splitscreen_patch1", "", OFFSET_HALO2_PF_PLAYER_VALID, "\x31\xC0\xB0\x01\xC3\x90", true},
         {"splitscreen_patch2", "", OFFSET_HALO2_PF_PLAYER_COUNT1, "\x04", true},
         {"splitscreen_patch3", "", OFFSET_HALO2_PF_PLAYER_COUNT2, "\x04", true},
         {"splitscreen_patch4", "force making splitscreen works with more than 2 players", 0x5153E, "\x83\xF8\x01\x74\x04", true},
+        // Save & Quit from a modded campaign with 2+ players hung on the loading screen (reported by SR388): Halo 2
+        // decided the game came from its own lobby and went back to it by loading its main-menu map, which MCC
+        // doesn't have. MCC is the lobby, so quitting always goes back to it.
+        {"Save & Quit to MCC", "quit to MCC instead of Halo 2's own lobby, whose menu map never loads (modded "
+         "campaigns with 2+ players)", OFFSET_HALO2_PF_QUIT_TO_LOBBY_TEST, "\x31\xC0\x90\x90\x90", true},
 }}, {Halo3EntrySet(), {
         {"splitscreen_patch1", "", OFFSET_HALO3_PF_COOP_JOIN, "\x31\xC0\xC3\x90", true},
         {"Remove Black Bar1", "remove black bar", 0x8AE150/*0x8AD160*/, "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x80\x3F\x00\x00\x00\x3F\x01\x00\x00\x00", false},
