@@ -89,6 +89,9 @@ void CModule::load_module(const module_info_t *p_info) {
 }
 
 void CModule::unload_module() {
+    if (m_entries)
+        m_entries->remove();
+    m_patches.update(0);
     memset(&m_info, 0, sizeof(module_info_t));
 }
 
