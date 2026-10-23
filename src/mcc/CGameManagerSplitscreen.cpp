@@ -28,7 +28,8 @@ bool CGameManager::get_xbox_user_id(CGameManager *self, __int64 *pId, wchar_t *p
     auto p_setting = AlphaRing::Global::MCC::Splitscreen();
     auto p_profile = get_profile(index);
 
-    if (!p_setting->b_override || !index)
+    // index -1 too: Halo 2 Classic multiplayer asks for it at map load, and get_profile(-1) is null
+    if (!p_setting->b_override || index <= 0)
         return ppOriginal.get_xbox_user_id(self, pId, pName, size, index);
 
     if (index >= p_setting->player_count)
