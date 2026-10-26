@@ -2,6 +2,7 @@
 
 #include <locale>
 #include <codecvt>
+#include <string>
 
 #define STR_CPY(return_type, name, ...) inline return_type name(__VA_ARGS__) { \
     size_t i = 0; \
@@ -25,4 +26,10 @@ namespace String {
 
     void convert(char* dest, const wchar_t* src, size_t n);
     void convert(wchar_t* dest, const char* src, size_t n);
+
+    inline std::string trim(const std::string& s) {
+        size_t start = s.find_first_not_of(" \t\r\n");
+        size_t end   = s.find_last_not_of(" \t\r\n");
+        return (start == std::string::npos) ? "" : s.substr(start, end - start + 1);
+    }
 }

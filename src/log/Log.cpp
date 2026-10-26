@@ -7,7 +7,6 @@
 #include "common.h"
 
 #include <Windows.h>
-#include <filesystem>
 #include <cstdio>
 #include <io.h>
 #include <fcntl.h>
@@ -32,22 +31,8 @@ namespace AlphaRing::Log {
     static HANDLE tee_thread = nullptr;
     static FILE* raw_log_file = nullptr;
 
-    // Resolves alpha_ring_info.log next to this DLL, regardless of the process's
-    // current working directory (which the host game controls, not us).
     static std::string LogFilePath() {
-        char path[MAX_PATH]{};
-        HMODULE module = nullptr;
-
-        GetModuleHandleExA(
-            GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
-            reinterpret_cast<LPCSTR>(&LogFilePath),
-            &module);
-
-        if (module == nullptr || GetModuleFileNameA(module, path, MAX_PATH) == 0) {
-            return "alpha_ring_info.log";
-        }
-
-        return (std::filesystem::path(path).parent_path() / "alpha_ring_info.log").string();
+        return AlphaRing::Filesystem::ModuleFile("alpha_ring_info.log");
     }
 
     // Last-resort write used for crashes and assertion failures: opens and appends to
@@ -91,8 +76,7 @@ namespace AlphaRing::Log {
         }
     }
 
-    // "mcc-win64-shipping.exe+0x1A2B3C" for a code address, into `out`.
-    static void DescribeAddress(const void* address, char* out, size_t size) {
+    void DescribeAddress(const void* address, char* out, size_t size) {
         HMODULE module = nullptr;
         char path[MAX_PATH]{};
         if (!GetModuleHandleExA(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,

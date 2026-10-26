@@ -2,6 +2,8 @@
 
 #include "log/Log.h"
 
+#include <utils.h>
+
 #include <fstream>
 #include <sstream>
 #include <algorithm>
@@ -86,28 +88,22 @@ static const std::map<std::string, int> k_keyMap = {
     {"TAB",    VK_TAB},
 };
 
-std::string MenuConfig::trim(const std::string& s) {
-    size_t start = s.find_first_not_of(" \t\r\n");
-    size_t end   = s.find_last_not_of(" \t\r\n");
-    return (start == std::string::npos) ? "" : s.substr(start, end - start + 1);
-}
-
 WORD MenuConfig::parseButton(const std::string& raw) {
-    std::string name = trim(raw);
+    std::string name = String::trim(raw);
     std::transform(name.begin(), name.end(), name.begin(), ::toupper);
     auto it = k_buttonMap.find(name);
     return (it != k_buttonMap.end()) ? it->second : 0;
 }
 
 CGamepadMapping::eButton MenuConfig::parseGamepadButton(const std::string& raw) {
-    std::string name = trim(raw);
+    std::string name = String::trim(raw);
     std::transform(name.begin(), name.end(), name.begin(), ::toupper);
     auto it = k_gamepadButtonMap.find(name);
     return (it != k_gamepadButtonMap.end()) ? it->second : CGamepadMapping::None;
 }
 
 int MenuConfig::parseKey(const std::string& raw) {
-    std::string name = trim(raw);
+    std::string name = String::trim(raw);
     std::transform(name.begin(), name.end(), name.begin(), ::toupper);
 
     auto it = k_keyMap.find(name);
@@ -268,14 +264,14 @@ MenuConfig MenuConfig::load() {
     while (std::getline(ifs, line)) {
         auto hash = line.find('#');
         if (hash != std::string::npos) line = line.substr(0, hash);
-        line = trim(line);
+        line = String::trim(line);
         if (line.empty()) continue;
 
         auto eq = line.find('=');
         if (eq == std::string::npos) continue;
 
-        std::string key = trim(line.substr(0, eq));
-        std::string val = trim(line.substr(eq + 1));
+        std::string key = String::trim(line.substr(0, eq));
+        std::string val = String::trim(line.substr(eq + 1));
         std::transform(key.begin(), key.end(), key.begin(), ::tolower);
 
         // Any unknown token makes the whole combo invalid: dropping it would turn

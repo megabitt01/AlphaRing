@@ -78,7 +78,6 @@ private:
     static WORD        parseButton(const std::string& name);
     static int         parseKey(const std::string& name);
     static CGamepadMapping::eButton parseGamepadButton(const std::string& name);
-    static std::string trim(const std::string& s);
 };
 
 extern MenuConfig g_menuConfig;

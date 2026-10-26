@@ -121,6 +121,7 @@ void CGamepadMapping::ResetToDefaults() {
 #include <imgui.h>
 #include <cstdio>
 #include "input/Input.h"
+#include "mcc/settings/MenuSettings.h"
 
 // Detect which button is currently pressed on a controller
 int CGamepadMapping::DetectPressedButton(int controllerIndex) {
@@ -151,14 +152,6 @@ int CGamepadMapping::DetectPressedButton(int controllerIndex) {
     return -1;
 }
 
-// Set by a controller profile (see MenuSettings::ApplyControllerProfile),
-// mirrors included.
-static bool IsProfileAction(int action) {
-    static const int profile_actions[] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 13, 20, 21, 22, 23, 24, 28, 49};
-    for (int a : profile_actions)
-        if (a == action) return true;
-    return false;
-}
 
 void CGamepadMapping::ImGuiContext(bool profileActionsHidden) {
     char buffer[64];
@@ -197,7 +190,7 @@ void CGamepadMapping::ImGuiContext(bool profileActionsHidden) {
     }
 
     for (int i = 0; i < action_names.size(); ++i) {
-        if (profileActionsHidden && IsProfileAction(i))
+        if (profileActionsHidden && AlphaRing::MenuSettings::IsProfileAction(i))
             continue;
         auto name = action_names.at(i);
         if (name == nullptr) {

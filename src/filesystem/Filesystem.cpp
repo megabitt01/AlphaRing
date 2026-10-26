@@ -1,7 +1,19 @@
 #include "Filesystem.h"
 
+#include <Windows.h>
+
 #include <filesystem>
 #include <fstream>
+
+std::string AlphaRing::Filesystem::ModuleFile(const char *name) {
+    char module_path[MAX_PATH]{};
+    HMODULE hModule = nullptr;
+    if (!GetModuleHandleExA(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
+                            reinterpret_cast<LPCSTR>(&ModuleFile), &hModule) ||
+        GetModuleFileNameA(hModule, module_path, MAX_PATH) == 0)
+        return name;
+    return (std::filesystem::path(module_path).parent_path() / name).string();
+}
 
 bool AlphaRing::Filesystem::Init() {
     const char* home_dir = "../../../alpha_ring";

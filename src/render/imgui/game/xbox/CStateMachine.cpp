@@ -7,7 +7,6 @@
 #include <SDL_mixer.h>
 #include <array>
 #include <algorithm>
-#include <fstream>
 #include <cstdint>
 #include <iostream>
 #include <string>

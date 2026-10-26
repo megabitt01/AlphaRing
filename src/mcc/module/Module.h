@@ -6,8 +6,6 @@
 namespace MCC::Module {
     bool Initialize();
 
-    bool IsWS();
-
     FileVersion Version();
 
     __int64 GetBaseAddress();

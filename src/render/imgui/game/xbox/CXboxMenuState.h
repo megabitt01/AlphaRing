@@ -17,6 +17,3 @@ struct MenuState {
     PlayerColor playerColors[4];
     bool usePlayer0Profile; // players 2-4 use player 1's profile ("Use Player 1's Armor")
 };
-
-// Saved to disk by AlphaRing::MenuSettings (mcc/settings/MenuSettings.h),
-// which both the Xbox menu and the advanced menu read and write.

@@ -4,7 +4,6 @@
 #include <algorithm>
 #include <cctype>
 #include <map>
-#include <filesystem>
 #include <Windows.h>
 
 #include "common.h"
@@ -13,31 +12,13 @@ namespace {
     std::map<std::string, bool> g_states;
     bool g_loaded = false;
 
-    // Anchored to this DLL's own directory rather than a relative path, since
-    // the process's working directory isn't stable across the module's
-    // lifetime - Load() (called very early at startup) and WriteFile() (called
-    // later, whenever a checkbox is toggled) were observed resolving "./" to
-    // two different real directories, so a saved state written in one session
-    // was silently invisible to the next session's Load().
+    // Load() (called very early at startup) and WriteFile() (called later,
+    // whenever a checkbox is toggled) were observed resolving "./" to two
+    // different real directories, so a saved state written in one session was
+    // silently invisible to the next session's Load().
     const std::string& ConfigPath() {
-        static std::string path = [] {
-            char module_path[MAX_PATH]{};
-            HMODULE hModule = nullptr;
-            GetModuleHandleExA(
-                    GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
-                    reinterpret_cast<LPCSTR>(&ConfigPath), &hModule);
-            GetModuleFileNameA(hModule, module_path, MAX_PATH);
-
-            auto dir = std::filesystem::path(module_path).parent_path();
-            return (dir / "alpha_ring_patches.cfg").string();
-        }();
+        static std::string path = AlphaRing::Filesystem::ModuleFile("alpha_ring_patches.cfg");
         return path;
-    }
-
-    std::string Trim(const std::string& s) {
-        size_t start = s.find_first_not_of(" \t\r\n");
-        size_t end   = s.find_last_not_of(" \t\r\n");
-        return (start == std::string::npos) ? "" : s.substr(start, end - start + 1);
     }
 
     std::string MakeKey(const std::string& module, const std::string& patch) {
@@ -71,14 +52,14 @@ namespace AlphaRing::PatchConfig {
         while (std::getline(ifs, line)) {
             auto hash = line.find('#');
             if (hash != std::string::npos) line = line.substr(0, hash);
-            line = Trim(line);
+            line = String::trim(line);
             if (line.empty()) continue;
 
             auto eq = line.find('=');
             if (eq == std::string::npos) continue;
 
-            std::string key = Trim(line.substr(0, eq));
-            std::string val = Trim(line.substr(eq + 1));
+            std::string key = String::trim(line.substr(0, eq));
+            std::string val = String::trim(line.substr(eq + 1));
             std::transform(key.begin(), key.end(), key.begin(), ::tolower);
 
             g_states[key] = (val == "1" || val == "true");

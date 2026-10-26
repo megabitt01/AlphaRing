@@ -57,6 +57,7 @@ namespace AlphaRing::MenuSettings {
     // Pushing the menu state into the player profiles. Changes still need a
     // GameEngine()->load_setting() to reach a running game.
     void ApplyControllerProfile(int profileIndex, CGamepadMapping& mapping);
+    bool IsProfileAction(int action); // set by ApplyControllerProfile
     void ApplyPlayerControls(int player); // controller slot, look inversion, look sensitivity
     void ApplyPlayerMapping(int player);  // the player's controller profile
     void ApplyPlayerTeam(int player); // only for a player in the match (below the player count)
@@ -76,7 +77,6 @@ namespace AlphaRing::MenuSettings {
     static constexpr int k_profileActionCount = 14;
     const char* ProfileActionName(int action);
     CGamepadMapping::eButton& ProfileButton(ControllerProfileMapping& buttons, int action);
-    ControllerProfileMapping ProfileFromMapping(const CGamepadMapping& mapping);
     int AddProfile(const std::string& name, const ControllerProfileMapping& buttons);
     void DeleteProfile(int index);
     void ReapplyProfile(int index); // to every player using it

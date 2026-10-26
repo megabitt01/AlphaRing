@@ -7,7 +7,6 @@
 #include <string>
 #include <utility>
 #include <vector>
-#include <filesystem>
 #include <Windows.h>
 
 #include "common.h"
@@ -121,27 +120,9 @@ namespace {
         }
     }
 
-    // Anchored to this DLL's own directory - see PatchConfig.cpp for why
-    // (relative "./" paths aren't stable across the module's lifetime).
     const std::string& ConfigPath() {
-        static std::string path = [] {
-            char module_path[MAX_PATH]{};
-            HMODULE hModule = nullptr;
-            GetModuleHandleExA(
-                    GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
-                    reinterpret_cast<LPCSTR>(&ConfigPath), &hModule);
-            GetModuleFileNameA(hModule, module_path, MAX_PATH);
-
-            auto dir = std::filesystem::path(module_path).parent_path();
-            return (dir / "alpha_ring_splitscreen.cfg").string();
-        }();
+        static std::string path = AlphaRing::Filesystem::ModuleFile("alpha_ring_splitscreen.cfg");
         return path;
-    }
-
-    std::string Trim(const std::string& s) {
-        size_t start = s.find_first_not_of(" \t\r\n");
-        size_t end   = s.find_last_not_of(" \t\r\n");
-        return (start == std::string::npos) ? "" : s.substr(start, end - start + 1);
     }
 
     std::string MakeKey(int index, const char* field) {
@@ -218,14 +199,14 @@ namespace AlphaRing::SplitscreenConfigStore {
         while (std::getline(ifs, line)) {
             auto hash = line.find('#');
             if (hash != std::string::npos) line = line.substr(0, hash);
-            line = Trim(line);
+            line = String::trim(line);
             if (line.empty()) continue;
 
             auto eq = line.find('=');
             if (eq == std::string::npos) continue;
 
-            std::string key = Trim(line.substr(0, eq));
-            std::string val = Trim(line.substr(eq + 1));
+            std::string key = String::trim(line.substr(0, eq));
+            std::string val = String::trim(line.substr(eq + 1));
 
             try {
                 g_states[key] = std::stof(val);

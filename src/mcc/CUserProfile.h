@@ -151,8 +151,7 @@ struct CUserProfile {
     float HUDScale; // 0xAC8
 
     // Everything but the armor, which the advanced menu keeps per game (see
-    // ArmorImGuiContext). The player colors are left out: the Primary,
-    // Secondary and Tertiary Color pickers above it set them.
+    // ArmorImGuiContext).
     void ImGuiContext();
     static const char* CustomizationItemName(int index);
 

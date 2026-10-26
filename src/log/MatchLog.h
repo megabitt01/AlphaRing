@@ -4,7 +4,6 @@
 #include <intrin.h>
 
 #include <atomic>
-#include <cstdint>
 #include <string>
 
 #include "Log.h"
@@ -35,21 +34,8 @@ namespace AlphaRing::MatchLog {
 
     // "groundhog.dll+0x1A2B3C" for a code address, e.g. a hook's _ReturnAddress().
     inline std::string Describe(const void* address) {
-        HMODULE module = nullptr;
-        char path[MAX_PATH]{};
-        if (!GetModuleHandleExA(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
-                                reinterpret_cast<LPCSTR>(address), &module) ||
-            GetModuleFileNameA(module, path, MAX_PATH) == 0) {
-            char buffer[32];
-            snprintf(buffer, sizeof(buffer), "%p", address);
-            return buffer;
-        }
-        const char* name = path;
-        for (const char* c = path; *c; ++c)
-            if (*c == '\\' || *c == '/') name = c + 1;
         char buffer[MAX_PATH + 32];
-        snprintf(buffer, sizeof(buffer), "%s+0x%llX", name,
-                 (unsigned long long)(reinterpret_cast<uintptr_t>(address) - reinterpret_cast<uintptr_t>(module)));
+        AlphaRing::Log::DescribeAddress(address, buffer, sizeof(buffer));
         return buffer;
     }
 }

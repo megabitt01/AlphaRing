@@ -477,7 +477,6 @@ namespace MCC::Splitscreen {
             ImGui::EndDisabled();
             ImGui::Unindent();
         }
-
     }
 
     void RealContext() {

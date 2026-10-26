@@ -3,6 +3,7 @@
 #include "log/Log.h"
 #include "log/MatchLog.h"
 #include "global/Global.h"
+#include "filesystem/Filesystem.h"
 #include "mcc/CGameManager.h"
 #include "mcc/CGameGlobal.h"
 #include "render/imgui/game/xbox/CXboxColorMapping.h"
@@ -12,25 +13,12 @@
 #include <algorithm>
 #include <array>
 #include <cstdint>
-#include <filesystem>
 #include <fstream>
 #include <iterator>
 
 namespace AlphaRing::MenuSettings {
-    // Next to this DLL (MCC/Binaries/Win64), whatever the process's working
-    // directory: the game changes it after startup, so a relative path read
-    // and wrote different places depending on when it was used.
     static const std::string& FilePath() {
-        static std::string path = [] {
-            char module_path[MAX_PATH]{};
-            HMODULE hModule = nullptr;
-            if (GetModuleHandleExA(
-                    GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
-                    reinterpret_cast<LPCSTR>(&FilePath), &hModule) &&
-                GetModuleFileNameA(hModule, module_path, MAX_PATH) != 0)
-                return (std::filesystem::path(module_path).parent_path() / "alpha_ring_menu.bin").string();
-            return std::string("alpha_ring_menu.bin");
-        }();
+        static std::string path = AlphaRing::Filesystem::ModuleFile("alpha_ring_menu.bin");
         return path;
     }
 
@@ -66,6 +54,29 @@ namespace AlphaRing::MenuSettings {
         {"Crouch",                   &ControllerProfileMapping::crouch},
         {"Player Zoom",              &ControllerProfileMapping::playerZoom},
         {"Multiplayer Scoreboard",   &ControllerProfileMapping::multiplayerScoreboard},
+    };
+
+    // The CGamepadMapping actions a controller profile sets, mirrors included.
+    static const struct { int action; CGamepadMapping::eButton ControllerProfileMapping::* field; } k_profileBindings[] = {
+        {0,  &ControllerProfileMapping::jump},
+        {1,  &ControllerProfileMapping::switchGrenades},
+        {2,  &ControllerProfileMapping::actionInteract},
+        {3,  &ControllerProfileMapping::reloadRightWeapon},
+        {4,  &ControllerProfileMapping::changeWeapon},
+        {13, &ControllerProfileMapping::swapReloadLeftWeapon},
+        {5,  &ControllerProfileMapping::melee},
+        {6,  &ControllerProfileMapping::toggleFlashlight},
+        {7,  &ControllerProfileMapping::throwGrenade},
+        {49, &ControllerProfileMapping::throwGrenade},  // Use Left Weapon mirrors Throw Grenade
+        {28, &ControllerProfileMapping::throwGrenade},  // Thrust mirrors Throw Grenade
+        {24, &ControllerProfileMapping::throwGrenade},  // Vehicle Function 1 mirrors Throw Grenade
+        {8,  &ControllerProfileMapping::shoot},
+        {9,  &ControllerProfileMapping::crouch},
+        {21, &ControllerProfileMapping::crouch},        // Vehicle Function 2 mirrors Crouch
+        {10, &ControllerProfileMapping::playerZoom},
+        {20, &ControllerProfileMapping::multiplayerScoreboard},
+        {23, &ControllerProfileMapping::useEquipment},
+        {22, &ControllerProfileMapping::jump},          // Vehicle Function 3 mirrors Jump
     };
 
     // In file order; append only. Colors are left out: the menu state's
@@ -210,6 +221,18 @@ namespace AlphaRing::MenuSettings {
         return len == 0 || (bool)is.read(s.data(), len);
     }
 
+    static bool ReadValues(std::istream& is, std::vector<int>& out) {
+        uint32_t count;
+        if (!Read(is, count) || count > k_maxEntries) return false;
+        out.resize(count);
+        for (uint32_t v = 0; v < count; ++v) {
+            int32_t value;
+            if (!Read(is, value)) return false;
+            out[v] = value;
+        }
+        return true;
+    }
+
     // The layout the Xbox menu has always written, kept as the file's first block.
     static void WriteMenuState(std::ostream& os, const MenuState& ms) {
         Write(os, ms.playerCount);
@@ -302,16 +325,8 @@ namespace AlphaRing::MenuSettings {
                     uint32_t i = 0;
                     for (; i < count; ++i) {
                         Character character;
-                        uint32_t values;
-                        if (!ReadString(ifs, character.name) || !Read(ifs, values) || values > k_maxEntries) break;
-                        character.values.resize(values);
-                        bool ok = true;
-                        for (uint32_t v = 0; v < values && ok; ++v) {
-                            int32_t value;
-                            ok = Read(ifs, value);
-                            character.values[v] = value;
-                        }
-                        if (!ok || (version >= 5 && !ReadString(ifs, character.playerName))) break;
+                        if (!ReadString(ifs, character.name) || !ReadValues(ifs, character.values) ||
+                            (version >= 5 && !ReadString(ifs, character.playerName))) break;
                         if (version >= 8) {
                             int8_t game;
                             if (!Read(ifs, game)) break;
@@ -333,17 +348,6 @@ namespace AlphaRing::MenuSettings {
                     }
                     charactersRead = i == count;
                 }
-                auto read_values = [&](std::vector<int>& out) {
-                    uint32_t values;
-                    if (!Read(ifs, values) || values > k_maxEntries) return false;
-                    out.resize(values);
-                    for (uint32_t v = 0; v < values; ++v) {
-                        int32_t value;
-                        if (!Read(ifs, value)) return false;
-                        out[v] = value;
-                    }
-                    return true;
-                };
                 bool armorRead = false;
                 if (version >= 8 && charactersRead && Read(ifs, count) && count <= 4) {
                     uint32_t games = 0;
@@ -351,7 +355,7 @@ namespace AlphaRing::MenuSettings {
                     for (uint32_t p = 0; p < count && ok; ++p)
                         for (uint32_t g = 0; g < games && ok; ++g) {
                             std::vector<int> armor;
-                            ok = read_values(armor);
+                            ok = ReadValues(ifs, armor);
                             if (ok && g < (uint32_t)ArmorGameCount) s_armor[p][g] = std::move(armor);
                         }
                     armorRead = ok;
@@ -360,7 +364,7 @@ namespace AlphaRing::MenuSettings {
                     uint32_t p = 0;
                     for (; p < count; ++p) {
                         std::vector<int> armor;
-                        if (!read_values(armor)) break;
+                        if (!ReadValues(ifs, armor)) break;
                         auto split = SplitByGame(armor);
                         for (int g = 0; g < ArmorGameCount; ++g)
                             if (HasValues(split[g])) s_armor[p][g] = std::move(split[g]);
@@ -383,13 +387,27 @@ namespace AlphaRing::MenuSettings {
             if (profile < 0 || profile >= (int)s_profiles.size()) profile = 0;
     }
 
+    static std::string ToUtf8(const wchar_t* text) {
+        std::string result;
+        int size = WideCharToMultiByte(CP_UTF8, 0, text, -1, nullptr, 0, nullptr, nullptr);
+        if (size > 1) {
+            result.resize(size - 1);
+            WideCharToMultiByte(CP_UTF8, 0, text, -1, result.data(), size, nullptr, nullptr);
+        }
+        return result;
+    }
+
+    // Into a buffer of `size` characters; a name too long keeps what fit.
+    static void FromUtf8(const std::string& text, wchar_t* out, int size) {
+        if (MultiByteToWideChar(CP_UTF8, 0, text.c_str(), -1, out, size) == 0)
+            out[size - 1] = L'\0';
+    }
+
     static void ApplyPlayerNames() {
         for (int i = 0; i < 4; ++i) {
             auto profile = CGameManager::get_profile(i);
             if (!profile || s_playerNames[i].empty()) continue;
-            int size = (int)std::size(profile->name);
-            if (MultiByteToWideChar(CP_UTF8, 0, s_playerNames[i].c_str(), -1, profile->name, size) == 0)
-                profile->name[size - 1] = L'\0'; // too long: keep what fit
+            FromUtf8(s_playerNames[i], profile->name, (int)std::size(profile->name));
         }
     }
 
@@ -510,25 +528,13 @@ namespace AlphaRing::MenuSettings {
             action = CGamepadMapping::None;
 
         const ControllerProfileMapping& p = profiles[profileIndex].buttons;
-        mapping.actions[0]  = p.jump;
-        mapping.actions[1]  = p.switchGrenades;
-        mapping.actions[2]  = p.actionInteract;
-        mapping.actions[3]  = p.reloadRightWeapon;
-        mapping.actions[4]  = p.changeWeapon;
-        mapping.actions[13] = p.swapReloadLeftWeapon;
-        mapping.actions[5]  = p.melee;
-        mapping.actions[6]  = p.toggleFlashlight;
-        mapping.actions[7]  = p.throwGrenade;
-        mapping.actions[49] = p.throwGrenade;  // Use Left Weapon mirrors Throw Grenade
-        mapping.actions[28] = p.throwGrenade;  // Thrust mirrors Throw Grenade
-        mapping.actions[24] = p.throwGrenade;  // Vehicle Function 1 mirrors Throw Grenade
-        mapping.actions[8]  = p.shoot;
-        mapping.actions[9]  = p.crouch;
-        mapping.actions[21] = p.crouch;        // Vehicle Function 2 mirrors Crouch
-        mapping.actions[10] = p.playerZoom;
-        mapping.actions[20] = p.multiplayerScoreboard;
-        mapping.actions[23] = p.useEquipment;
-        mapping.actions[22] = p.jump;          // Vehicle Function 3 mirrors Jump
+        for (auto& binding : k_profileBindings)
+            mapping.actions[binding.action] = p.*binding.field;
+    }
+
+    bool IsProfileAction(int action) {
+        return std::any_of(std::begin(k_profileBindings), std::end(k_profileBindings),
+                           [action](const auto& binding) { return binding.action == action; });
     }
 
     void ApplyPlayerControls(int player) {
@@ -629,25 +635,6 @@ namespace AlphaRing::MenuSettings {
         return buttons.*(k_profileActions[std::clamp(action, 0, k_profileActionCount - 1)].field);
     }
 
-    ControllerProfileMapping ProfileFromMapping(const CGamepadMapping& mapping) {
-        ControllerProfileMapping p;
-        p.jump                  = mapping.actions[0];
-        p.switchGrenades        = mapping.actions[1];
-        p.actionInteract        = mapping.actions[2];
-        p.reloadRightWeapon     = mapping.actions[3];
-        p.changeWeapon          = mapping.actions[4];
-        p.swapReloadLeftWeapon  = mapping.actions[13];
-        p.melee                 = mapping.actions[5];
-        p.toggleFlashlight      = mapping.actions[6];
-        p.throwGrenade          = mapping.actions[7];
-        p.shoot                 = mapping.actions[8];
-        p.crouch                = mapping.actions[9];
-        p.playerZoom            = mapping.actions[10];
-        p.multiplayerScoreboard = mapping.actions[20];
-        p.useEquipment          = mapping.actions[23];
-        return p;
-    }
-
     int AddProfile(const std::string& name, const ControllerProfileMapping& buttons) {
         std::lock_guard lock(s_mutex);
         auto& profiles = Profiles();
@@ -689,16 +676,6 @@ namespace AlphaRing::MenuSettings {
     }
 
     // ---------------------------------------------------------------- characters
-
-    static std::string ToUtf8(const wchar_t* text) {
-        std::string result;
-        int size = WideCharToMultiByte(CP_UTF8, 0, text, -1, nullptr, 0, nullptr, nullptr);
-        if (size > 1) {
-            result.resize(size - 1);
-            WideCharToMultiByte(CP_UTF8, 0, text, -1, result.data(), size, nullptr, nullptr);
-        }
-        return result;
-    }
 
     void SaveAll() {
         std::lock_guard lock(s_mutex);
@@ -818,9 +795,8 @@ namespace AlphaRing::MenuSettings {
         auto& armor = Armor(player, character.game);
         armor = EmptyArmor();
         std::copy_n(character.values.begin(), (std::min)(character.values.size(), armor.size()), armor.begin());
-        if (!character.playerName.empty() && playerNameSize > 0 &&
-            MultiByteToWideChar(CP_UTF8, 0, character.playerName.c_str(), -1, playerName, playerNameSize) == 0)
-            playerName[playerNameSize - 1] = L'\0'; // too long: keep what fit
+        if (!character.playerName.empty() && playerNameSize > 0)
+            FromUtf8(character.playerName, playerName, playerNameSize);
     }
 
     void DeleteCharacter(int index) {

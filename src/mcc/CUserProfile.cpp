@@ -165,9 +165,7 @@ namespace {
             ImGui::SetTooltip("Raw value %d", *value);
         return changed;
     }
-}
 
-namespace {
     // The items `filter` accepts that belong to `game`, in list order.
     const std::vector<int>& ItemsMatching(Filter filter, Game game) {
         static std::unordered_map<Filter, std::vector<int>> cache[GameCount];
