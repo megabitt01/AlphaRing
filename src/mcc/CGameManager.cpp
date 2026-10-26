@@ -2,17 +2,14 @@
 
 #include "common.h"
 #include "mcc/mcc.h"
-#include "render/imgui/game/xbox/CXboxMenuState.h"
-#include "render/imgui/game/xbox/CXboxColorMapping.h"
-#include "input/MenuConfig.h"
+#include "mcc/settings/MenuSettings.h"
+#include "log/MatchLog.h"
 
 #include <cstdio>
 #include <guiddef.h>
 #include <combaseapi.h>
 #include <thread>
 #include <chrono>
-
-static constexpr const char* k_menuStateBinPath = "./MCC/Binaries/Win64/alpha_ring_menu.bin";
 
 static struct ProfileContainer_t {CGameManager::Profile_t profiles[4]; ProfileContainer_t();} container;
 
@@ -131,10 +128,19 @@ int CGameManager::get_index(__int64 xuid) {
 }
 
 void CGameManager::set_state(CGameManager *self, eState state) {
-    auto state_name = "Unknown";
-    if (state == Exiting)
-        state_name = "Exiting";
+    static std::atomic<int> s_last_state{-1};
+    if (s_last_state.exchange((int)state) != (int)state)
+        MATCH_LOG("set_state {} (caller {})", (int)state, AlphaRing::MatchLog::Describe(_ReturnAddress()));
     return ppOriginal.set_state(self, state);
+}
+
+static void log_match_settings(const char* when) {
+    auto p_setting = AlphaRing::Global::MCC::Splitscreen();
+    auto* gg = GameGlobal();
+    MATCH_LOG("{}: game={} override={} player_count={} p1_km={} use_p1_profile={} override_profile={} in_game={}",
+              when, gg ? (int)gg->current_game : -1, p_setting->b_override, p_setting->player_count,
+              p_setting->b_player0_use_km, p_setting->b_use_player0_profile, p_setting->b_override_profile,
+              MCC::IsInGame());
 }
 
 void CGameManager::apply_profiles() {
@@ -158,66 +164,62 @@ void CGameManager::apply_profiles() {
     }
 }
 
-static void apply_menu_state_from_bin() {
-    MenuState ms{};
-    ms.playerCount = 1;
-    ms.useKM = false;
-    for (int i = 0; i < 4; ++i) { ms.controllerIndex[i] = i; ms.teamIndex[i] = i % 2; }
-    loadMenuStateBin(ms, k_menuStateBinPath);
+// Events some engines can't take while a match is still being set up, so they
+// are sent once it is running instead:
+// - The settings reload makes the engine run its match setup again; Halo 2 and
+//   Halo 4 break a starting match on it (Halo 4 ends it ~9 s in, one player
+//   placing "-1th").
+// - Team changes: H2A ends a starting match on them at once, and Halo 4 is
+//   treated the same until shown otherwise. ApplyAll(true) leaves these two
+//   games' teams out, and they are sent here.
+// Only the latest pending batch fires, and only while a match is still on.
+static std::atomic<unsigned> s_deferred_generation{0};
 
-    for (int i = 0; i < 4; ++i) {
-        auto profile = CGameManager::get_profile(i);
-        if (profile) {
-            profile->controller_index = ms.controllerIndex[i];
-            profile->profile.LookControlsInverted = ms.invert[i];
-            profile->profile.MouseLookControlsInverted = ms.invert[i];
-            profile->profile.VerticalLookSensitivity = static_cast<unsigned char>(ms.sensitivity[i]);
-            profile->profile.HorizontalLookSensitivity = static_cast<unsigned char>(ms.sensitivity[i]);
-            g_menuConfig.ApplyControllerProfile(ms.controllerProfile[i], profile->mapping);
+static void send_after_match_start(DWORD delay_ms, bool teams, bool reload) {
+    unsigned generation = ++s_deferred_generation;
+    MATCH_LOG("deferred {} ms (#{}): teams={} load_setting={}", delay_ms, generation, teams, reload);
+    std::thread([generation, delay_ms, teams, reload]() {
+        Sleep(delay_ms);
+        if (generation != s_deferred_generation.load()) {
+            MATCH_LOG("deferred #{} dropped: a newer one is pending", generation);
+            return;
         }
-    }
+        if (!MCC::IsInGame()) {
+            MATCH_LOG("deferred #{} dropped: no match running", generation);
+            return;
+        }
+        MATCH_LOG("deferred #{} firing", generation);
+        if (teams) {
+            std::lock_guard lock(AlphaRing::MenuSettings::Mutex());
+            for (int i = 0; i < 4; ++i)
+                AlphaRing::MenuSettings::ApplyPlayerTeam(i); // skips players not in the match
+        }
+        auto* e = GameEngine();
+        if (reload && e) {
+            MATCH_LOG("load_setting (deferred #{})", generation);
+            e->load_setting();
+        }
+    }).detach();
+}
 
-    auto p_setting = AlphaRing::Global::MCC::Splitscreen();
-    if (p_setting) {
-        p_setting->b_override = ms.playerCount > 1;
-        p_setting->player_count = ms.playerCount;
-        p_setting->b_player0_use_km = ms.useKM;
-        p_setting->b_use_player0_profile = (ms.playerCount <= 1);
-    }
-
-    auto* engine = GameEngine();
-
-    for (int i = 0; i < 4; ++i) {
-        auto xuid = CGameManager::get_xuid(i);
-        if (xuid && engine)
-            engine->change_team(xuid, ms.teamIndex[i]);
-    }
+static void apply_menu_settings() {
+    AlphaRing::MenuSettings::ApplyAll(true);
 
     auto* gg = GameGlobal();
-    int game = gg ? static_cast<int>(gg->current_game) : static_cast<int>(CGameGlobal::Halo3);
-    for (int i = 0; i < 4; ++i) {
-        auto profile = CGameManager::get_profile(i);
-        if (profile) {
-            int primary   = CXboxColorMapping::GetColorIndex(ms.playerColors[i].colors[0], game);
-            int secondary = CXboxColorMapping::GetColorIndex(ms.playerColors[i].colors[1], game);
-            int tertiary  = CXboxColorMapping::GetColorIndex(ms.playerColors[i].colors[2], game);
-            profile->profile.PlayerModelPrimaryColorIndex   = primary;
-            profile->profile.PlayerModelSecondaryColorIndex = secondary;
-            profile->profile.PlayerModelTertiaryColorIndex  = tertiary;
-            profile->profile.PlayerModelPrimaryColor        = CXboxColorMapping::GetColorItemIndex(ms.playerColors[i].colors[0], game);
-            profile->profile.PlayerModelSecondaryColor      = CXboxColorMapping::GetColorItemIndex(ms.playerColors[i].colors[1], game);
-            profile->profile.PlayerModelTertiaryColor       = CXboxColorMapping::GetColorItemIndex(ms.playerColors[i].colors[2], game);
+    auto game = gg ? gg->current_game : CGameGlobal::Halo3;
+    bool late_teams  = game == CGameGlobal::Halo4 || game == CGameGlobal::GroundHog;
+    bool late_reload = game == CGameGlobal::Halo2 || game == CGameGlobal::Halo4;
+
+    if (!late_reload) {
+        if (auto* engine = GameEngine()) {
+            MATCH_LOG("load_setting");
+            engine->load_setting();
+        } else {
+            MATCH_LOG("load_setting skipped: no engine");
         }
     }
-    if (game == static_cast<int>(CGameGlobal::Halo2)) {
-        std::thread([]() {
-            Sleep(10000);
-            auto* e = GameEngine();
-            if (e) e->load_setting();
-        }).detach();
-    } else if (engine) {
-        engine->load_setting();
-    }
+    if (late_teams || late_reload)
+        send_after_match_start(game == CGameGlobal::GroundHog ? 5000 : 10000, late_teams, late_reload);
 }
 
 static bool ShouldThrottleApply() {
@@ -235,19 +237,33 @@ static bool ShouldThrottleApply() {
 }
 
 void *CGameManager::game_restart(CGameManager *self, int type, const char *reason) {
+    AlphaRing::MatchLog::NewMatch();
+    MATCH_LOG("game_restart enter: type={} reason=\"{}\" (caller {})", type, reason ? reason : "<null>",
+              AlphaRing::MatchLog::Describe(_ReturnAddress()));
+    log_match_settings("game_restart before");
     auto result = ppOriginal.game_restart(self, type, reason);
     if (!ShouldThrottleApply()) {
         apply_profiles();
-        apply_menu_state_from_bin();
+        apply_menu_settings();
+        log_match_settings("game_restart applied");
+    } else {
+        MATCH_LOG("game_restart: apply throttled");
     }
     return result;
 }
 
 char __fastcall CGameManager::game_setup(CGameManager* self, void* a2) {
+    AlphaRing::MatchLog::NewMatch();
+    MATCH_LOG("game_setup enter (caller {})", AlphaRing::MatchLog::Describe(_ReturnAddress()));
+    log_match_settings("game_setup before");
     char result = ppOriginal.game_setup(self, a2);
+    MATCH_LOG("game_setup original returned {}", (int)result);
     if (!ShouldThrottleApply()) {
         apply_profiles();
-        apply_menu_state_from_bin();
+        apply_menu_settings();
+        log_match_settings("game_setup applied");
+    } else {
+        MATCH_LOG("game_setup: apply throttled");
     }
     return result;
 }

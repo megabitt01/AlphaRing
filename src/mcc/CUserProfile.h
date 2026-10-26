@@ -1,5 +1,7 @@
 #pragma once
 
+#include <functional>
+
 struct CUserProfile {
     bool SubtitleSetting; // 0x0
     bool SubtitleSizeSetting; // 0x1
@@ -148,8 +150,21 @@ struct CUserProfile {
     int RemasteredHUDSetting; // 0xAC4
     float HUDScale; // 0xAC8
 
+    // Everything but the armor, which the advanced menu keeps per game (see
+    // ArmorImGuiContext). The player colors are left out: the Primary,
+    // Secondary and Tertiary Color pickers above it set them.
     void ImGuiContext();
     static const char* CustomizationItemName(int index);
+
+    // The game a customization item belongs to, from its name.
+    enum eItemGame { ItemReach, ItemCE, ItemHalo2, ItemHalo2A, ItemHalo3, ItemODST, ItemHalo4, ItemOther, ItemGameCount };
+    static eItemGame CustomizationItemGame(int index);
+
+    // Pickers for the armor, voice and pose fields that `game` has items for,
+    // each offering only that game's items or "None" (-1). `slot` gives the
+    // value a field's picker edits, or null to leave the field out. True if
+    // one changed.
+    static bool ArmorImGuiContext(eItemGame game, const std::function<int*(int CUserProfile::*)>& slot);
 };
 
 static_assert(sizeof(CUserProfile) == 0xACC);

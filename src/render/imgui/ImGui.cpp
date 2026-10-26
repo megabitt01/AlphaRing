@@ -19,6 +19,7 @@
 
 #include "mcc/mcc.h"
 #include "mcc/CGameGlobal.h"
+#include "mcc/settings/MenuSettings.h"
 
 static ICContext* pages[7] {
         nullptr,
@@ -31,6 +32,34 @@ static ICContext* pages[7] {
 };
 
 namespace AlphaRing::Render::ImGui {
+    // The advanced menu was asked for while the Xbox menu was still closing.
+    static bool s_advancedPending = false;
+    static bool s_advancedPendingMouse = false;
+
+    void ToggleXboxMenu() {
+        if (!g_pXboxContext) return;
+        if (g_pXboxContext->isOpen()) {
+            g_pXboxContext->close();
+            return;
+        }
+        s_advancedPending = false;
+        AlphaRing::Global::Global()->show_imgui = false;
+        g_pXboxContext->open();
+    }
+
+    void ToggleAdvancedMenu(bool showMouse) {
+        if (g_pXboxContext && g_pXboxContext->isOpen()) {
+            g_pXboxContext->close();
+            s_advancedPending = !s_advancedPending;
+            s_advancedPendingMouse = showMouse;
+            return;
+        }
+        auto global = AlphaRing::Global::Global();
+        global->show_imgui = !global->show_imgui;
+        if (showMouse)
+            global->show_imgui_mouse = global->show_imgui;
+    }
+
     bool Initialize() {
         ::ImGui::CreateContext();
         ImGui_ImplWin32_Init(Graphics()->hwnd);
@@ -91,6 +120,19 @@ namespace AlphaRing::Render::ImGui {
         AlphaRing::Input::Update();
 
         bool xboxOpen = g_pXboxContext && g_pXboxContext->isOpen();
+        if (s_advancedPending && !xboxOpen) {
+            s_advancedPending = false;
+            AlphaRing::Global::Global()->show_imgui = true;
+            if (s_advancedPendingMouse)
+                AlphaRing::Global::Global()->show_imgui_mouse = true;
+        }
+
+        // The advanced menu just closed, by any of its toggles or its Close item.
+        static bool s_advancedWasShown = false;
+        bool advancedShown = AlphaRing::Global::Global()->show_imgui;
+        if (s_advancedWasShown && !advancedShown)
+            AlphaRing::MenuSettings::SaveAll();
+        s_advancedWasShown = advancedShown;
         if (!AlphaRing::Global::Global()->show_imgui && !xboxOpen)
             return;
 

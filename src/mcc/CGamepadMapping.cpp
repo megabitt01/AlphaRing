@@ -120,12 +120,10 @@ void CGamepadMapping::ResetToDefaults() {
 
 #include <imgui.h>
 #include <cstdio>
-#include <string>
-#include <vector>
 #include "input/Input.h"
 
 // Detect which button is currently pressed on a controller
-static int DetectPressedButton(int controllerIndex) {
+int CGamepadMapping::DetectPressedButton(int controllerIndex) {
     XINPUT_STATE state;
     if (!AlphaRing::Input::GetXInputGetState(controllerIndex, &state))
         return -1;
@@ -153,7 +151,16 @@ static int DetectPressedButton(int controllerIndex) {
     return -1;
 }
 
-void CGamepadMapping::ImGuiContext() {
+// Set by a controller profile (see MenuSettings::ApplyControllerProfile),
+// mirrors included.
+static bool IsProfileAction(int action) {
+    static const int profile_actions[] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 13, 20, 21, 22, 23, 24, 28, 49};
+    for (int a : profile_actions)
+        if (a == action) return true;
+    return false;
+}
+
+void CGamepadMapping::ImGuiContext(bool profileActionsHidden) {
     char buffer[64];
     bool result = false;
     static int binding_action = -1;  // Which action is being bound (-1 = none)
@@ -165,69 +172,14 @@ void CGamepadMapping::ImGuiContext() {
     ImGui::PopItemWidth();
     ImGui::Separator();
 
-    // Custom Profile Management
-    static std::vector<std::string> profile_names;
-    static int selected_profile = -1;
-    static char new_profile_name[64] = "";
-    static bool show_save_input = false;
-    static bool needs_refresh = true;
-
-    // Refresh profile list when needed
-    if (needs_refresh) {
-        needs_refresh = false;
-        // Reset selection if out of bounds
-        if (selected_profile >= (int)profile_names.size()) {
-            selected_profile = profile_names.empty() ? -1 : 0;
-        }
-    }
-
-    ImGui::Text("Custom Profiles:");
-
-    // Profile dropdown
-    ImGui::PushItemWidth(200);
-    const char* preview = (selected_profile >= 0 && selected_profile < (int)profile_names.size())
-        ? profile_names[selected_profile].c_str()
-        : "-- Select Profile --";
-
-    if (ImGui::BeginCombo("##CustomProfile", preview)) {
-        for (int i = 0; i < (int)profile_names.size(); ++i) {
-            bool is_selected = (selected_profile == i);
-            if (ImGui::Selectable(profile_names[i].c_str(), is_selected)) {
-                selected_profile = i;
-            }
-            if (is_selected) {
-                ImGui::SetItemDefaultFocus();
-            }
-        }
-        ImGui::EndCombo();
-    }
-    ImGui::PopItemWidth();
-
-    ImGui::SameLine();
-    if (ImGui::Button("Load") && selected_profile >= 0 && selected_profile < (int)profile_names.size()) {
-    }
-
-    ImGui::SameLine();
-    if (ImGui::Button("Delete") && selected_profile >= 0 && selected_profile < (int)profile_names.size()) {
-        needs_refresh = true;
-        selected_profile = -1;
-    }
-
-    // Save new profile section
-    if (!show_save_input) {
-        if (ImGui::Button("Save as New Profile...")) {
-            show_save_input = true;
-            new_profile_name[0] = '\0';
-        }
-
-        ImGui::SameLine();
+    if (!profileActionsHidden) {
         if (ImGui::Button("Reset to Defaults")) {
             ResetToDefaults();
             result = true;
         }
-    }
 
-    ImGui::Separator();
+        ImGui::Separator();
+    }
 
     // Check for button press if binding is active
     if (binding_action >= 0) {
@@ -245,6 +197,8 @@ void CGamepadMapping::ImGuiContext() {
     }
 
     for (int i = 0; i < action_names.size(); ++i) {
+        if (profileActionsHidden && IsProfileAction(i))
+            continue;
         auto name = action_names.at(i);
         if (name == nullptr) {
             snprintf(buffer, sizeof(buffer), "Action %d", i);

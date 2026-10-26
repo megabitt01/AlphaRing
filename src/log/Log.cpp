@@ -91,13 +91,43 @@ namespace AlphaRing::Log {
         }
     }
 
+    // "mcc-win64-shipping.exe+0x1A2B3C" for a code address, into `out`.
+    static void DescribeAddress(const void* address, char* out, size_t size) {
+        HMODULE module = nullptr;
+        char path[MAX_PATH]{};
+        if (!GetModuleHandleExA(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
+                                reinterpret_cast<LPCSTR>(address), &module) ||
+            GetModuleFileNameA(module, path, MAX_PATH) == 0) {
+            snprintf(out, size, "unknown module");
+            return;
+        }
+        const char* name = path;
+        for (const char* c = path; *c; ++c)
+            if (*c == '\\' || *c == '/') name = c + 1;
+        snprintf(out, size, "%s+0x%llX", name,
+                 (unsigned long long)(reinterpret_cast<uintptr_t>(address) - reinterpret_cast<uintptr_t>(module)));
+    }
+
     static LONG WINAPI UnhandledExceptionHandler(EXCEPTION_POINTERS* info) {
+        char where[MAX_PATH + 32];
+        DescribeAddress(info->ExceptionRecord->ExceptionAddress, where, sizeof(where));
+
+        // An access violation also says what it touched: [0] 0 read / 1 write / 8 execute, [1] the address.
+        char access[96] = "";
+        if (info->ExceptionRecord->ExceptionCode == EXCEPTION_ACCESS_VIOLATION &&
+            info->ExceptionRecord->NumberParameters >= 2) {
+            ULONG_PTR op = info->ExceptionRecord->ExceptionInformation[0];
+            snprintf(access, sizeof(access), ", %s 0x%llX",
+                     op == 0 ? "reading" : op == 1 ? "writing" : op == 8 ? "executing" : "accessing",
+                     (unsigned long long)info->ExceptionRecord->ExceptionInformation[1]);
+        }
+
         char buffer[512];
         snprintf(buffer, sizeof(buffer),
-            "Unhandled exception 0x%08lX (%s) at address 0x%p",
+            "Unhandled exception 0x%08lX (%s) at address 0x%p (%s)%s",
             info->ExceptionRecord->ExceptionCode,
             ExceptionCodeName(info->ExceptionRecord->ExceptionCode),
-            info->ExceptionRecord->ExceptionAddress);
+            info->ExceptionRecord->ExceptionAddress, where, access);
 
         if (default_logger) {
             default_logger->critical(buffer);

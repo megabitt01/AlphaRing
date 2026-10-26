@@ -49,12 +49,12 @@ include_directories(${CMAKE_SOURCE_DIR}/lib/minhook/inc)
 set_target_properties(minhook PROPERTIES IMPORTED_IMPLIB "${CMAKE_SOURCE_DIR}/lib/minhook/lib/release/libMinHook.x64.lib")
 
 # utils
-file(GLOB_RECURSE UTILS_SRC ${CMAKE_SOURCE_DIR}/lib/utils/src/*.cpp)
+file(GLOB_RECURSE UTILS_SRC CONFIGURE_DEPENDS ${CMAKE_SOURCE_DIR}/lib/utils/src/*.cpp)
 include_directories(${CMAKE_SOURCE_DIR}/lib/utils/inc)
 add_library(utils ${UTILS_SRC} "lib/game/inc/${VERSION}/offset_groundhog.h" "lib/game/inc/${VERSION}/offset_halo1.h" "lib/game/inc/${VERSION}/offset_halo2.h" "lib/game/inc/${VERSION}/offset_halo3.h" "lib/game/inc/${VERSION}/offset_halo3odst.h" "lib/game/inc/${VERSION}/offset_halo4.h" "lib/game/inc/${VERSION}/offset_haloreach.h" "lib/game/inc/${VERSION}/offset_mcc.h")
 
 # game
-file(GLOB_RECURSE GAME_SRC ${CMAKE_SOURCE_DIR}/lib/game/src/*.cpp)
+file(GLOB_RECURSE GAME_SRC CONFIGURE_DEPENDS ${CMAKE_SOURCE_DIR}/lib/game/src/*.cpp)
 include_directories(${CMAKE_SOURCE_DIR}/lib/game/inc)
 include_directories(${CMAKE_SOURCE_DIR}/lib/game/inc/${VERSION})
 add_library(game ${GAME_SRC} "lib/game/inc/${VERSION}/offset_groundhog.h" "lib/game/inc/${VERSION}/offset_halo1.h" "lib/game/inc/${VERSION}/offset_halo2.h" "lib/game/inc/${VERSION}/offset_halo3.h" "lib/game/inc/${VERSION}/offset_halo3odst.h" "lib/game/inc/${VERSION}/offset_halo4.h" "lib/game/inc/${VERSION}/offset_haloreach.h" "lib/game/inc/${VERSION}/offset_mcc.h")
@@ -69,7 +69,7 @@ add_compile_definitions(_DISABLE_CONSTEXPR_MUTEX_CONSTRUCTOR)
 add_compile_definitions(WRAPPER_DLL_NAME="${WRAPPER_DLL_NAME}")
 add_compile_definitions(GAME_VERSION="${VERSION}")
 
-file(GLOB_RECURSE CORE_SRC
+file(GLOB_RECURSE CORE_SRC CONFIGURE_DEPENDS
     ${CMAKE_SOURCE_DIR}/src/*.cpp
     ${CMAKE_SOURCE_DIR}/src/*.c
 )

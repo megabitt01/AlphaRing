@@ -6,6 +6,7 @@
 
 #include "imgui.h"
 #include "global/Global.h"
+#include "render/imgui/ImGui.h"
 #include "render/imgui/game/xbox/CXboxContext.h"
 
 static HMODULE hModule;
@@ -189,29 +190,21 @@ namespace AlphaRing::Input {
         int debugKey = g_menuConfig.debugKeyboardVKey;
         bool debugKeyIsDown = (GetAsyncKeyState(debugKey) & 0x8000) != 0;
         bool typing = AlphaRing::Global::Global()->show_imgui && ImGui::GetIO().WantTextInput;
-        if (debugKeyIsDown && !debugKeyWasDown && !typing) {
-            AlphaRing::Global::Global()->show_imgui = !AlphaRing::Global::Global()->show_imgui;
-
-            AlphaRing::Global::Global()->show_imgui_mouse = AlphaRing::Global::Global()->show_imgui;
-
-        }
+        if (debugKeyIsDown && !debugKeyWasDown && !typing)
+            AlphaRing::Render::ImGui::ToggleAdvancedMenu(true);
         debugKeyWasDown = debugKeyIsDown;
         
         // configurable debug UI combo
         WORD debugCombo = g_menuConfig.debugComboMask;
         if ((buttons & debugCombo) == debugCombo && (justPressed & debugCombo) != 0) {
-            AlphaRing::Global::Global()->show_imgui = !AlphaRing::Global::Global()->show_imgui;
+            AlphaRing::Render::ImGui::ToggleAdvancedMenu(false);
             return false;
         }
 
         // configurable xbox menu combo
         WORD menuCombo = g_menuConfig.controllerComboMask;
-        if ((buttons & menuCombo) == menuCombo && (justPressed & menuCombo) != 0) {
-            if (g_pXboxContext) {
-                if (g_pXboxContext->isOpen()) g_pXboxContext->close();
-                else g_pXboxContext->open();
-            }
-        }
+        if ((buttons & menuCombo) == menuCombo && (justPressed & menuCombo) != 0)
+            AlphaRing::Render::ImGui::ToggleXboxMenu();
 
         // navigation and input consumption while Xbox menu is open
         if (g_pXboxContext && g_pXboxContext->isOpen()) {

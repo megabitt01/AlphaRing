@@ -13,53 +13,6 @@
 #include <string>
 
 // ------------------------------------------------------------
-// Persistence (unchanged)
-// ------------------------------------------------------------
-bool saveMenuStateBin(const MenuState& state, const std::string& path) {
-    std::ofstream ofs(path, std::ios::binary);
-    if (!ofs) return false;
-
-    uint8_t useKM = state.useKM ? 1 : 0;
-    uint8_t invert[4];
-    for (int i = 0; i < 4; ++i) invert[i] = state.invert[i] ? 1 : 0;
-
-    ofs.write(reinterpret_cast<const char*>(&state.playerCount), sizeof(state.playerCount));
-    ofs.write(reinterpret_cast<const char*>(&useKM), sizeof(useKM));
-    ofs.write(reinterpret_cast<const char*>(state.controllerIndex), sizeof(state.controllerIndex));
-    ofs.write(reinterpret_cast<const char*>(state.controllerProfile), sizeof(state.controllerProfile));
-    ofs.write(reinterpret_cast<const char*>(state.sensitivity), sizeof(state.sensitivity));
-    ofs.write(reinterpret_cast<const char*>(invert), sizeof(invert));
-    ofs.write(reinterpret_cast<const char*>(state.teamIndex), sizeof(state.teamIndex));
-    ofs.write(reinterpret_cast<const char*>(state.playerColors), sizeof(state.playerColors));
-
-    return ofs.good();
-}
-
-bool loadMenuStateBin(MenuState& state, const std::string& path) {
-    std::ifstream ifs(path, std::ios::binary);
-    if (!ifs) return false;
-
-    uint8_t useKM = 0;
-    uint8_t invert[4] = {0, 0, 0, 0};
-
-    ifs.read(reinterpret_cast<char*>(&state.playerCount), sizeof(state.playerCount));
-    // Unchecked file data: the count indexes the four player profiles and
-    // per-player settings, so keep it to 1-4 even for a corrupt file.
-    state.playerCount = std::clamp(state.playerCount, 1, 4);
-    ifs.read(reinterpret_cast<char*>(&useKM), sizeof(useKM));
-    state.useKM = useKM != 0;
-    ifs.read(reinterpret_cast<char*>(state.controllerIndex), sizeof(state.controllerIndex));
-    ifs.read(reinterpret_cast<char*>(state.controllerProfile), sizeof(state.controllerProfile));
-    ifs.read(reinterpret_cast<char*>(state.sensitivity), sizeof(state.sensitivity));
-    ifs.read(reinterpret_cast<char*>(invert), sizeof(invert));
-    for (int i = 0; i < 4; ++i) state.invert[i] = invert[i] != 0;
-    ifs.read(reinterpret_cast<char*>(state.teamIndex), sizeof(state.teamIndex));
-    ifs.read(reinterpret_cast<char*>(state.playerColors), sizeof(state.playerColors));
-
-    return ifs.good();
-}
-
-// ------------------------------------------------------------
 // Helpers
 // ------------------------------------------------------------
 namespace {
@@ -102,7 +55,7 @@ StateMachine::StateMachine(const Menu& menuInstance, const std::array<Mix_Chunk*
         0,
         0.25f,
         Phase::Opening,
-        {1, false, {0,0,0,0}, {0,0,0,0}, {3,3,3,3}, {false,false,false,false}, {0,1,0,1}, {{0,0,0},{0,0,0},{0,0,0},{0,0,0}}}
+        {1, false, {0,0,0,0}, {0,0,0,0}, {3,3,3,3}, {false,false,false,false}, {0,1,0,1}, {{0,0,0},{0,0,0},{0,0,0},{0,0,0}}, false}
     },
     running(true)
 {
@@ -323,8 +276,12 @@ void StateMachine::handleOption() {
         if (opt.type == OptionType::Decrement && currentState.menuState.playerCount > 1)
             currentState.menuState.playerCount--;
 
-        if (opt.type == OptionType::Boolean)
-            currentState.menuState.useKM = !currentState.menuState.useKM;
+        if (opt.type == OptionType::Boolean) {
+            bool& value = (opt.subOptionType == Menu::k_usePlayer0ProfileOption)
+                ? currentState.menuState.usePlayer0Profile
+                : currentState.menuState.useKM;
+            value = !value;
+        }
     } else {
         int player = currentState.pageIndex - 1;
 

@@ -60,12 +60,6 @@ struct State {
 };
 
 // -------------------------
-// Persistence
-// -------------------------
-bool saveMenuStateBin(const MenuState& state, const std::string& path);
-bool loadMenuStateBin(MenuState& state, const std::string& path);
-
-// -------------------------
 // State machine (ImGui-driven)
 // -------------------------
 class StateMachine {

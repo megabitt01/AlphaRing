@@ -3,31 +3,258 @@
 #include "CGameEngine.h"
 
 #include "imgui.h"
+#include <algorithm>
+#include <cctype>
 #include <cstdio>
 #include <cstring>
 #include <cwchar>
+#include <iterator>
+#include <string>
+#include <unordered_map>
+#include <vector>
+
+namespace {
+    // What a customization item is, read from its name: "<game>_<part>_<variant>"
+    // (HR_Helmet_CQC_Base, H4_Color3, Voice_Male), with Elite parts written as
+    // "<game>_Elite_<part>_..." or "<game>_Elite<Part>_..." (H2A_Elite_Helmet_..,
+    // H3E_EliteChest_.., HR_EliteArmorEffect_..). Spartan parts may carry a
+    // "Spartan_" segment too (H2A_Spartan_Helmet_..).
+    struct ItemKind {
+        bool elite = false;
+        std::string game; // first segment, lowercase
+        std::string part; // lowercase, e.g. "helmet", "leftshoulder", "color12"
+    };
+
+    ItemKind Classify(const char* name) {
+        std::vector<std::string> t(1);
+        for (const char* c = name; *c; ++c) {
+            if (*c == '_') t.emplace_back();
+            else t.back() += (char)std::tolower((unsigned char)*c);
+        }
+
+        ItemKind kind;
+        kind.game = t[0];
+        if (t[0] == "voice") {
+            kind.part = "voice";
+        } else if (t.size() < 2) {
+            // no part
+        } else if ((t[1] == "spartan" || t[1] == "elite") && t.size() > 2) {
+            kind.elite = t[1] == "elite";
+            kind.part = t[2];
+        } else if (t[1].rfind("elite", 0) == 0 && t[1].size() > 5) {
+            kind.elite = true;
+            kind.part = t[1].substr(5);
+        } else {
+            kind.part = t[1];
+        }
+        return kind;
+    }
+
+    // The game an item belongs to, from its name's first segment, in the
+    // order the dropdowns list them.
+    using Game = CUserProfile::eItemGame;
+    constexpr Game Reach = CUserProfile::ItemReach, CE = CUserProfile::ItemCE, Halo2 = CUserProfile::ItemHalo2,
+                   Halo2A = CUserProfile::ItemHalo2A, Halo3 = CUserProfile::ItemHalo3, ODST = CUserProfile::ItemODST,
+                   Halo4 = CUserProfile::ItemHalo4, OtherGame = CUserProfile::ItemOther;
+    constexpr int GameCount = CUserProfile::ItemGameCount;
+
+    const char* const k_gameNames[GameCount] = {
+        "Halo Reach", "Halo CE", "Halo 2", "Halo 2 Anniversary", "Halo 3", "Halo 3 ODST", "Halo 4", "Other",
+    };
+
+    Game GameOf(const ItemKind& k) {
+        const std::string& g = k.game;
+        if (g == "hr") return Reach;
+        if (g.rfind("h1", 0) == 0 || g == "reflection") return CE; // H1, H1S2, H1S7 and CE's reflection skins
+        if (g == "h2a") return Halo2A;
+        if (g == "h2") return Halo2;
+        if (g == "odst") return ODST;
+        if (g.rfind("h3", 0) == 0) return Halo3;                   // H3, H3E, H3S3 ...
+        if (g == "h4") return Halo4;
+        // Voice_Male/Voice_Female sit among H2A's items in the list, after its poses
+        if (g == "voice") return Halo2A;
+        return OtherGame;
+    }
+
+    Game GameOf(int item) { return GameOf(Classify(CUserProfile::CustomizationItemName(item))); }
+
+    using Filter = bool (*)(const ItemKind&);
+
+    bool IsPart(const ItemKind& k, bool elite, const char* part) { return k.elite == elite && k.part == part; }
+
+    // Named after the CUserProfile fields they serve, so kept apart from them.
+    namespace filters {
+
+    bool Helmet(const ItemKind& k)              { return IsPart(k, false, "helmet"); }
+    bool LeftShoulder(const ItemKind& k)        { return IsPart(k, false, "leftshoulder"); }
+    bool RightShoulder(const ItemKind& k)       { return IsPart(k, false, "rightshoulder"); }
+    bool Chest(const ItemKind& k)               { return IsPart(k, false, "chest"); }
+    bool Wrist(const ItemKind& k)               { return IsPart(k, false, "wrist"); }
+    bool Utility(const ItemKind& k)             { return IsPart(k, false, "utility"); }
+    bool Arms(const ItemKind& k)                { return IsPart(k, false, "arms"); }
+    bool Legs(const ItemKind& k)                { return IsPart(k, false, "legs"); }
+    bool Backpack(const ItemKind& k)            { return IsPart(k, false, "backpack"); }
+    bool Knees(const ItemKind& k)               { return IsPart(k, false, "kneeguards"); }
+    bool ArmorEffect(const ItemKind& k)         { return IsPart(k, false, "armoreffect"); }
+    // Body type (HR_Spartan_Male, H4_Female) and H3's techsuits
+    bool SpartanBody(const ItemKind& k) {
+        return !k.elite && (k.part == "male" || k.part == "female" || k.part == "techsuit");
+    }
+    bool Visor(const ItemKind& k)               { return !k.elite && (k.part == "visor" || k.part == "visorcolor"); }
+    bool EliteHelmet(const ItemKind& k)         { return IsPart(k, true, "helmet"); }
+    bool EliteLeftShoulder(const ItemKind& k)   { return IsPart(k, true, "leftshoulder"); }
+    bool EliteRightShoulder(const ItemKind& k)  { return IsPart(k, true, "rightshoulder"); }
+    bool EliteChest(const ItemKind& k)          { return IsPart(k, true, "chest"); }
+    bool EliteArms(const ItemKind& k)           { return IsPart(k, true, "arms"); }
+    bool EliteLegs(const ItemKind& k)           { return IsPart(k, true, "legs"); }
+    bool EliteArmorEffect(const ItemKind& k)    { return IsPart(k, true, "armoreffect"); }
+    // Reach's Elite armor sets are named by rank: HR_Elite_Minor, HR_Elite_Zealot, ...
+    bool EliteArmor(const ItemKind& k) {
+        static const char* const other[] = {"helmet", "leftshoulder", "rightshoulder", "chest", "arms", "legs", "armoreffect", "pose", "rifle"};
+        return k.elite && k.game == "hr" && std::none_of(std::begin(other), std::end(other), [&](const char* p) { return k.part == p; });
+    }
+    bool Voice(const ItemKind& k)               { return k.part.find("voice") != std::string::npos; }
+    bool Color(const ItemKind& k)               { return k.part.rfind("color", 0) == 0; }
+    bool SpartanPose(const ItemKind& k)         { return !k.elite && (k.part == "pose" || k.part == "rifle"); }
+    bool ElitePose(const ItemKind& k)           { return k.elite && (k.part == "pose" || k.part == "rifle"); }
+    // Weapon (WS) and vehicle (VS) skins
+    bool Skin(const ItemKind& k)                { return k.part == "ws" || k.part == "vs" || k.game == "reflection"; }
+    }
+
+    const std::vector<int>& ItemsMatching(Filter filter) {
+        static std::unordered_map<Filter, std::vector<int>> cache;
+        auto it = cache.find(filter);
+        if (it != cache.end()) return it->second;
+        std::vector<int> items;
+        for (int i = 0; i <= 2130; ++i)
+            if (filter(Classify(CUserProfile::CustomizationItemName(i))))
+                items.push_back(i);
+        // One run per game, so each game gets a single header
+        std::stable_sort(items.begin(), items.end(), [](int a, int b) { return GameOf(a) < GameOf(b); });
+        return cache.emplace(filter, std::move(items)).first->second;
+    }
+
+    // A combo over only the items `filter` accepts. A value outside them (a
+    // zeroed profile holds 0, the first Reach helmet, in every field) shows as
+    // "None" rather than as that unrelated item.
+    bool CustomizationCombo(const char* label, int* value, Filter filter) {
+        const auto& items = ItemsMatching(filter);
+        bool valid = std::find(items.begin(), items.end(), *value) != items.end();
+        bool changed = false;
+        if (ImGui::BeginCombo(label, valid ? CUserProfile::CustomizationItemName(*value) : "None")) {
+            int header = -1;
+            for (int item : items) {
+                int game = GameOf(item);
+                if (game != header) {
+                    header = game;
+                    ImGui::SeparatorText(k_gameNames[game]);
+                }
+                ImGui::PushID(item);
+                bool selected = item == *value;
+                if (ImGui::Selectable(CUserProfile::CustomizationItemName(item), selected)) {
+                    *value = item;
+                    changed = true;
+                }
+                if (selected)
+                    ImGui::SetItemDefaultFocus();
+                ImGui::PopID();
+            }
+            ImGui::EndCombo();
+        }
+        if (!valid && ImGui::IsItemHovered())
+            ImGui::SetTooltip("Raw value %d", *value);
+        return changed;
+    }
+}
+
+namespace {
+    // The items `filter` accepts that belong to `game`, in list order.
+    const std::vector<int>& ItemsMatching(Filter filter, Game game) {
+        static std::unordered_map<Filter, std::vector<int>> cache[GameCount];
+        auto& game_cache = cache[game];
+        auto it = game_cache.find(filter);
+        if (it != game_cache.end()) return it->second;
+        std::vector<int> items;
+        for (int item : ItemsMatching(filter))
+            if (GameOf(item) == game)
+                items.push_back(item);
+        return game_cache.emplace(filter, std::move(items)).first->second;
+    }
+
+    // A combo over one game's items for a field, with "None" (-1) first: a
+    // field left at None keeps the game's own choice.
+    bool ArmorCombo(const char* label, int* value, Filter filter, Game game) {
+        const auto& items = ItemsMatching(filter, game);
+        bool valid = std::find(items.begin(), items.end(), *value) != items.end();
+        bool changed = false;
+        if (ImGui::BeginCombo(label, valid ? CUserProfile::CustomizationItemName(*value) : "None")) {
+            if (ImGui::Selectable("None", !valid)) {
+                changed = *value != -1;
+                *value = -1;
+            }
+            for (int item : items) {
+                ImGui::PushID(item);
+                bool selected = item == *value;
+                if (ImGui::Selectable(CUserProfile::CustomizationItemName(item), selected)) {
+                    changed = *value != item;
+                    *value = item;
+                }
+                if (selected)
+                    ImGui::SetItemDefaultFocus();
+                ImGui::PopID();
+            }
+            ImGui::EndCombo();
+        }
+        return changed;
+    }
+
+    const struct { const char* label; int CUserProfile::* field; Filter filter; } k_armorFields[] = {
+        {"HelmetIndex",             &CUserProfile::HelmetIndex,             filters::Helmet},
+        {"LeftShoulderIndex",       &CUserProfile::LeftShoulderIndex,       filters::LeftShoulder},
+        {"RightShoulderIndex",      &CUserProfile::RightShoulderIndex,      filters::RightShoulder},
+        {"ChestIndex",              &CUserProfile::ChestIndex,              filters::Chest},
+        {"WristIndex",              &CUserProfile::WristIndex,              filters::Wrist},
+        {"UtilityIndex",            &CUserProfile::UtilityIndex,            filters::Utility},
+        {"ArmsIndex",               &CUserProfile::ArmsIndex,               filters::Arms},
+        {"LegsIndex",               &CUserProfile::LegsIndex,               filters::Legs},
+        {"BackpackIndex",           &CUserProfile::BackpackIndex,           filters::Backpack},
+        {"SpartanBodyIndex",        &CUserProfile::SpartanBodyIndex,        filters::SpartanBody},
+        {"SpartanArmorEffectIndex", &CUserProfile::SpartanArmorEffectIndex, filters::ArmorEffect},
+        {"KneesIndex",              &CUserProfile::KneesIndex,              filters::Knees},
+        {"VisorColorIndex",         &CUserProfile::VisorColorIndex,         filters::Visor},
+        {"EliteHelmetIndex",        &CUserProfile::EliteHelmetIndex,        filters::EliteHelmet},
+        {"EliteLeftShoulderIndex",  &CUserProfile::EliteLeftShoulderIndex,  filters::EliteLeftShoulder},
+        {"EliteRightShoulderIndex", &CUserProfile::EliteRightShoulderIndex, filters::EliteRightShoulder},
+        {"EliteChestIndex",         &CUserProfile::EliteChestIndex,         filters::EliteChest},
+        {"EliteArmsIndex",          &CUserProfile::EliteArmsIndex,          filters::EliteArms},
+        {"EliteLegsIndex",          &CUserProfile::EliteLegsIndex,          filters::EliteLegs},
+        {"EliteArmorIndex",         &CUserProfile::EliteArmorIndex,         filters::EliteArmor},
+        {"EliteArmorEffectIndex",   &CUserProfile::EliteArmorEffectIndex,   filters::EliteArmorEffect},
+        {"VoiceIndex",              &CUserProfile::VoiceIndex,              filters::Voice},
+        {"SpartanPose",             &CUserProfile::SpartanPose,             filters::SpartanPose},
+        {"ElitePose",               &CUserProfile::ElitePose,               filters::ElitePose},
+    };
+}
+
+CUserProfile::eItemGame CUserProfile::CustomizationItemGame(int index) {
+    if (index < 0 || index > 2130) return ItemOther;
+    return GameOf(index);
+}
+
+bool CUserProfile::ArmorImGuiContext(eItemGame game, const std::function<int*(int CUserProfile::*)>& slot) {
+    bool changed = false;
+    for (auto& field : k_armorFields) {
+        if (ItemsMatching(field.filter, game).empty())
+            continue; // nothing of this kind in this game
+        if (int* value = slot(field.field))
+            changed |= ArmorCombo(field.label, value, field.filter, game);
+    }
+    return changed;
+}
 
 void CUserProfile::ImGuiContext() {
     bool result = false;
     char buffer[1024];
-
-    // ServiceTag is a fixed wchar_t[4] with NO null terminator - a real
-    // 4-character tag fills every slot, so printing it with %ls reads past
-    // the array and can smash the stack buffer. Convert through a
-    // null-terminated copy instead.
-    wchar_t tagCopy[5] = {};
-    memcpy(tagCopy, ServiceTag, sizeof(ServiceTag));
-    snprintf(buffer, sizeof(buffer), "%ls", tagCopy);
-    if (ImGui::InputText("ServiceTag", buffer, 5, ImGuiInputTextFlags_CallbackCompletion)) {
-        // Clear first: shortening a tag must not leave stale trailing
-        // characters (which would recreate an unterminated 4-char tag).
-        wmemset(ServiceTag, 0, 4);
-        for (int i = 0; i < 4; ++i) {
-            if (buffer[i] == 0) break;
-            ServiceTag[i] = buffer[i];
-        }
-        result = true;
-    }
 
     result |= ImGui::Checkbox("SubtitleSetting", &SubtitleSetting);
     result |= ImGui::Checkbox("SubtitleSizeSetting", &SubtitleSizeSetting);
@@ -61,42 +288,15 @@ void CUserProfile::ImGuiContext() {
     result |= ImGui::InputInt("PlayerModelPrimaryColorIndex", &PlayerModelPrimaryColorIndex);
     result |= ImGui::InputInt("PlayerModelSecondaryColorIndex", &PlayerModelSecondaryColorIndex);
     result |= ImGui::InputInt("PlayerModelTertiaryColorIndex", &PlayerModelTertiaryColorIndex);
+    result |= CustomizationCombo("PlayerModelPrimaryColor", &PlayerModelPrimaryColor, filters::Color);
+    result |= CustomizationCombo("PlayerModelSecondaryColor", &PlayerModelSecondaryColor, filters::Color);
+    result |= CustomizationCombo("PlayerModelTertiaryColor", &PlayerModelTertiaryColor, filters::Color);
 
     result |= ImGui::Checkbox("UseEliteModel", &UseEliteModel);
     result |= ImGui::Checkbox("LockMaxAspectRatio", &LockMaxAspectRatio);
     result |= ImGui::Checkbox("UsersSkinsEnabled", &UsersSkinsEnabled);
     result |= ImGui::InputInt("PlayerModelPermutation", &PlayerModelPermutation);
 
-    auto getter = [] (void* data, int index) -> const char* {return CUserProfile::CustomizationItemName(index);};
-#define CustomizationItem(label) result |= ImGui::Combo(#label, &label, getter, nullptr, 2131)
-
-    CustomizationItem(HelmetIndex);
-    CustomizationItem(LeftShoulderIndex);
-    CustomizationItem(RightShoulderIndex);
-    CustomizationItem(ChestIndex);
-    CustomizationItem(WristIndex);
-    CustomizationItem(UtilityIndex);
-    CustomizationItem(ArmsIndex);
-    CustomizationItem(LegsIndex);
-    CustomizationItem(BackpackIndex);
-    CustomizationItem(SpartanBodyIndex);
-    CustomizationItem(SpartanArmorEffectIndex);
-    CustomizationItem(KneesIndex);
-    CustomizationItem(VisorColorIndex);
-    CustomizationItem(EliteHelmetIndex);
-    CustomizationItem(EliteLeftShoulderIndex);
-    CustomizationItem(EliteRightShoulderIndex);
-    CustomizationItem(EliteChestIndex);
-    CustomizationItem(EliteArmsIndex);
-    CustomizationItem(EliteLegsIndex);
-    CustomizationItem(EliteArmorIndex);
-    CustomizationItem(EliteArmorEffectIndex);
-    CustomizationItem(VoiceIndex);
-    CustomizationItem(PlayerModelPrimaryColor);
-    CustomizationItem(PlayerModelSecondaryColor);
-    CustomizationItem(PlayerModelTertiaryColor);
-    CustomizationItem(SpartanPose);
-    CustomizationItem(ElitePose);
 
     if (ImGui::CollapsingHeader("Skins")) {
         if (ImGui::Button("Reset")) {
@@ -108,7 +308,7 @@ void CUserProfile::ImGuiContext() {
             sprintf(buffer, "Skin %d", i);
             if (ImGui::TreeNode(buffer)) {
                 result |= ImGui::InputInt("Object", &Skins[i].object);
-                result |= ImGui::Combo("Skin", &Skins[i].skin, getter, nullptr, 2131);
+                result |= CustomizationCombo("Skin", &Skins[i].skin, filters::Skin);
                 ImGui::TreePop();
             }
         }

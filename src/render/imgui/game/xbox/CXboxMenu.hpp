@@ -75,34 +75,55 @@ public:
     }
 };
 
+// Names of the controller slots, in MenuState::controllerIndex order (4 = no controller).
+inline constexpr const char* k_controllerNames[5] = {
+    "Controller 1", "Controller 2", "Controller 3", "Controller 4", "None",
+};
+
 class Menu {
 public:
     static constexpr int MAX_PAGES = 5;
+    static constexpr int k_controllerOption = 0;
+    static constexpr int k_controllerProfileOption = 1;
+    // subOptionType of the Splitscreen page's two Boolean options
+    static constexpr int k_useKMOption = 0;
+    static constexpr int k_usePlayer0ProfileOption = 1;
     Page pages[MAX_PAGES];
 
     Menu() {
         init();
     }
 
+    // Fills each player's "Controller Profile" subpage with the custom
+    // profiles, in MenuState::controllerProfile order.
+    void setControllerProfiles(const std::vector<std::string>& names) {
+        for (int index = 1; index <= 4; index++) {
+            auto& option = pages[index].options[k_controllerProfileOption];
+            option.subOptions.clear();
+            for (const auto& name : names)
+                option.addOption(Option(name, OptionType::SubpageOption, 4));
+        }
+    }
+
 private:
+    void addColorOption(int index, const char* label, int subOptionType) {
+        Option option(label, OptionType::Subpage, subOptionType);
+        for (int c = 0; c < 30; c++)
+            option.addOption(Option(k_colorNames[c], OptionType::SubpageOption, subOptionType, defaultColors[c]));
+        pages[index].addOption(option);
+    }
+
     void initPlayer(int index) {
         pages[index].label = "Player " + std::to_string(index);
 
         pages[index].addOption(
             Option("Controller", OptionType::Subpage));
-        pages[index].options[0].addOption(Option("Controller 1", OptionType::SubpageOption, 0));
-        pages[index].options[0].addOption(Option("Controller 2", OptionType::SubpageOption, 0));
-        pages[index].options[0].addOption(Option("Controller 3", OptionType::SubpageOption, 0));
-        pages[index].options[0].addOption(Option("Controller 4", OptionType::SubpageOption, 0));
+        for (const char* name : k_controllerNames)
+            pages[index].options[k_controllerOption].addOption(Option(name, OptionType::SubpageOption, 0));
 
+        // filled from the custom profiles by setControllerProfiles()
         pages[index].addOption(
             Option("Controller Profile", OptionType::Subpage, 4));
-        pages[index].options[1].addOption(Option("Default", OptionType::SubpageOption, 4));
-        pages[index].options[1].addOption(Option("Southpaw", OptionType::SubpageOption, 4));
-        pages[index].options[1].addOption(Option("Boxer", OptionType::SubpageOption, 4));
-        pages[index].options[1].addOption(Option("Green Thumb", OptionType::SubpageOption, 4));
-        pages[index].options[1].addOption(Option("Bumper Jumper", OptionType::SubpageOption, 4));
-        pages[index].options[1].addOption(Option("Recon", OptionType::SubpageOption, 4));
 
         pages[index].addOption(Option("Reduce Sensitivity", OptionType::Decrement));
         pages[index].addOption(Option("Display", OptionType::PointerDisplay));
@@ -112,108 +133,9 @@ private:
 
         pages[index].addOption(Option("Red Team", OptionType::TeamToggle, 0));
 
-        //
-        // adding primary colors
-        //
-        pages[index].addOption(Option("Primary Color", OptionType::Subpage, 1));
-        pages[index].options[7].addOption(Option("Steel", OptionType::SubpageOption, 1, defaultColors[0]));
-        pages[index].options[7].addOption(Option("Silver", OptionType::SubpageOption, 1, defaultColors[1]));
-        pages[index].options[7].addOption(Option("White", OptionType::SubpageOption, 1, defaultColors[2]));
-        pages[index].options[7].addOption(Option("Brown", OptionType::SubpageOption, 1, defaultColors[3]));
-        pages[index].options[7].addOption(Option("Tan", OptionType::SubpageOption, 1, defaultColors[4]));
-        pages[index].options[7].addOption(Option("Khaki", OptionType::SubpageOption, 1, defaultColors[5]));
-        pages[index].options[7].addOption(Option("Sage", OptionType::SubpageOption, 1, defaultColors[6]));
-        pages[index].options[7].addOption(Option("Olive", OptionType::SubpageOption, 1, defaultColors[7]));
-        pages[index].options[7].addOption(Option("Drab", OptionType::SubpageOption, 1, defaultColors[8]));
-        pages[index].options[7].addOption(Option("Forest", OptionType::SubpageOption, 1, defaultColors[9]));
-        pages[index].options[7].addOption(Option("Green", OptionType::SubpageOption, 1, defaultColors[10]));
-        pages[index].options[7].addOption(Option("Sea Foam", OptionType::SubpageOption, 1, defaultColors[11]));
-        pages[index].options[7].addOption(Option("Teal", OptionType::SubpageOption, 1, defaultColors[12]));
-        pages[index].options[7].addOption(Option("Aqua", OptionType::SubpageOption, 1, defaultColors[13]));
-        pages[index].options[7].addOption(Option("Cyan", OptionType::SubpageOption, 1, defaultColors[14]));
-        pages[index].options[7].addOption(Option("Blue", OptionType::SubpageOption, 1, defaultColors[15]));
-        pages[index].options[7].addOption(Option("Cobalt", OptionType::SubpageOption, 1, defaultColors[16]));
-        pages[index].options[7].addOption(Option("Ice", OptionType::SubpageOption, 1, defaultColors[17]));
-        pages[index].options[7].addOption(Option("Violet", OptionType::SubpageOption, 1, defaultColors[18]));
-        pages[index].options[7].addOption(Option("Orchid", OptionType::SubpageOption, 1, defaultColors[19]));
-        pages[index].options[7].addOption(Option("Lavender", OptionType::SubpageOption, 1, defaultColors[20]));
-        pages[index].options[7].addOption(Option("Maroon", OptionType::SubpageOption, 1, defaultColors[21]));
-        pages[index].options[7].addOption(Option("Brick", OptionType::SubpageOption, 1, defaultColors[22]));
-        pages[index].options[7].addOption(Option("Rose", OptionType::SubpageOption, 1, defaultColors[23]));
-        pages[index].options[7].addOption(Option("Rust", OptionType::SubpageOption, 1, defaultColors[24]));
-        pages[index].options[7].addOption(Option("Coral", OptionType::SubpageOption, 1, defaultColors[25]));
-        pages[index].options[7].addOption(Option("Peach", OptionType::SubpageOption, 1, defaultColors[26]));
-        pages[index].options[7].addOption(Option("Gold", OptionType::SubpageOption, 1, defaultColors[27]));
-        pages[index].options[7].addOption(Option("Yellow", OptionType::SubpageOption, 1, defaultColors[28]));
-        pages[index].options[7].addOption(Option("Pale", OptionType::SubpageOption, 1, defaultColors[29]));
-        //
-        // adding secondary colors
-        //
-        pages[index].addOption(Option("Secondary Color", OptionType::Subpage, 2));
-        pages[index].options[8].addOption(Option("Steel", OptionType::SubpageOption, 2, defaultColors[0]));
-        pages[index].options[8].addOption(Option("Silver", OptionType::SubpageOption, 2, defaultColors[1]));
-        pages[index].options[8].addOption(Option("White", OptionType::SubpageOption, 2, defaultColors[2]));
-        pages[index].options[8].addOption(Option("Brown", OptionType::SubpageOption, 2, defaultColors[3]));
-        pages[index].options[8].addOption(Option("Tan", OptionType::SubpageOption, 2, defaultColors[4]));
-        pages[index].options[8].addOption(Option("Khaki", OptionType::SubpageOption, 2, defaultColors[5]));
-        pages[index].options[8].addOption(Option("Sage", OptionType::SubpageOption, 2, defaultColors[6]));
-        pages[index].options[8].addOption(Option("Olive", OptionType::SubpageOption, 2, defaultColors[7]));
-        pages[index].options[8].addOption(Option("Drab", OptionType::SubpageOption, 2, defaultColors[8]));
-        pages[index].options[8].addOption(Option("Forest", OptionType::SubpageOption, 2, defaultColors[9]));
-        pages[index].options[8].addOption(Option("Green", OptionType::SubpageOption, 2, defaultColors[10]));
-        pages[index].options[8].addOption(Option("Sea Foam", OptionType::SubpageOption, 2, defaultColors[11]));
-        pages[index].options[8].addOption(Option("Teal", OptionType::SubpageOption, 2, defaultColors[12]));
-        pages[index].options[8].addOption(Option("Aqua", OptionType::SubpageOption, 2, defaultColors[13]));
-        pages[index].options[8].addOption(Option("Cyan", OptionType::SubpageOption, 2, defaultColors[14]));
-        pages[index].options[8].addOption(Option("Blue", OptionType::SubpageOption, 2, defaultColors[15]));
-        pages[index].options[8].addOption(Option("Cobalt", OptionType::SubpageOption, 2, defaultColors[16]));
-        pages[index].options[8].addOption(Option("Ice", OptionType::SubpageOption, 2, defaultColors[17]));
-        pages[index].options[8].addOption(Option("Violet", OptionType::SubpageOption, 2, defaultColors[18]));
-        pages[index].options[8].addOption(Option("Orchid", OptionType::SubpageOption, 2, defaultColors[19]));
-        pages[index].options[8].addOption(Option("Lavender", OptionType::SubpageOption, 2, defaultColors[20]));
-        pages[index].options[8].addOption(Option("Maroon", OptionType::SubpageOption, 2, defaultColors[21]));
-        pages[index].options[8].addOption(Option("Brick", OptionType::SubpageOption, 2, defaultColors[22]));
-        pages[index].options[8].addOption(Option("Rose", OptionType::SubpageOption, 2, defaultColors[23]));
-        pages[index].options[8].addOption(Option("Rust", OptionType::SubpageOption, 2, defaultColors[24]));
-        pages[index].options[8].addOption(Option("Coral", OptionType::SubpageOption, 2, defaultColors[25]));
-        pages[index].options[8].addOption(Option("Peach", OptionType::SubpageOption, 2, defaultColors[26]));
-        pages[index].options[8].addOption(Option("Gold", OptionType::SubpageOption, 2, defaultColors[27]));
-        pages[index].options[8].addOption(Option("Yellow", OptionType::SubpageOption, 2, defaultColors[28]));
-        pages[index].options[8].addOption(Option("Pale", OptionType::SubpageOption, 2, defaultColors[29]));
-        //
-        // adding tertiary colors
-        //
-        pages[index].addOption(Option("Tertiary Color", OptionType::Subpage, 3));
-        pages[index].options[9].addOption(Option("Steel", OptionType::SubpageOption, 3, defaultColors[0]));
-        pages[index].options[9].addOption(Option("Silver", OptionType::SubpageOption, 3, defaultColors[1]));
-        pages[index].options[9].addOption(Option("White", OptionType::SubpageOption, 3, defaultColors[2]));
-        pages[index].options[9].addOption(Option("Brown", OptionType::SubpageOption, 3, defaultColors[3]));
-        pages[index].options[9].addOption(Option("Tan", OptionType::SubpageOption, 3, defaultColors[4]));
-        pages[index].options[9].addOption(Option("Khaki", OptionType::SubpageOption, 3, defaultColors[5]));
-        pages[index].options[9].addOption(Option("Sage", OptionType::SubpageOption, 3, defaultColors[6]));
-        pages[index].options[9].addOption(Option("Olive", OptionType::SubpageOption, 3, defaultColors[7]));
-        pages[index].options[9].addOption(Option("Drab", OptionType::SubpageOption, 3, defaultColors[8]));
-        pages[index].options[9].addOption(Option("Forest", OptionType::SubpageOption, 3, defaultColors[9]));
-        pages[index].options[9].addOption(Option("Green", OptionType::SubpageOption, 3, defaultColors[10]));
-        pages[index].options[9].addOption(Option("Sea Foam", OptionType::SubpageOption, 3, defaultColors[11]));
-        pages[index].options[9].addOption(Option("Teal", OptionType::SubpageOption, 3, defaultColors[12]));
-        pages[index].options[9].addOption(Option("Aqua", OptionType::SubpageOption, 3, defaultColors[13]));
-        pages[index].options[9].addOption(Option("Cyan", OptionType::SubpageOption, 3, defaultColors[14]));
-        pages[index].options[9].addOption(Option("Blue", OptionType::SubpageOption, 3, defaultColors[15]));
-        pages[index].options[9].addOption(Option("Cobalt", OptionType::SubpageOption, 3, defaultColors[16]));
-        pages[index].options[9].addOption(Option("Ice", OptionType::SubpageOption, 3, defaultColors[17]));
-        pages[index].options[9].addOption(Option("Violet", OptionType::SubpageOption, 3, defaultColors[18]));
-        pages[index].options[9].addOption(Option("Orchid", OptionType::SubpageOption, 3, defaultColors[19]));
-        pages[index].options[9].addOption(Option("Lavender", OptionType::SubpageOption, 3, defaultColors[20]));
-        pages[index].options[9].addOption(Option("Maroon", OptionType::SubpageOption, 3, defaultColors[21]));
-        pages[index].options[9].addOption(Option("Brick", OptionType::SubpageOption, 3, defaultColors[22]));
-        pages[index].options[9].addOption(Option("Rose", OptionType::SubpageOption, 3, defaultColors[23]));
-        pages[index].options[9].addOption(Option("Rust", OptionType::SubpageOption, 3, defaultColors[24]));
-        pages[index].options[9].addOption(Option("Coral", OptionType::SubpageOption, 3, defaultColors[25]));
-        pages[index].options[9].addOption(Option("Peach", OptionType::SubpageOption, 3, defaultColors[26]));
-        pages[index].options[9].addOption(Option("Gold", OptionType::SubpageOption, 3, defaultColors[27]));
-        pages[index].options[9].addOption(Option("Yellow", OptionType::SubpageOption, 3, defaultColors[28]));
-        pages[index].options[9].addOption(Option("Pale", OptionType::SubpageOption, 3, defaultColors[29]));
+        addColorOption(index, "Primary Color", 1);
+        addColorOption(index, "Secondary Color", 2);
+        addColorOption(index, "Tertiary Color", 3);
     }
 
     void init() {
@@ -222,7 +144,8 @@ private:
         pages[0].addOption(Option("Remove Player", OptionType::Decrement));
         pages[0].addOption(Option("Display", OptionType::PointerDisplay));
         pages[0].addOption(Option("Add Player", OptionType::Increment));
-        pages[0].addOption(Option("Use K/M for Player 1", OptionType::Boolean));
+        pages[0].addOption(Option("Use K/M for Player 1", OptionType::Boolean, k_useKMOption));
+        pages[0].addOption(Option("Use Player 1's Armor", OptionType::Boolean, k_usePlayer0ProfileOption));
 
         for (int i = 1; i <= 4; i++) {
             initPlayer(i);

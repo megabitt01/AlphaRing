@@ -53,6 +53,15 @@ namespace AlphaRing::DebugFlags {
     // halo3/halo3odst/halo4/groundhog, and a forced-2P tier is still open.
     inline constexpr bool g_renderThrottle = false;
 
+    // DIAGNOSTIC PROBE, bounded, ON while H2A/Halo 4 splitscreen matches end
+    // at once (player 2 placing "-1th"). [MatchStart] - game_setup/game_restart
+    // with the engine's reason, CGameManager state changes, the per-player
+    // queries the game makes (xbox user id, profile, mapping, input, index by
+    // xuid) with the calling module, and the team-change/load-setting events
+    // and splitscreen settings Alpha Ring applies. Per-player lines are once
+    // per match or on change (log/MatchLog.h). Turn off once that's solved.
+    inline constexpr bool g_matchStart = true;
+
     // PRODUCTION FEATURE GATE, not a probe. Per-player split-screen FOV
     // (2-4 local players) through Reach's native FOV baseline getter
     // FUN_1800c8554 (fov_baseline.cpp): a slot's Alpha Ring value when its

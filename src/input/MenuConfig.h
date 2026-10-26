@@ -7,7 +7,7 @@
 #include "mcc/CGamepadMapping.h"
 
 // One button binding per Halo action, used to build a CGamepadMapping for a
-// controller profile (default/southpaw/boxer/green thumb/bumper jumper/recon).
+// controller profile.
 struct ControllerProfileMapping {
     CGamepadMapping::eButton jump;
     CGamepadMapping::eButton switchGrenades;
@@ -31,8 +31,10 @@ struct MenuConfig {
     int  keyboardVKey        = VK_F4;
     int  debugKeyboardVKey   = VK_F1;
 
-    // Indexed to match the "Controller Profile" subpage order in CXboxMenu.hpp:
-    // 0 = Default, 1 = Southpaw, 2 = Boxer, 3 = Green Thumb, 4 = Bumper Jumper, 5 = Recon
+    // The built-in profiles: 0 = Default, 1 = Southpaw, 2 = Boxer, 3 = Green Thumb,
+    // 4 = Bumper Jumper, 5 = Recon. They only seed the custom profiles the first
+    // time (see MenuSettings); after that the custom profiles in the menu file
+    // are what both menus show and edit.
     static constexpr int k_profileCount = 6;
     ControllerProfileMapping controllerProfiles[k_profileCount] = {
         // Default
@@ -70,10 +72,6 @@ struct MenuConfig {
     static constexpr const char* k_configPath = "./alpha_ring_menu.cfg";
 
     static MenuConfig load();
-
-    // Binds the given profile's buttons onto `mapping`'s Halo actions, clearing
-    // everything else. `profileIndex` is clamped to [0, k_profileCount).
-    void ApplyControllerProfile(int profileIndex, CGamepadMapping& mapping) const;
 
 private:
     static void        writeDefault(const std::string& path);

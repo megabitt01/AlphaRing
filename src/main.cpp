@@ -4,6 +4,7 @@
 #include "hook/Hook.h"
 #include "render/Render.h"
 #include "mcc/mcc.h"
+#include "mcc/settings/MenuSettings.h"
 
 static bool Initialize() {
     bool result;
@@ -35,6 +36,9 @@ static bool Initialize() {
     assertm(result, "failed to initialize input");
 
 	LOG_INFO("Initialized input.");
+
+    // after Input::Init, which loads the cfg the controller profiles are seeded from
+    AlphaRing::MenuSettings::Initialize();
 
     result = AlphaRing::Render::Initialize();
 

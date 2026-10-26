@@ -47,8 +47,8 @@ static const std::map<std::string, CGamepadMapping::eButton> k_gamepadButtonMap 
     {"Y",              CGamepadMapping::Y},
 };
 
-// Maps a controller-profile cfg key prefix ("d_", "s_", ...) to the profile
-// index used by the "Controller Profile" subpage in CXboxMenu.hpp.
+// Maps a controller-profile cfg key prefix ("d_", "s_", ...) to the built-in
+// profile index.
 static const std::map<std::string, int> k_profilePrefixMap = {
     {"d_", 0}, // default
     {"s_", 1}, // southpaw
@@ -154,8 +154,9 @@ void MenuConfig::writeDefault(const std::string& path) {
            "#   LEFT_TRIGGER, RIGHT_TRIGGER\n"
            "#   A, B, X, Y\n"
            "#\n"
-           "# Select a profile for a player from the Controller Profile menu\n"
-           "# (Default, Southpaw, Boxer, Green Thumb, Bumper Jumper, Recon).\n"
+           "# These seed the custom controller profiles the first time the menus\n"
+           "# run (Default, Southpaw, Boxer, Green Thumb, Bumper Jumper, Recon).\n"
+           "# After that, edit the profiles in the advanced menu (F1) instead.\n"
            "\n"
            "# default\n"
            "d_jump = A\n"
@@ -326,35 +327,4 @@ MenuConfig MenuConfig::load() {
     }
 
     return cfg;
-}
-
-void MenuConfig::ApplyControllerProfile(int profileIndex, CGamepadMapping& mapping) const {
-    if (profileIndex < 0 || profileIndex >= k_profileCount)
-        profileIndex = 0;
-
-    // Also leaves Player Move Forward/Backward/Left/Right (H1A, actions 16-19)
-    // unbound — movement is handled by the analog stick, not the D-Pad.
-    for (auto& action : mapping.actions)
-        action = CGamepadMapping::None;
-
-    const ControllerProfileMapping& p = controllerProfiles[profileIndex];
-    mapping.actions[0]  = p.jump;
-    mapping.actions[1]  = p.switchGrenades;
-    mapping.actions[2]  = p.actionInteract;
-    mapping.actions[3]  = p.reloadRightWeapon;
-    mapping.actions[4]  = p.changeWeapon;
-    mapping.actions[13] = p.swapReloadLeftWeapon;
-    mapping.actions[5]  = p.melee;
-    mapping.actions[6]  = p.toggleFlashlight;
-    mapping.actions[7]  = p.throwGrenade;
-    mapping.actions[49] = p.throwGrenade;  // Use Left Weapon mirrors Throw Grenade
-    mapping.actions[28] = p.throwGrenade;  // Thrust mirrors Throw Grenade
-    mapping.actions[24] = p.throwGrenade;  // Vehicle Function 1 mirrors Throw Grenade
-    mapping.actions[8]  = p.shoot;
-    mapping.actions[9]  = p.crouch;
-    mapping.actions[21] = p.crouch;        // Vehicle Function 2 mirrors Crouch
-    mapping.actions[10] = p.playerZoom;
-    mapping.actions[20] = p.multiplayerScoreboard;
-    mapping.actions[23] = p.useEquipment;
-    mapping.actions[22] = p.jump;          // Vehicle Function 3 mirrors Jump
 }

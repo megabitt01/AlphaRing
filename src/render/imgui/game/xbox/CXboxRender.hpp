@@ -14,6 +14,14 @@
 #include <optional>
 #include <cmath>
 
+// The chosen subpage entry's label. The value comes from the shared settings,
+// which the advanced menu edits too, so it may point past the entries.
+static const char* subOptionLabel(const Option& opt, int index) {
+    if (index < 0 || index >= (int)opt.subOptions.size())
+        return "None";
+    return opt.subOptions[index].label.c_str();
+}
+
 void renderMenu(
     int WINDOW_WIDTH,
     int WINDOW_HEIGHT,
@@ -353,9 +361,11 @@ void renderMenu(
             }
 
             if (type == OptionType::Boolean) {
-                bool boolValue = (state.pageIndex == 0)
-                    ? state.menuState.useKM
-                    : state.menuState.invert[state.pageIndex - 1];
+                bool boolValue = (state.pageIndex != 0)
+                    ? state.menuState.invert[state.pageIndex - 1]
+                    : (opt.subOptionType == Menu::k_usePlayer0ProfileOption)
+                        ? state.menuState.usePlayer0Profile
+                        : state.menuState.useKM;
 
                 drawButton(
                     menuPosX,
@@ -447,7 +457,7 @@ void renderMenu(
                         fontSize,
                         state.optionIndex == i,
                         globalAlpha,
-                        opt.subOptions[state.menuState.controllerIndex[state.pageIndex - 1]].label.c_str(),
+                        subOptionLabel(opt, state.menuState.controllerIndex[state.pageIndex - 1]),
                         type,
                         0
                     );
@@ -475,7 +485,7 @@ void renderMenu(
                     break;
                     case 4:
                     {
-                        std::string stringLabel = "Controller Profile: " + opt.subOptions[state.menuState.controllerProfile[state.pageIndex - 1]].label;
+                        std::string stringLabel = std::string("Controller Profile: ") + subOptionLabel(opt, state.menuState.controllerProfile[state.pageIndex - 1]);
                         drawButton(
                             menuPosX,
                             yBase,

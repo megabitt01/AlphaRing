@@ -26,7 +26,8 @@ private:
     ImFont* m_font;
     Uint32 m_lastTick = 0;
 
-    static constexpr const char* k_savePath = "./MCC/Binaries/Win64/alpha_ring_menu.bin";
+    // Hands the menu's state back to the shared settings and saves them.
+    void commitState();
 };
 
 extern CXboxContext* g_pXboxContext;

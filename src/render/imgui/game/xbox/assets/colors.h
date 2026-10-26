@@ -34,3 +34,10 @@ inline ImU32 defaultColors[30] = {
     IM_COL32(255, 255, 0, 255),      // yellow
     IM_COL32(250, 250, 210, 255)     // pale
 };
+
+// Names of the 30 player colors, in defaultColors / MenuState order.
+inline constexpr const char* k_colorNames[30] = {
+    "Steel", "Silver", "White", "Brown", "Tan", "Khaki", "Sage", "Olive", "Drab", "Forest",
+    "Green", "Sea Foam", "Teal", "Aqua", "Cyan", "Blue", "Cobalt", "Ice", "Violet", "Orchid",
+    "Lavender", "Maroon", "Brick", "Rose", "Rust", "Coral", "Peach", "Gold", "Yellow", "Pale",
+};

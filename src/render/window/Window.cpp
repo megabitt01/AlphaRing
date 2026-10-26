@@ -6,6 +6,7 @@
 #include "global/Global.h"
 #include "input/Input.h"
 #include "input/MenuConfig.h"
+#include "render/imgui/ImGui.h"
 #include "render/imgui/game/xbox/CXboxContext.h"
 
 #include "imgui.h"
@@ -43,9 +44,8 @@ namespace AlphaRing::Render::Window {
             if (uMsg == WM_KEYDOWN) {
                 // Initial press only (lParam bit 30 = autorepeat): holding the
                 // key would otherwise reopen the menu once it has closed.
-                if (static_cast<int>(wParam) == g_menuConfig.keyboardVKey && !(lParam & (1 << 30))) {
-                    g_pXboxContext->close();
-                }
+                if (static_cast<int>(wParam) == g_menuConfig.keyboardVKey && !(lParam & (1 << 30)))
+                    AlphaRing::Render::ImGui::ToggleXboxMenu();
                 if (static_cast<int>(wParam) == g_menuConfig.keyboardVKey || static_cast<int>(wParam) == g_menuConfig.debugKeyboardVKey)
                     DropChar(hWnd, wParam);
                 return 0; // consume all keyboard input
@@ -82,11 +82,11 @@ namespace AlphaRing::Render::Window {
         // debug UI key is toggled by Input::Update(), so here it is only
         // consumed. While typing in a debug UI text field, both keys type.
         if ((uMsg == WM_KEYDOWN || uMsg == WM_KEYUP) &&
-            !(AlphaRing::Global::Global()->show_imgui && ImGui::GetIO().WantTextInput)) {
+            !(AlphaRing::Global::Global()->show_imgui && ::ImGui::GetIO().WantTextInput)) {
             int vk = static_cast<int>(wParam);
             if (vk == g_menuConfig.keyboardVKey) {
-                if (uMsg == WM_KEYDOWN && !(lParam & (1 << 30)) && g_pXboxContext)
-                    g_pXboxContext->open();
+                if (uMsg == WM_KEYDOWN && !(lParam & (1 << 30)))
+                    AlphaRing::Render::ImGui::ToggleXboxMenu();
                 if (uMsg == WM_KEYDOWN) DropChar(hWnd, wParam);
                 return 0;
             }
@@ -102,7 +102,7 @@ namespace AlphaRing::Render::Window {
         // refreshes on the next ImGui frame, which a game waiting on one of
         // those never draws (seen as a hang under Proton).
         if (AlphaRing::Global::Global()->show_imgui) {
-            auto& io = ImGui::GetIO();
+            auto& io = ::ImGui::GetIO();
             bool mouse_msg = (uMsg >= WM_MOUSEFIRST && uMsg <= WM_MOUSELAST);
             bool key_msg = (uMsg >= WM_KEYFIRST && uMsg <= WM_KEYLAST);
             if ((mouse_msg && io.WantCaptureMouse) || (key_msg && io.WantCaptureKeyboard))
