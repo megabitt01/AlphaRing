@@ -2,6 +2,7 @@
 
 #include "CXboxRender.hpp"
 #include "CStateMachine.h"
+#include "mcc/splitscreen/Splitscreen.h"
 
 #include <SDL.h>
 #include <SDL_mixer.h>
@@ -266,7 +267,11 @@ void StateMachine::handleOption() {
     auto& opt = currentState.menu.pages[currentState.pageIndex]
                     .options[currentState.optionIndex];
 
-    Mix_PlayChannel(-1, currentState.sounds[4], 0);
+    // in a hot-join Halo CE or Halo 2 game the player count changes only by joining and leaving
+    bool held = currentState.pageIndex == 0 && MCC::Splitscreen::HotJoinHeld() &&
+                (opt.type == OptionType::Increment || opt.type == OptionType::Decrement);
+    Mix_PlayChannel(-1, currentState.sounds[held ? 5 : 4], 0);
+    if (held) return;
 
     if (currentState.pageIndex == 0) {
         if (opt.type == OptionType::Increment && currentState.menuState.playerCount < 4)

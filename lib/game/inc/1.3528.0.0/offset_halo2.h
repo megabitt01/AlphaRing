@@ -30,6 +30,7 @@ DefOffset(OFFSET_HALO2_PF_PLAYERS_UPDATE, 0x6A3910)
 DefOffset(OFFSET_HALO2_PF_COOP_CAMPAIGN, 0x6A6320) // bool () - a co-op campaign: session [0xE80A78] mode +8 == 1, byte +0x2C8
 DefOffset(OFFSET_HALO2_PF_COOP_RESPAWN_ALLOWED, 0x6A5D40) // bool () - not with the Iron skull (11), not on Legendary
 DefOffset(OFFSET_HALO2_PV_SCENARIO, 0xE6F768) // the loaded scenario*: int starting locations +0x100
+DefOffset(OFFSET_HALO2_PF_PLAYER_SPAWN, 0x69E580) // bool (int player) - a new unit at the best starting location (hot join)
 
 // spawning (mcc/spawn)
 DefOffset(OFFSET_HALO2_PV_TAG_INSTANCES, 0x15E4B30) // {u32 group, u32 datum, u32 address, u32 size}[tag count]

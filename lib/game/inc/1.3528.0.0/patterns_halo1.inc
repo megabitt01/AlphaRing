@@ -48,6 +48,33 @@ const OffsetPatterns kHalo1Patterns[] = {
         Rel("E8 ?? ?? ?? ?? 8B 06 B9 02 00 00 00 44 88 7C 24 58 45 8B CE", 0x1, 0x5, 0x0)}},
     {&OFFSET_HALO1_PF_AI_ATTACH_FREE, 0xbff120, Code, {
         At("48 83 EC 68 48 8B 05 ?? ?? ?? ?? 41 BB 02 00 00 00 44 8B C2", 0x0)}},
+    {&OFFSET_HALO1_PF_PLAYERS_UPDATE, 0xad0720, Code, {
+        At("48 8B C4 48 89 58 10 48 89 70 18 48 89 78 20 55 41 54 41 55 41 56 41 57 48 8D A8 D8 FB FF FF", 0x0),
+        Rel("48 8D 4C 24 30 E8 ?? ?? ?? ?? 48 8B 05 ?? ?? ?? ?? 38 58 03 74 ?? F3 0F 10 05", 0x6, 0xa, 0x0)}},
+    {&OFFSET_HALO1_PF_PLAYER_SPAWN, 0xad4184, Code, {
+        At("48 8B C4 48 89 58 10 48 89 70 18 48 89 78 20 55 41 54 41 55 41 56 41 57 48 8D 68 A1 48 81 EC 00 01 00 00 0F 29 70 C8 48 8B 05", 0x0),
+        Rel("E8 ?? ?? ?? ?? 39 6F 64 74 ?? 8B 4C 24 2C 41 0F B7 D6 4C 8D 04 52", 0x1, 0x5, 0x0)}},
+    {&OFFSET_HALO1_PF_CHOOSE_START_LOCATION, 0xad39ac, Code, {
+        At("48 8B C4 48 89 58 08 48 89 68 10 48 89 70 18 57 48 83 EC 50 0F 29 70 E8 83 CF FF", 0x0),
+        Rel("E8 ?? ?? ?? ?? 45 33 DB 66 41 3B C5 0F 84 ?? ?? ?? ?? 48 8B 35 ?? ?? ?? ?? 41 8B CB", 0x1, 0x5, 0x0)}},
+    {&OFFSET_HALO1_PF_START_LOCATION, 0xad3940, Code, {
+        At("4C 8B 05 ?? ?? ?? ?? 33 D2 66 85 C9 78 ?? 0F BF C1 41 3B 80 54 03 00 00", 0x0),
+        Rel("E8 ?? ?? ?? ?? 48 8B F8 66 39 68 10 0F 87 ?? ?? ?? ?? 4C 8D 40 14 8B CD", 0x1, 0x5, 0x0)}},
+    {&OFFSET_HALO1_PF_OBJECT_DELETE, 0xc579d4, Code, {
+        At("83 F9 FF 74 1C 53 48 83 EC 20 8B D9 E8 ?? ?? ?? ?? 84 C0 75", 0x0),
+        Rel("48 0F BF C9 8B 0C 88 EB ?? 8B CA 3B CA 74 ?? E8 ?? ?? ?? ?? 48 83 C4 28", 0x10, 0x14, 0x0)}},
+    {&OFFSET_HALO1_PF_PLAYER_SET_UNIT, 0xad2404, Code, {
+        At("48 89 6C 24 08 48 89 74 24 10 48 89 7C 24 18 41 54", 0x0),
+        Rel("E8 ?? ?? ?? ?? 8B 4D C8 89 4B 4C 8A 4D C8 88 8B CE 00 00 00", 0x1, 0x5, 0x0)}},
+    {&OFFSET_HALO1_PF_OBJECT_SET_POSITION, 0xb359e8, Code, {
+        At("48 8B C4 48 89 58 08 48 89 68 10 48 89 70 18 48 89 78 20 41 55 41 56 41 57 48 83 EC 60 4C 8B 3D", 0x0),
+        Rel("E8 ?? ?? ?? ?? B8 D4 01 00 00 49 8D 9F 08 02 00 00 48 03 DF", 0x1, 0x5, 0x0)}},
+    {&OFFSET_HALO1_PF_OBJECT_TELEPORTED, 0xba83ec, Code, {
+        At("83 F9 FF 74 1F 80 3D ?? ?? ?? ?? 00 74 ?? 48 8B 05 ?? ?? ?? ?? 0F B7 C9 48 69 D1 4C 0D 00 00", 0x0),
+        Rel("8B CB E8 ?? ?? ?? ?? 33 D2 8B CF E8 ?? ?? ?? ?? 48 8B 5C 24 30 48 83 C4 20", 0x3, 0x7, 0x0)}},
+    {&OFFSET_HALO1_PF_PLAYER_MOVE_BESIDE, 0xad2fbc, Code, {
+        At("48 89 5C 24 08 48 89 6C 24 10 48 89 74 24 18 57 48 83 EC 20 48 8B 05 ?? ?? ?? ?? 8B EA", 0x0),
+        Rel("49 81 C0 90 00 00 00 4D 03 C1 44 3B CD 4C 0F 44 C0 E8 ?? ?? ?? ??", 0x12, 0x16, 0x0)}},
     {&OFFSET_HALO1_PF_SPLIT_GRID, 0xac4108, Code, {
         At("48 89 5C 24 08 BB 01 00 00 00 4D 8B D8 44 8B CB", 0x0),
         Rel("E8 ?? ?? ?? ?? 44 8B 5C 24 58 41 8B C3 0F AF 44 24 50 3B C3", 0x1, 0x5, 0x0)}},

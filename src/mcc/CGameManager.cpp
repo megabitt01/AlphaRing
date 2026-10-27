@@ -4,6 +4,7 @@
 #include "mcc/mcc.h"
 #include "mcc/settings/MenuSettings.h"
 #include "log/MatchLog.h"
+#include "mcc/splitscreen/Splitscreen.h"
 
 #include <cstdio>
 #include <guiddef.h>
@@ -164,6 +165,7 @@ void CGameManager::apply_profiles() {
         if (profile) {
             memcpy(&profile->profile, base_profile, sizeof(CUserProfile));
             memcpy(&profile->mapping,  base_mapping,  sizeof(CGamepadMapping));
+            MCC::Splitscreen::ApplySpecies(i, profile->profile);
         }
     }
 }

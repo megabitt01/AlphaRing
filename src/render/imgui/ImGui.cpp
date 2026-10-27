@@ -21,6 +21,7 @@
 #include "mcc/CGameGlobal.h"
 #include "mcc/settings/MenuSettings.h"
 #include "mcc/spawn/Spawn.h"
+#include "mcc/splitscreen/Splitscreen.h"
 
 static ICContext* pages[7] {
         nullptr,
@@ -128,6 +129,7 @@ namespace AlphaRing::Render::ImGui {
     }
 
     void Render() {
+        MCC::Splitscreen::HotJoinPoll();
         AlphaRing::Input::Update();
 
         bool xboxOpen = g_pXboxContext && g_pXboxContext->isOpen();
