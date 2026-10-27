@@ -7,7 +7,7 @@
 // The players held back keep waiting for a starting place, as players do before their first spawn: a player without a
 // unit who isn't waiting for one counts as a dead teammate (0x6A16F0 sets players globals +5), which keeps every
 // checkpoint from being saved (game_safe_to_save, 0x7005C0, at 0x70067E). Waiting so, though, they count as alive in
-// the game's "every player is dead" (+4), so that's worked out over the players who joined (Account).
+// the game's "every player is dead" (+4), so that's worked out over every player but them (Account).
 #include "halo2.h"
 
 #include "global/Global.h"
@@ -19,7 +19,7 @@
 
 namespace Halo2::Entry::HotJoin {
     // players.cpp holds the count each tick, from its players_update hook
-    EntryFeature("Halo 2 hot join", OFFSET_HALO2_PF_COPY_GAME_OPTIONS, OFFSET_HALO2_PV_RESPAWN);
+    EntryFeature("Halo 2 hot join", OFFSET_HALO2_PF_COPY_GAME_OPTIONS, OFFSET_HALO2_PV_RESPAWN, OFFSET_HALO2_PV_PLAYERS);
     const bool s_requires_players = (entry_feature->Requires(Players::Hooks()), true);
 
     constexpr int kSlots = 4;
@@ -47,12 +47,7 @@ namespace Halo2::Entry::HotJoin {
         return -1;
     }
 
-    // A local player's record (unit +0x2C, flags +6), or null.
-    char* Record(__int64 module, int local) {
-        int handle = Players::Handle(module, local);
-        return handle != -1 ? Players::Player(module, handle) : nullptr;
-    }
-
+    // A player's record: unit +0x2C, flags +6.
     bool HasUnit(const char* record) { return *(const int*)(record + 0x2C) != -1; }
 
     // The count the game's local players are held at: the ones who joined, once they're all mapped; until then 0, and
@@ -75,15 +70,32 @@ namespace Halo2::Entry::HotJoin {
 
     bool JoinedLate(int local) { return s_active && local >= 0 && local < kSlots && s_held_back[local]; }
 
+    // Over every player, as 0x6A16F0 walks them (network co-op teammates included), but the local ones held back. The
+    // players data array, as its iterator (0x67B050) reads it: int count +0x3C, in-use bits at +*(+0x50), elements of
+    // int size +0x24 at +*(+0x48).
     void Account(__int64 module) {
         char* globals = s_active ? Globals(module) : nullptr;
         int joined = s_admitted;
         if (globals == nullptr || !Held(module, joined)) return; // until they're all mapped, the game's own
+        char* players = *(char**)(module + OFFSET_HALO2_PV_PLAYERS);
+        if (players == nullptr) return;
+        __int64 bits_at = *(__int64*)(players + 0x50), data_at = *(__int64*)(players + 0x48);
+        if (bits_at == 0 || data_at == 0) return;
+        auto bits = (const unsigned*)(players + bits_at);
+        int count = *(int*)(players + 0x3C), size = *(int*)(players + 0x24);
+
+        int held_back[kSlots];
+        for (int j = 0; j < kSlots; ++j) {
+            int handle = j >= joined ? Players::Handle(module, j) : -1;
+            held_back[j] = handle != -1 ? handle & 0xFFFF : -1;
+        }
+
         bool all_dead = true, dead = false;
-        for (int j = 0; j < joined; ++j) {
-            char* record = Record(module, j);
-            if (record == nullptr) return;
-            if (HasUnit(record) || (*(unsigned short*)(record + 6) & 8)) all_dead = false; // or waiting to spawn
+        for (int i = 0; i < count; ++i) {
+            if (!(bits[i >> 5] >> (i & 31) & 1) || std::find(held_back, held_back + kSlots, i) != held_back + kSlots)
+                continue;
+            const char* record = players + data_at + (__int64)i * size;
+            if (HasUnit(record) || (*(const unsigned short*)(record + 6) & 8)) all_dead = false; // or waiting to spawn
             else dead = true;
         }
         globals[4] = all_dead;
