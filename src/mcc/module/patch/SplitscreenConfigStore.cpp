@@ -36,6 +36,14 @@ namespace {
         float value;
     };
     std::vector<TableWrite> g_writes;
+    // RebuildWrites() runs on overlay edits (Set, ClearEntry, SetTwoPlayerLayout)
+    // while Reach's render hook walks g_writes in Apply() every frame. An SRW
+    // lock rather than std::mutex: no dependence on the msvcp140 MCC loads.
+    SRWLOCK g_writesLock = SRWLOCK_INIT;
+    struct WritesLock {
+        WritesLock() { AcquireSRWLockExclusive(&g_writesLock); }
+        ~WritesLock() { ReleaseSRWLockExclusive(&g_writesLock); }
+    };
 
     struct LayoutEntry {
         float x0;
@@ -93,6 +101,7 @@ namespace {
     void RebuildWrites() {
         using namespace AlphaRing::SplitscreenConfigStore;
 
+        WritesLock lock;
         g_writes.clear();
 
         for (const auto& [key, value] : g_states) {
@@ -331,6 +340,7 @@ namespace AlphaRing::SplitscreenConfigStore {
     }
 
     void Apply(__int64 hModule) {
+        WritesLock lock;
         if (hModule == 0 || g_writes.empty()) return;
 
         for (const auto& w : g_writes) {

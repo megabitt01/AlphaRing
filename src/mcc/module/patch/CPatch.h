@@ -17,6 +17,11 @@ public:
 
     bool apply();
     bool setState(bool state);
+    // Remember the loaded module's own bytes under the patch (CPatchSet::update/add).
+    void capture();
+    // Where `other` overlaps this patch and is applied, the module's own bytes are other's backup, not what's there:
+    // a patch added while others are applied (a patch.xml reload) takes those bytes from them.
+    void inheritBackup(const CPatch& other);
     void setParent(CPatchSet* parent) {m_parent = parent;}
 
     inline const char* name() const {return m_name.c_str();}
@@ -24,7 +29,7 @@ public:
     inline bool have_desc() const {return !m_desc.empty();}
     inline bool enabled() {return m_enabled;}
 
-    static bool apply(void *dst, const void *src, size_t size, void *backup = nullptr);
+    static bool apply(void *dst, const void *src, size_t size);
 
 private:
     CPatchSet* m_parent;
@@ -32,7 +37,8 @@ private:
     std::string m_name;
     std::string m_desc;
     std::vector<__int8> m_data;
-    std::vector<__int8> m_backup;
+    std::vector<__int8> m_backup; // the module's own bytes (see capture())
     bool m_enabled;
+    bool m_captured = false;      // m_backup is valid: the module is loaded and the patch lies in it
 
 };

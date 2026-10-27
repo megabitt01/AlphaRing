@@ -128,6 +128,26 @@ namespace HaloReach::Entry::HudAnchor {
                      when, row, b[row * 4 + 0], b[row * 4 + 1], b[row * 4 + 2], b[row * 4 + 3]);
     }
 
+    // Centres the HUD content box in the slot (see g_centreHudBox).
+    void CentreHudBox(__int64 hModule) {
+        short y0 = *(short*)(hModule + 0xD1F6D0);
+        short x0 = *(short*)(hModule + 0xD1F6D2);
+        short y1 = *(short*)(hModule + 0xD1F6D4);
+        short x1 = *(short*)(hModule + 0xD1F6D6);
+
+        int width = x1 - x0;
+        int height = y1 - y0;
+        float halfW = *(float*)(hModule + 0xD1F798);
+        float halfH = *(float*)(hModule + 0xD1F79C);
+
+        // Leave the original alone rather than write a degenerate frame.
+        if (halfW > 1.0f && halfH > 1.0f &&
+            halfW * 2.0f <= (float)width && halfH * 2.0f <= (float)height) {
+            *(float*)(hModule + 0xD1F790) = ((float)width  - halfW * 2.0f) * 0.5f;
+            *(float*)(hModule + 0xD1F794) = ((float)height - halfH * 2.0f) * 0.5f;
+        }
+    }
+
     HaloReachEntry(entry, OFFSET_HALOREACH_PF_HUD_ANCHOR, void, detour) {
         ((detour_t)entry.m_pOriginal)();
 
@@ -171,6 +191,10 @@ namespace HaloReach::Entry::HudAnchor {
                     *(float*)(hModule + 0xD1F6F4) = refW * halfH / halfW;
                     LogFrameAndBasis(hModule, "lr_canvas");
                 }
+                // The original box hugs the screen's centre line (1920x1080:
+                // xInset 128 and 4 px, yInset 64 and 80), so both HUDs crowd
+                // the middle - more so on ultrawide screens.
+                if (g_centreHudBox) CentreHudBox(hModule);
                 return;
             }
         }
@@ -210,17 +234,7 @@ namespace HaloReach::Entry::HudAnchor {
             }
         }
 
-        if (g_centreHudBox) {
-            float halfW = *(float*)(hModule + 0xD1F798);
-            float halfH = *(float*)(hModule + 0xD1F79C);
-
-            // Leave the original alone rather than write a degenerate frame.
-            if (halfW > 1.0f && halfH > 1.0f &&
-                halfW * 2.0f <= (float)width && halfH * 2.0f <= (float)height) {
-                *(float*)(hModule + 0xD1F790) = ((float)width  - halfW * 2.0f) * 0.5f;
-                *(float*)(hModule + 0xD1F794) = ((float)height - halfH * 2.0f) * 0.5f;
-            }
-        }
+        if (g_centreHudBox) CentreHudBox(hModule);
 
         if (height <= width) return;
 

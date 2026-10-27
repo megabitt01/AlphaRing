@@ -26,7 +26,7 @@ public:
     inline std::vector<CPatch*>& patches() {return m_patches;}
 
 private:
-    __int64 hModule;
+    __int64 hModule = 0;
     std::vector<CPatch*> m_embed_patches;
     std::vector<CPatch*> m_patches;
 };

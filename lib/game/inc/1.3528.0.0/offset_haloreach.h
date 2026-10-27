@@ -99,6 +99,15 @@
 #define OFFSET_HALOREACH_DAT_MCC_QUALITY_SETTINGS       0x29F5909
 #define OFFSET_HALOREACH_V_MCC_QUALITY_SETTING_COUNT    10
 
+// Every skinned object drawn in a frame (any view, shadows too) gets its bone
+// matrices from one pool of 0x35C00 bytes (nodes x 0x30 + 0x48 each), reset
+// every frame. The allocator (0x25093C: mov ecx, 0x35C00 ... shl r10d, 0x12)
+// returns frame << 18 | byte offset, or -1 once it's full (the last 0x5000 are
+// kept for its flagged callers); users address it with lea reg, [pool] and
+// `and reg, 0x3FFFF`. haloreach/skinning.cpp moves it to a bigger buffer.
+#define OFFSET_HALOREACH_DAT_SKINNING_POOL           0xC51C40
+#define OFFSET_HALOREACH_PF_SKINNING_POOL_ALLOCATE   0x25093C
+
 #define OFFSET_HALOREACH_V_ENTRY_PLAYERS 0x3
 #define OFFSET_HALOREACH_V_ENTRY_PLAYERS_ACTION 0x23
 #define OFFSET_HALOREACH_V_ENTRY_SPLIT_SCREEN 0x2B

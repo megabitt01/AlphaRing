@@ -4,6 +4,7 @@
 #include "mcc/module/patch/SplitscreenConfigStore.h"
 #include "global/Global.h"
 #include "common.h"
+#include "mcc/module/entry/haloreach/haloreach.h"
 
 CModule::CModule(EntrySet *entrySet, std::initializer_list<CPatch> patches)
 : m_entries(entrySet), m_patches(patches) {};
@@ -86,9 +87,24 @@ void CModule::load_module(const module_info_t *p_info) {
 
     if (m_entries)
         m_entries->update(m_info.hModule);
+
+    // Bodies piling up in split screen run Reach's per-frame skinning pool dry
+    // (black or missing Spartans in the later views): move it to a bigger buffer.
+    if (m_info.title == MCC::Module::MODULE_HALOREACH)
+        HaloReach::Entry::Skinning::Enlarge(m_info.hModule);
 }
 
 void CModule::unload_module() {
+    // Put back the bytes Enlarge changed while haloreach.dll is still mapped:
+    // MCC reloads it at a new address, and the next Enlarge would otherwise
+    // restore them into whatever is then mapped at the old one.
+    if (m_info.title == MCC::Module::MODULE_HALOREACH)
+        HaloReach::Entry::Skinning::Unload();
+  
+    if (m_entries)
+        m_entries->remove();
+  
+    m_patches.update(0);
     memset(&m_info, 0, sizeof(module_info_t));
 }
 
