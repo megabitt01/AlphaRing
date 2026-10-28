@@ -6,8 +6,8 @@
 // on the next. The views are drawn a quarter of the screen in size (QuarterViews), each camera shaped like its
 // player's cell in Halo 2's own grid, and each image is drawn into that cell. The other pair's cells are kept in a
 // texture of ours and put back before the HUD, which Halo 2's window loop already draws for every player. What the
-// game works out per view (visible objects, the own body, first-person models) follows the pair. Two players are left
-// to the game and the D3D11 composite clip (render/d3d11/Hook.cpp).
+// game works out per view (visible objects, the own body, first-person models) follows the pair. With two players each
+// view is drawn into its half by the same shaders (composite).
 #include "halo2.h"
 
 #include "mcc/CGameGlobal.h"
@@ -585,14 +585,26 @@ namespace Halo2::Entry::Anniversary {
         return image;
     }
 
-    // Quad mode's frames only. With two players the game's composite runs as it is, under the D3D11 composite clip
-    // (megabitt01/AlphaRing#23, render/d3d11/Hook.cpp), which fixed its black screen; that clip matches a quad by its
-    // image being one player's share of the screen tall, which quad mode's half-height images aren't with 3-4.
     Halo2Entry(entry_composite, OFFSET_HALO2_PF_SABER_COMPOSITE, void, composite, void* texture, bool split, int index) {
         auto original = (composite_t)entry_composite.m_pOriginal;
+        __int64 module = entry_composite.m_target - entry_composite.m_offset;
+        // Two players: the game's quad leaves the screen black under Proton (megabitt01/AlphaRing#23), and the D3D11
+        // composite clip that fixed it (render/d3d11/Hook.cpp) draws each image into half of its half - the quad
+        // already places the image, and the clip's viewport shrinks it again. So each view is drawn into its half by
+        // our shaders, and the game's quad (and with it the clip, which only takes DrawIndexed) isn't drawn.
+        if (split && index >= 0 && index <= 1 && !s_frame_quad && Players(module) == 2) {
+            auto context = Context(module);
+            ID3D11ShaderResourceView* image = CollapsedImage(context, texture, split, index);
+            ID3D11Device* device = nullptr;
+            context->GetDevice(&device);
+            if (image != nullptr && device != nullptr && s_drawer.Ready(device))
+                DrawCell(context, image, PlayerCell(module, index, 2, true));
+            if (device != nullptr) device->Release();
+            if (image != nullptr) image->Release();
+            return;
+        }
         if (!s_frame_quad || !split || index < 0 || index > 1) return original(texture, split, index);
         if (index == 1 && NoSecondView()) return;
-        __int64 module = entry_composite.m_target - entry_composite.m_offset;
         int player = index + 2 * s_frame_pair;
         Cell cell = PlayerCell(module, player, s_frame_players, true);
         auto context = Context(module);
