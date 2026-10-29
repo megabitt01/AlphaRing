@@ -8,6 +8,7 @@
 
 #include "../CGameManager.h"
 #include "log/MatchLog.h"
+#include "LeftRight.h"
 
 namespace MCC::Splitscreen {
     DefDetourFunction(__int64, __fastcall, get_index_by_xuid, void* a1, __int64 xuid) {
@@ -37,6 +38,28 @@ namespace MCC::Splitscreen {
         assertm(result, "MCC:Splitscreen: failed to hook");
 
         return true;
+    }
+
+    ClassicGraphicsScope::ClassicGraphicsScope(unsigned char* game_options, int game) {
+        auto p_setting = AlphaRing::Global::MCC::Splitscreen();
+
+        bool left_right = p_setting->b_override && game_options != nullptr && LeftRight::Chosen() &&
+                          LeftRight::Supports(game, p_setting->player_count);
+        LeftRight::StartClassicMission(game, left_right);
+        if (!p_setting->b_override || game_options == nullptr) return;
+        if (p_setting->player_count <= 2 && !left_right) return;
+        bool anniversary = game_options[0] & 1;
+        if (!anniversary) return;
+
+        LOG_INFO("Splitscreen: {} players{}, starting in Classic graphics", p_setting->player_count,
+                 left_right ? " side by side" : "");
+        m_options = game_options;
+        m_saved = game_options[0];
+        game_options[0] &= ~1;
+    }
+
+    ClassicGraphicsScope::~ClassicGraphicsScope() {
+        if (m_options) m_options[0] = m_saved;
     }
 }
 

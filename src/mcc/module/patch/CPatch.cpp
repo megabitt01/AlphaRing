@@ -16,6 +16,7 @@ bool CPatch::apply(void *dst, const void *src, size_t size)  {
         result = true;
     }
     VirtualProtect(dst, size, oldprotect, &oldprotect);
+    if (result) FlushInstructionCache(GetCurrentProcess(), dst, size); // the bytes may be code
 
     return result;
 }

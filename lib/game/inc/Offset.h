@@ -39,12 +39,17 @@ namespace AlphaRing {
 
         void Add(const Offset& offset) { m_offsets.push_back(&offset); }
 
+        // A feature that only works together with this one: when one of its offsets is missing, so is this.
+        void Requires(const Feature& other) { m_requires.push_back(&other); }
+
         const char* Name() const { return m_name; }
 
         // The first of its offsets this build lacks, or nullptr when it's all there.
         const Offset* Missing() const {
             for (auto offset : m_offsets)
                 if (!offset->found()) return offset;
+            for (auto feature : m_requires)
+                if (auto missing = feature->Missing()) return missing;
             return nullptr;
         }
 
@@ -53,6 +58,7 @@ namespace AlphaRing {
     private:
         const char* m_name;
         std::vector<const Offset*> m_offsets;
+        std::vector<const Feature*> m_requires;
     };
 }
 

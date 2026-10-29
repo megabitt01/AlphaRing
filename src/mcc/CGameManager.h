@@ -24,6 +24,7 @@
         };
 
         enum eState {
+            Running = 1,
             Exit = 5,
             Exiting = 10,
         };
@@ -35,8 +36,13 @@
         static Profile_t* get_profile(int index);
         static CInputDevice* get_controller(int index);
         static void apply_profiles();
+        // Local players in the game right now (see CGameManagerSplitscreen.cpp: Halo 4 starts with two).
+        static int active_player_count();
 
     private:
+        static void track_state(eState state);
+        static void end_session();
+
         static void __fastcall set_vibration(CGameManager* self, DWORD dwUserIndex, XINPUT_VIBRATION *pVibration);
         static CUserProfile* __fastcall get_player_profile(CGameManager* self, __int64 xid);
         static bool __fastcall get_xbox_user_id(CGameManager* self, __int64* pId, wchar_t *pName, int size, int index);

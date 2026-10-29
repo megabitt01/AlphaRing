@@ -56,13 +56,7 @@ namespace {
         ~WritesLock() { ReleaseSRWLockExclusive(&g_writesLock); }
     };
 
-    struct LayoutEntry {
-        float x0;
-        float y0;
-        float x1;
-        float y1;
-        __int32 resolution;
-    };
+    using AlphaRing::SplitscreenConfigStore::LayoutEntry;
     static_assert(sizeof(LayoutEntry) == AlphaRing::SplitscreenConfigStore::ENTRY_SIZE);
 
     constexpr LayoutEntry kTopBottom[2] = {
@@ -320,6 +314,10 @@ namespace AlphaRing::SplitscreenConfigStore {
 
         const LayoutEntry& entry = playerCount == 2 ? kLeftRight[slot] : kLeftRight3P[slot];
         return entry.resolution == 3;
+    }
+
+    const LayoutEntry& LeftRightRegion(int playerCount, int slot) {
+        return playerCount == 2 ? kLeftRight[slot] : kLeftRight3P[slot];
     }
 
     void SetTwoPlayerLayout(TwoPlayerLayout layout, __int64 hModule) {

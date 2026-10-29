@@ -80,4 +80,39 @@ const OffsetPatterns kHalo3Patterns[] = {
         Rel("E8 ?? ?? ?? ?? 8B FB 4C 8D 9C 24 E0 01 00 00 8B C7 49 8B 5B 30", 0x1, 0x5, 0x0)}},
     {&OFFSET_HALO3_PV_SPLITSCREEN_TABLE, 0x8ae0b0, Data, {
         Rel("48 8D 0D ?? ?? ?? ?? F3 0F 10 44 91 08 F3 0F 5C 04 91 0F 2F 05", 0x3, 0x7, 0x0)}},
+    {&OFFSET_HALO3_PV_SCREEN_SIZE, 0x8ac3e8, Data, {
+        Rel("0F BF 05 ?? ?? ?? ?? 66 44 0F 6E D0 45 0F 5B D2 F3 44 0F 5E 15", 0x3, 0x7, 0x0),
+        Rel("8B 1D ?? ?? ?? ?? 66 41 0F 6E C7 0F 5B C0 66 0F 6E FB 0F 5B FF", 0x2, 0x6, 0x0)}},
+    {&OFFSET_HALO3_PF_SPLITSCREEN_PLAYER_COUNT, 0x2e0928, Code, {
+        At("48 83 EC 28 E8 ?? ?? ?? ?? 84 C0 74 ?? E8 ?? ?? ?? ?? 84 C0 75 ?? 65 48 8B 04 25 58 00 00 00", 0x0),
+        Rel("E8 ?? ?? ?? ?? 83 F8 01 8B EF B9 00 01 00 00 40 0F 9F C5 E8", 0x1, 0x5, 0x0)}},
+    {&OFFSET_HALO3_PF_DRAW_SPLITSCREEN_BARS, 0x2d8174, Code, {
+        At("48 8B C4 48 89 58 10 48 89 70 18 48 89 78 20 55 41 54 41 55 41 56 41 57 48 8B EC", 0x0),
+        Rel("44 38 25 ?? ?? ?? ?? 74 ?? 44 38 25 ?? ?? ?? ?? 74 ?? E8 ?? ?? ?? ?? E8 ?? ?? ?? ?? E8 ?? ?? ?? ?? E8 ?? ?? ?? ?? 48 8D 4D D0", 0x18, 0x1c, 0x0)}},
+    {&OFFSET_HALO3_PF_FILL_RECT, 0x1890c4, Code, {
+        At("4C 8B DC 48 83 EC 48 0F B7 41 06 44 0F B7 49 02", 0x0),
+        Rel("48 8D 4C 24 48 E8 ?? ?? ?? ?? 48 8B 5C 24 40 48 8B 6C 24 50", 0x6, 0xa, 0x0)}},
+    {&OFFSET_HALO3_PF_RT_CREATE, 0x2757c8, Code, {
+        At("48 89 5C 24 20 4C 89 44 24 18 55 56 57 41 54 41 55 41 56 41 57 48 83 EC 70", 0x0),
+        Rel("48 03 4E 50 E8 ?? ?? ?? ?? 8B 4D 4F 0B C8 89 4D 4F 45 33 DB", 0x5, 0x9, 0x0)}},
+    {&OFFSET_HALO3_PF_RT_POOL_RELEASE, 0x27613c, Code, {
+        At("48 8B C4 57 41 54 41 55 41 56 41 57 48 83 EC 30 48 C7 40 C8 FE FF FF FF 48 89 58 10 48 89 68 18 48 89 70 20 E8 ?? ?? ?? ?? 33 D2", 0x0),
+        Rel("E8 ?? ?? ?? ?? 41 0F B6 EC 45 33 F6 85 C0 41 0F 48 EE 48 8D 1D", 0x1, 0x5, 0x0)}},
+    {&OFFSET_HALO3_PF_RT_POOL_INIT, 0x275bbc, Code, {
+        At("48 8B C4 55 53 56 57 41 54 41 55 41 56 41 57 48 8D 68 88", 0x0),
+        Rel("E8 ?? ?? ?? ?? 45 0F B6 F4 45 33 FF 85 C0 45 0F 48 F7 E8 ?? ?? ?? ?? 44 22 F0", 0x1, 0x5, 0x0)}},
+    {&OFFSET_HALO3_PF_HUD_RESOLUTION, 0x2f1e38, Code, {
+        At("48 89 5C 24 08 57 48 83 EC 20 44 8B C9 E8 ?? ?? ?? ?? 41 8B C9", 0x0),
+        Rel("E8 ?? ?? ?? ?? 8B C8 8B C3 D3 E0 66 09 86 0E 04 00 00 39 7D 28", 0x1, 0x5, 0x0)}},
+    {&OFFSET_HALO3_PF_HUD_LAYOUT, 0x2ecf38, Code, {
+        At("48 89 5C 24 08 48 89 6C 24 10 48 89 74 24 18 57 48 83 EC 20 48 8B 05 ?? ?? ?? ?? 33 DB 48 8B 35", 0x0),
+        Rel("E8 ?? ?? ?? ?? 8B 48 60 83 C1 03 66 44 0F 6E E9 45 0F 5B ED", 0x1, 0x5, 0x0)}},
+    {&OFFSET_HALO3_PF_VIEW_SETUP, 0x282ec4, Code, {
+        At("48 89 5C 24 10 48 89 6C 24 18 48 89 74 24 20 57 41 54 41 55 41 56 41 57 48 81 EC C0 00 00 00", 0x0),
+        Rel("E8 ?? ?? ?? ?? FF C6 49 81 C7 20 28 00 00 41 3B F4 7C ?? 8B 9D 90 03 00 00", 0x1, 0x5, 0x0)}},
+    {&OFFSET_HALO3_PF_TITLE_SAFE, 0x272010, Code, {
+        At("33 C0 89 01 0F B7 05 ?? ?? ?? ?? 66 89 41 06 0F B7 05 ?? ?? ?? ?? 66 89 41 04", 0x0),
+        Rel("E8 ?? ?? ?? ?? 66 83 85 10 09 00 00 50 BA 04 00 00 00 48 8D 4D 70", 0x1, 0x5, 0x0)}},
+    {&OFFSET_HALO3_VIEW_SETUP_TITLE_SAFE_RETURN, 0x282f10, Code, {
+        At("E8 ?? ?? ?? ?? 48 8D 15 ?? ?? ?? ?? 49 8B EF 49 8D 47 FC 4A 8D 04 B0 48 8D 0C 80", 0x5)}},
 };

@@ -31,6 +31,8 @@ public:
     // reloads them at new addresses, so a hook left behind would later be "restored" into
     // whatever DLL occupies its old address.
     void remove();
+    // Called as the set is removed, for state that points into the module (up to MAX_CALLBACK).
+    void on_remove(void (*callback)());
 
 private:
     // Halo Reach reached the old limit of 20 with the FOV baseline seam (5
@@ -39,6 +41,9 @@ private:
     inline static const int MAX_ENTRY = 32;
     int entryCount;
     Entry* entryArray[MAX_ENTRY];
+    inline static const int MAX_CALLBACK = 4;
+    int callbackCount;
+    void (*callbackArray[MAX_CALLBACK])();
 
 };
 

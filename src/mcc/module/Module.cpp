@@ -11,6 +11,7 @@
 #include "mcc/CGameManager.h"
 #include "mcc/module/patch/PatchConfig.h"
 #include "mcc/module/patch/SplitscreenConfigStore.h"
+#include "mcc/splitscreen/LeftRight.h"
 #include "global/Global.h"
 #include "log/DebugFlags.h"
 
@@ -232,7 +233,21 @@ namespace MCC::Module {
             ImGui::EndMenuBar();
         }
 
+        // Everyone's split-screen layout, in every game (mcc/splitscreen/LeftRight). It was Reach's
+        // "Two-player layout" combo; Choose() also re-applies Reach's enabled black-bar patches over
+        // the stock entries when going back to Top / Bottom.
+        int layout_index = MCC::Splitscreen::LeftRight::Chosen() ? 1 : 0;
+        const char* layout_names[] = { "Top / Bottom", "Left / Right" };
+        ImGui::SetNextItemWidth(180.0f);
+        if (ImGui::Combo("Split-screen layout", &layout_index, layout_names, 2))
+            MCC::Splitscreen::LeftRight::Choose(layout_index == 1);
+        if (ImGui::IsItemHovered())
+            ImGui::SetTooltip("Everyone's layout, in every game. Left / Right: 2 players get equal full-height halves; 3 players put player 1 on the full left half and players 2/3 on the right half. 1 and 4 players always use the game's own layout. Halo 3, ODST, Halo 4 and Reach switch at once; Halo CE and Halo 2 at the next mission start, in Classic graphics.");
+
         if (!ImGui::BeginTabBar("patch")) return;
+
+        // under each game's black-bar controls, disabled while Left / Right is chosen
+        static constexpr const char* kBarsKept = "Black-bar settings are kept and return with Top / Bottom.";
 
         counter = 0;
 
@@ -267,38 +282,14 @@ namespace MCC::Module {
                     // while Left/Right is selected SplitscreenConfigStore::Apply
                     // rewrites every field of those entries each frame, so an
                     // enabled patch's bytes never show, and the painter bypass
-                    // is derived in blackbars.cpp. Selecting Top/Bottom writes
-                    // the stock entries, then re-applies each enabled patch so
-                    // the user's saved bar choice comes back exactly as it was.
+                    // is derived in blackbars.cpp. Selecting Top/Bottom (the
+                    // layout combo above the tabs) writes the stock entries,
+                    // then re-applies each enabled patch so the user's saved
+                    // bar choice comes back exactly as it was.
                     // (The old exclusion rationale - D1F710 as a stale table
                     // cache - was disproved: D1F710 is not table-derived.)
-                    auto layout = AlphaRing::SplitscreenConfigStore::GetTwoPlayerLayout();
-                    int layout_index = (int)layout;
-                    const char* layout_names[] = { "Top / Bottom", "Left / Right" };
-
-                    ImGui::PushID(counter++);
-                    ImGui::SetNextItemWidth(180.0f);
-                    if (ImGui::Combo("Two-player layout", &layout_index, layout_names, 2)) {
-                        layout = (AlphaRing::SplitscreenConfigStore::TwoPlayerLayout)layout_index;
-
-                        auto h = GetSubModule((eModule)i)->info().hModule;
-                        AlphaRing::SplitscreenConfigStore::SetTwoPlayerLayout(layout, h);
-
-                        if (layout == AlphaRing::SplitscreenConfigStore::TwoPlayerLayout::TopBottom) {
-                            CPatch* bars[3] = { p_bar1, p_bar2, p_bar3 };
-                            for (auto p_bar : bars)
-                                if (p_bar != nullptr && p_bar->enabled())
-                                    p_bar->apply();
-                        }
-                    }
-                    ImGui::PopID();
-                    if (ImGui::IsItemHovered())
-                        ImGui::SetTooltip("Selects the 2- and 3-player rectangles explicitly. Left / Right: 2 players get equal full-height halves; 3 players put player 1 on the full left half (as in 2 players) and players 2/3 on the right half. 1 and 4 players always use Reach's own layout.");
-
-                    const bool left_right =
-                            layout == AlphaRing::SplitscreenConfigStore::TwoPlayerLayout::LeftRight;
-                    if (left_right)
-                        ImGui::TextDisabled("Black-bar settings are kept and return with Top / Bottom.");
+                    const bool left_right = MCC::Splitscreen::LeftRight::Chosen();
+                    if (left_right) ImGui::TextDisabled(kBarsKept);
 
                     if (left_right) ImGui::BeginDisabled();
 
@@ -623,6 +614,13 @@ namespace MCC::Module {
                         bool player1_on = (p_bar1 == nullptr || p_bar3 == nullptr)
                                 ? true : (p_bar1->enabled() && p_bar3->enabled());
 
+                        // Left / Right owns the same table entries and puts back the ones it
+                        // found when the player returns to Top / Bottom, so the bars hold still
+                        // meanwhile (as in Reach).
+                        const bool left_right = i != MODULE_GROUNDHOG && MCC::Splitscreen::LeftRight::Chosen();
+                        if (left_right) ImGui::TextDisabled(kBarsKept);
+                        ImGui::BeginDisabled(left_right);
+
                         if (p_bar1 != nullptr && p_bar3 != nullptr) {
                             bool top = player1_on;
                             ImGui::PushID(counter++);
@@ -662,6 +660,8 @@ namespace MCC::Module {
                                     ? "Removes the black bar for player 2's half of the screen."
                                     : "Enable Player 1's black-bar removal first. On this game, Player 2's toggle only takes effect when Player 1's is also on - same shared-painter bug Reach had before its dedicated fix.");
                         }
+
+                        ImGui::EndDisabled();
 
                         ImGui::Separator();
                     }
