@@ -9,7 +9,7 @@ A Splitscreen Mod for Halo the Master Chief Collection
 
 | | |
 |--|--|
-| Splitscreen in Every Game <br> <img width="1086" height="651" alt="image" src="https://github.com/user-attachments/assets/0b5a5109-f602-424f-a9ec-51e35da832b8" /> | LAN Mutliplayer Support <img width="1569" height="974" alt="image" src="https://github.com/user-attachments/assets/6255730f-e1e7-495b-afb8-152e93d0d070" /> |
+| Splitscreen in Every Game <br> <img width="1086" height="651" alt="image" src="https://github.com/user-attachments/assets/0b5a5109-f602-424f-a9ec-51e35da832b8" /> | LAN Multiplayer Support <img width="1569" height="974" alt="image" src="https://github.com/user-attachments/assets/6255730f-e1e7-495b-afb8-152e93d0d070" /> |
 | Camera Tool (H3) <br> ![Camera](https://github.com/WinterSquire/AlphaRing/assets/135317392/d359b2e8-5302-430f-be0d-bc065e63f546) | Object Browser (H3) <br> ![Object](https://github.com/WinterSquire/AlphaRing/assets/135317392/0bce1af7-354f-4d9d-92f7-eb2d46d8ae37) |
 | 8 Players Campaign <br> ![Splitscreen 8 players](https://github.com/WinterSquire/AlphaRing/assets/135317392/7d9f4281-892a-47e2-8e0c-845a965e5d11) | Splitscreen With [Mod](https://steamcommunity.com/sharedfiles/filedetails/?id=3153235187) (By [Priception](https://steamcommunity.com/id/priception)) <br> ![H4](https://github.com/WinterSquire/AlphaRing/assets/135317392/5359868c-c5db-4300-9805-84c61b0bd8ee) |
 
