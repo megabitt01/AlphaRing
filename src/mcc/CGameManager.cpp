@@ -99,8 +99,12 @@ __int64 CGameManager::get_xuid(int index) {
 
     if (index)
         return container.profiles[index].id;
-    else
-        return pGameManager->ppOriginal.get_xbox_user_id(pGameManager, &result, nullptr, 0, index) ? result : 0;
+
+    // Not hooked yet (CGameManager::Initialize still running): no XUID rather than a call through null.
+    if (pGameManager == nullptr || ppOriginal.get_xbox_user_id == nullptr)
+        return 0;
+
+    return ppOriginal.get_xbox_user_id(pGameManager, &result, nullptr, 0, index) ? result : 0;
 }
 
 CInputDevice *CGameManager::get_controller(int index) {

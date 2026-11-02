@@ -31,6 +31,8 @@ Download the latest stable build from the [Releases](https://github.com/kirkland
 
 Place the DLL into the "Halo The Master Chief Collection\mcc\binaries\win64" directory and launch the game with EAC off.
 
+**Xbox app / Game Pass:** place the DLL into `C:\XboxGames\Halo- The Master Chief Collection\Content\mcc\binaries\win64` (or the same path under your Xbox games folder) and launch the game from the "Halo: MCC Anti-Cheat Disabled (Mods and Limited Services)" Start menu entry.
+
 For Running on Steam Deck/Linux, add the following command in the Steam Game Launch Options:
 ```
 WINEDLLOVERRIDES="WTSAPI32=n,b" %command%

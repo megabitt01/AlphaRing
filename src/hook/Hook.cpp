@@ -61,7 +61,6 @@ namespace AlphaRing::Hook {
         LOG_INFO("Running under Wine/Proton: {}", IsWine());
         LOG_INFO("Created by WinterSquire, updated by thejackbitt\n");
 		LOG_WARNING("** CURRENTLY IN BETA - STRAP IN FOR A BUMPY RIDE **");
-		LOG_WARNING(" == This version only supports the steam version of the game ==");
 
         if ((hModule = (__int64)GetModuleHandleA("MCC-Win64-Shipping.exe")) != 0) {
             distro = Steam;
@@ -108,9 +107,15 @@ namespace AlphaRing::Hook {
     }
 
     bool Detour(const std::initializer_list<Detour_t> &hooks) {
+        // Create every hook (filling every *ppOriginal) before enabling any: a detour enabled early can call
+        // another hook's original that isn't set yet - CGameManager's get_player_profile reaches
+        // ppOriginal.get_xbox_user_id through get_xuid(0), and MCC calls it while the hooks are going in.
         for (auto &hook : hooks) {
-            if (MH_CreateHook(hook.pTarget, hook.detour, hook.ppOriginal) != MH_OK ||
-                MH_EnableHook(hook.pTarget) != MH_OK)
+            if (MH_CreateHook(hook.pTarget, hook.detour, hook.ppOriginal) != MH_OK)
+                return false;
+        }
+        for (auto &hook : hooks) {
+            if (MH_EnableHook(hook.pTarget) != MH_OK)
                 return false;
         }
         return true;
