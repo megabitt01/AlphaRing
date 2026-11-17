@@ -9,6 +9,9 @@ const OffsetPatterns kHalo2Patterns[] = {
     {&OFFSET_HALO2_PF_GAME, 0x67a220, Code, {
         At("40 53 55 56 57 41 54 41 56 41 57 48 83 EC 60 48 C7 44 24 20 FE FF FF FF 0F 29 74 24 50", 0x0),
         Rel("75 ?? E8 ?? ?? ?? ?? 8B 05 ?? ?? ?? ?? 83 F8 09 75 ?? 48 8D 8D 98 00 00 00 E8", 0x3, 0x7, 0x0)}},
+    {&OFFSET_HALO2_PF_COPY_GAME_OPTIONS, 0x39ce0, Code, {
+        At("40 53 48 81 EC 30 03 00 00 48 8B D1 48 8D 1D ?? ?? ?? ?? 48 8B CB", 0x0),
+        Rel("48 8B CF E8 ?? ?? ?? ?? 8B 4F 10 E8 ?? ?? ?? ?? B9 10 00 00 00 48 89 05", 0x4, 0x8, 0x0)}},
     {&OFFSET_HALO2_PF_ADD_LOCAL_PLAYER, 0x69d2c0, Code, {
         At("48 89 5C 24 08 57 48 83 EC 20 48 8B FA 8B D1 48 8B 0D", 0x0),
         Rel("E8 ?? ?? ?? ?? FF C3 48 81 C7 D4 00 00 00 83 FB 10 7C ?? E8 ?? ?? ?? ?? E8", 0x1, 0x5, 0x0)}},
@@ -41,4 +44,25 @@ const OffsetPatterns kHalo2Patterns[] = {
     {&OFFSET_HALO2_PV_SCENARIO, 0xe6f768, Data, {
         Rel("48 8B 05 ?? ?? ?? ?? 8B DE 48 89 7C 24 68 39 98 10 02 00 00", 0x3, 0x7, 0x0),
         Rel("48 8B 05 ?? ?? ?? ?? 33 D2 4C 63 80 6C 01 00 00 41 83 F8 FF", 0x3, 0x7, 0x0)}},
+    {&OFFSET_HALO2_PF_SPLIT_GRID, 0x7e09d0, Code, {
+        At("48 89 5C 24 08 BB 01 00 00 00 44 8B D2 44 8B D9", 0x0),
+        Rel("E8 ?? ?? ?? ?? 44 8B 84 24 E0 00 00 00 48 8D 84 24 C8 00 00 00", 0x1, 0x5, 0x0)}},
+    {&OFFSET_HALO2_PF_SPLIT_CELL, 0x7e0bd0, Code, {
+        At("48 89 5C 24 08 48 89 7C 24 10 4C 8B 54 24 30 49 8B F9", 0x0),
+        Rel("E8 ?? ?? ?? ?? 48 8D 87 B8 00 00 00 4C 8D 8F B0 00 00 00 48 89 44 24 20", 0x1, 0x5, 0x0)}},
+    {&OFFSET_HALO2_PF_SPLIT_DIVIDERS, 0x831d90, Code, {
+        At("40 55 48 8B EC 48 83 EC 20 48 8B 05 ?? ?? ?? ?? 48 85 C0 74", 0x0),
+        Rel("E8 ?? ?? ?? ?? BA 04 00 00 00 4C 8D 05 ?? ?? ?? ?? 8D 4A FB 48 83 C4 28", 0x1, 0x5, 0x0)}},
+    {&OFFSET_HALO2_PV_SPLIT_MODE, 0x165c168, Data, {
+        Rel("83 3D ?? ?? ?? ?? 01 0F 85 ?? ?? ?? ?? 4C 8D 45 18 48 8D 55 10 E8 ?? ?? ?? ?? 8B 45 18", 0x2, 0x7, 0x0),
+        Rel("89 3D ?? ?? ?? ?? E8 ?? ?? ?? ?? E8 ?? ?? ?? ?? 80 3D ?? ?? ?? ?? 00 74 ?? 48 8B 0D ?? ?? ?? ?? 41 B0 01 48 C7 C2 FF FF FF FF E8 ?? ?? ?? ?? F3 0F 10 15 ?? ?? ?? ?? 45 33 C9 BA FF FF FF FF 41 8D 49 01 E8 ?? ?? ?? ?? 48 8B 0D", 0x2, 0x6, 0x0)}},
+    {&OFFSET_HALO2_PV_SPLIT_VIEWS, 0x165c16c, Data, {
+        Rel("B9 01 00 00 00 0F B6 C3 39 0D ?? ?? ?? ?? 0F 4E C1 48 83 C4 20", 0xa, 0xe, 0x0),
+        Rel("8B 05 ?? ?? ?? ?? 83 F8 02 7E ?? 83 F8 03 8B 45 10 99 75 ?? 2B C2", 0x2, 0x6, 0x0)}},
+    {&OFFSET_HALO2_PV_ANNIVERSARY, 0xe21280, Data, {
+        Rel("48 89 44 24 48 83 3D ?? ?? ?? ?? 00 0F 94 84 24 A0 00 00 00", 0x7, 0xc, 0x0),
+        Rel("66 C7 83 80 00 00 00 00 00 83 3D ?? ?? ?? ?? 00 74 ?? 80 3D ?? ?? ?? ?? 00", 0xb, 0x10, 0x0)}},
+    {&OFFSET_HALO2_PV_CLASSIC_SHOWN, 0x1e8ce73, Data, {
+        Rel("0F B6 0D ?? ?? ?? ?? 44 38 87 81 00 00 00 75 ?? 85 D2 74 ?? 84 C9", 0x3, 0x7, 0x0),
+        Rel("C6 05 ?? ?? ?? ?? 01 49 8B 5B 10 49 8B 6B 18 49 8B 73 20 49 8B 7B 28", 0x2, 0x7, 0x0)}},
 };

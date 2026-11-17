@@ -44,6 +44,7 @@ public:
     inline bool have_desc() const {return !m_desc.empty();}
     inline bool enabled() {return m_enabled;}
 
+    // Writes code or read-only data (and flushes the instruction cache).
     static bool apply(void *dst, const void *src, size_t size);
 
 private:

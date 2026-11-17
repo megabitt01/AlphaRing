@@ -28,6 +28,10 @@ void CModule::load_module(const module_info_t *p_info) {
 
     m_info = *p_info;
 
+    // The split-screen layout choice has to be known before the game builds its render targets
+    // (mcc/splitscreen/LeftRight), in every game, not only Reach.
+    AlphaRing::SplitscreenConfigStore::Load();
+
     m_patches.update(m_info.hModule, known_build);
 
     if (!known_build) {
@@ -67,7 +71,6 @@ void CModule::load_module(const module_info_t *p_info) {
     // drawn. HaloReach::Entry::Render re-asserts them per frame; this is the
     // "already correct before the first frame" half.
     if (m_info.title == MCC::Module::MODULE_HALOREACH) {
-        AlphaRing::SplitscreenConfigStore::Load();
         if (AlphaRing::SplitscreenConfigStore::GetTwoPlayerLayout() ==
                     AlphaRing::SplitscreenConfigStore::TwoPlayerLayout::LeftRight &&
             !AlphaRing::SplitscreenConfigStore::LeftRightAvailable())
@@ -174,7 +177,7 @@ static struct {
     CModule halo3odst;
     CModule haloreach;
 } modules {
-    {nullptr, {
+    {Halo1EntrySet(), {
         {"splitscreen_patch1", "", OFFSET_HALO1_PF_4PLAYERS, "\xEB\x18", true},
         {"splitscreen_patch2", "", OFFSET_HALO1_PF_PAUSE, "\xEB", true},
         {"splitscreen_patch3", "", OFFSET_HALO1_PF_IDK, "\x90\x90\x90\x90\x90\x90", true}, // fix [issue](https://github.com/WinterSquire/AlphaRing/issues/19)
@@ -193,7 +196,7 @@ static struct {
         {"Remove Black Bar1", "remove black bar", OFFSET_HALO3_PV_SPLITSCREEN_TABLE, kBlackBar1, "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x80\x3F\x00\x00\x00\x3F\x01\x00\x00\x00", false},
         {"Remove Black Bar2", "remove black bar", OFFSET_HALO3_PV_SPLITSCREEN_TABLE, kBlackBar2, "\x00\x00\x00\x00\x00\x00\x00\x3F\x00\x00\x80\x3F\x00\x00\x80\x3F\x01\x00\x00\x00", false},
         {"Remove Black Bar3", "remove black bar", OFFSET_HALO3_PV_SPLITSCREEN_TABLE, kBlackBar3, "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x80\x3F\x00\x00\x00\x3F\x01\x00\x00\x00", false},
-}}, {nullptr, {
+}}, {Halo4SplitscreenEntrySet(), {
         {"splitscreen_patch1", "", OFFSET_HALO4_PF_COOP_JOIN, "\x31\xC0\xC3\x90", true},
         {"splitscreen_patch2", "", OFFSET_HALO4_PF_COOP_REJOIN, "\xEB", true},
         {"splitscreen_patch3", "", OFFSET_HALO4_PF_COOP_PLAYER_LIMIT, "\x90\x90\x90\x90\x90\x90", true},
@@ -206,7 +209,7 @@ static struct {
         {"Remove Black Bar1", "remove black bar", OFFSET_GROUNDHOG_PV_SPLITSCREEN_TABLE, kBlackBar1, "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x80\x3F\x00\x00\x00\x3F\x01\x00\x00\x00", false},
         {"Remove Black Bar2", "remove black bar", OFFSET_GROUNDHOG_PV_SPLITSCREEN_TABLE, kBlackBar2, "\x00\x00\x00\x00\x00\x00\x00\x3F\x00\x00\x80\x3F\x00\x00\x80\x3F\x01\x00\x00\x00", false},
         {"Remove Black Bar3", "remove black bar", OFFSET_GROUNDHOG_PV_SPLITSCREEN_TABLE, kBlackBar3, "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x80\x3F\x00\x00\x00\x3F\x01\x00\x00\x00", false},
-}}, {nullptr, {
+}}, {Halo3ODSTEntrySet(), {
         {"splitscreen_patch1", "", OFFSET_HALO3ODST_PF_COOP_JOIN, "\x31\xC0\xC3\x90", true},
         {"Remove Black Bar1", "remove black bar", OFFSET_HALO3ODST_PV_SPLITSCREEN_TABLE, kBlackBar1, "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x80\x3F\x00\x00\x00\x3F\x01\x00\x00\x00", false},
         {"Remove Black Bar2", "remove black bar", OFFSET_HALO3ODST_PV_SPLITSCREEN_TABLE, kBlackBar2, "\x00\x00\x00\x00\x00\x00\x00\x3F\x00\x00\x80\x3F\x00\x00\x80\x3F\x01\x00\x00\x00", false},

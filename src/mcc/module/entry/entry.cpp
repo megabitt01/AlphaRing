@@ -68,4 +68,10 @@ bool EntrySet::update(__int64 hModule) {
 
 void EntrySet::remove() {
     for (int i = 0; i < entryCount; ++i) entryArray[i]->remove();
+    for (int i = 0; i < callbackCount; ++i) callbackArray[i]();
+}
+
+void EntrySet::on_remove(void (*callback)()) {
+    assert(callbackCount < MAX_CALLBACK);
+    callbackArray[callbackCount++] = callback;
 }

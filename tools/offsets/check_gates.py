@@ -4,7 +4,7 @@
 
 On a build the offsets weren't written for, an offset that isn't found reads as 0 (src/offsets/Offsets.h), so what
 uses it has to be gated on it. Every OFFSET_ a source file uses must be gated there in one of these ways:
-  - a hook's own target (Halo1Entry(name, OFFSET_X, ...), ::Entry name(Set(), OFFSET_X, ...));
+  - a hook's own target (Halo1Entry(name, OFFSET_X, ...), PreservedEntry, ::Entry name(Set(), OFFSET_X, ...));
   - listed in an EntryFeature(...) or a Feature name(...) / {...};
   - checked with Found({...}) or OFFSET_X.found();
   - a {Steam, Windows Store} pair handed to Hook::Detour / Hook::Offset, which skip a missing one;
@@ -30,6 +30,7 @@ REVIEWED = {
 
 HOOK_TARGETS = [
     r"\w+Entry\(\s*\w+\s*,\s*(OFFSET_\w+)",                                  # Halo1Entry(name, OFFSET_X
+    r"PreservedEntry\(\s*\w+\s*,\s*[\w:]+\(\)\s*,\s*(OFFSET_\w+)",           # PreservedEntry(name, Set(), OFFSET_X
     r"::Entry\s+\w+\(\s*\w+\(\)\s*,\s*(OFFSET_\w+)",                         # ::Entry name(Set(), OFFSET_X
 ]
 GATED_LISTS = [

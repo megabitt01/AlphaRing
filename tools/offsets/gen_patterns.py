@@ -50,14 +50,18 @@ COVER = {
     "OFFSET_HALO2_PF_QUIT_TO_LOBBY_TEST": 9,
     "OFFSET_HALO4_PF_COOP_PLAYER_LIMIT": 6,
     "OFFSET_HALO4_PF_COOP_REJOIN": 2,
+    "OFFSET_HALO4_VIEWMODEL_ASPECT_DIVIDE": 4,
     "OFFSET_GROUNDHOG_PF_REJOIN": 2,
     "OFFSET_HALOREACH_PF_COOP_REJOIN": 2,
     "OFFSET_HALOREACH_PF_RENDER_THROTTLE_COUNT_CALL": 5,
 }
 
 # Mid-function hooks whose detours rewrite what the code before them set up: the pattern starts at least this many
-# bytes earlier (none yet). An offset right after a call - a return address - always takes the call as well.
-COVER_BEFORE = {}
+# bytes earlier (halo1/splitscreen.cpp ScopeGrid: rsp+0x40..0x48 and 0x64/xmm15). An offset right after a call - a
+# return address - always takes the call as well.
+COVER_BEFORE = {
+    "OFFSET_HALO1_SCOPE_GRID_SET": 0x45,
+}
 
 # Offsets with no binary here to pattern from.
 SKIP = {

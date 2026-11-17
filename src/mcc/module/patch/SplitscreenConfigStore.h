@@ -68,6 +68,19 @@ namespace AlphaRing::SplitscreenConfigStore {
     // CUI (half -> quarter variant) corrections both key on it.
     bool UsesFullHeightLeftRightSlot(int playerCount, int slot);
 
+    // One m_config_table entry. Halo 3, ODST and Halo 4 share Reach's table layout, so the
+    // Left/Right regions serve them too (mcc/splitscreen/LeftRight).
+    struct LayoutEntry {
+        float x0;
+        float y0;
+        float x1;
+        float y1;
+        __int32 resolution;
+    };
+
+    // The Left/Right region of a slot with 2 or 3 players.
+    const LayoutEntry& LeftRightRegion(int playerCount, int slot);
+
     // Incremented only when the published TwoPlayerLayout actually changes,
     // after the new geometry is in the table. Both layouts share res=3, so the
     // render-target pool cannot tell them apart by variant; this generation is

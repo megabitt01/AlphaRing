@@ -131,6 +131,7 @@ void CGameManager::set_state(CGameManager *self, eState state) {
     static std::atomic<int> s_last_state{-1};
     if (s_last_state.exchange((int)state) != (int)state)
         MATCH_LOG("set_state {} (caller {})", (int)state, AlphaRing::MatchLog::Describe(_ReturnAddress()));
+    track_state(state);
     return ppOriginal.set_state(self, state);
 }
 
@@ -237,6 +238,7 @@ static bool ShouldThrottleApply() {
 }
 
 void *CGameManager::game_restart(CGameManager *self, int type, const char *reason) {
+    end_session();
     AlphaRing::MatchLog::NewMatch();
     MATCH_LOG("game_restart enter: type={} reason=\"{}\" (caller {})", type, reason ? reason : "<null>",
               AlphaRing::MatchLog::Describe(_ReturnAddress()));

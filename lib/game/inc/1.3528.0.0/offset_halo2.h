@@ -4,6 +4,7 @@
 
 DefOffset(OFFSET_HALO2_PF_LOAD, 0x4F980)
 DefOffset(OFFSET_HALO2_PF_GAME, 0x67A220)
+DefOffset(OFFSET_HALO2_PF_COPY_GAME_OPTIONS, 0x39CE0) // copy_game_options(game_options)
 
 DefOffset(OFFSET_HALO2_PF_ADD_LOCAL_PLAYER, 0x69D2C0)//0x69D290
 
@@ -28,3 +29,12 @@ DefOffset(OFFSET_HALO2_PF_PLAYERS_UPDATE, 0x6A3910)
 DefOffset(OFFSET_HALO2_PF_COOP_CAMPAIGN, 0x6A6320) // bool () - a co-op campaign: session [0xE80A78] mode +8 == 1, byte +0x2C8
 DefOffset(OFFSET_HALO2_PF_COOP_RESPAWN_ALLOWED, 0x6A5D40) // bool () - not with the Iron skull (11), not on Legendary
 DefOffset(OFFSET_HALO2_PV_SCENARIO, 0xE6F768) // the loaded scenario*: int starting locations +0x100
+
+// Left/Right split screen (mcc/splitscreen/LeftRight)
+DefOffset(OFFSET_HALO2_PF_SPLIT_GRID, 0x7E09D0) // void (int views, int mode, short grid[2] columns, rows) - mode 1 stacks, others side by side
+DefOffset(OFFSET_HALO2_PF_SPLIT_CELL, 0x7E0BD0) // void (int view, int views, int mode, short grid[2], short cell[2], short span[2])
+DefOffset(OFFSET_HALO2_PF_SPLIT_DIVIDERS, 0x831D90) // void () - paints the black bands between the views, by the frame's mode
+DefOffset(OFFSET_HALO2_PV_SPLIT_MODE, 0x165C168) // int - the frame's grid mode, which only the dividers read
+DefOffset(OFFSET_HALO2_PV_SPLIT_VIEWS, 0x165C16C) // int - the frame's views
+DefOffset(OFFSET_HALO2_PV_ANNIVERSARY, 0xE21280) // int, nonzero while the Anniversary renderer is up
+DefOffset(OFFSET_HALO2_PV_CLASSIC_SHOWN, 0x1E8CE73) // bool, the player switched to Classic graphics

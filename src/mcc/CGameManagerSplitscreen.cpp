@@ -11,6 +11,8 @@
 using AlphaRing::MatchLog::Describe;
 using AlphaRing::MatchLog::FirstThisMatch;
 
+#include <atomic>
+
 void CGameManager::set_vibration(CGameManager *self, DWORD dwUserIndex, XINPUT_VIBRATION *pVibration) {
     CInputDevice* p_device;
     auto p_setting = AlphaRing::Global::MCC::Splitscreen();
@@ -29,6 +31,57 @@ void CGameManager::set_vibration(CGameManager *self, DWORD dwUserIndex, XINPUT_V
     AlphaRing::Input::SetState(p_device->input_user, pVibration);
 }
 
+// Halo 4 campaigns fail when a mission *starts* with players 3-4 (every view stays black),
+// yet the engine spawns late joiners next to a teammate, like a controller signing in
+// mid-game on the original console. So Halo 4 starts with two players and the rest are
+// revealed once the game has been running for a moment. (Halo CE and Halo 2 never pick up
+// late joiners, so they - like the other games - start with everyone.)
+static constexpr int kDeferredJoinStartPlayers = 2;
+static constexpr ULONGLONG kDeferredJoinDelayMs = 3000;
+static std::atomic<ULONGLONG> s_running_since; // 0 until the current session first runs
+
+void CGameManager::track_state(eState state) {
+    if (state == Running && !s_running_since) // also re-sent after level transitions
+        s_running_since = GetTickCount64();
+}
+
+// MCC ends every session with a restart after the exit states. The clock is cleared there,
+// not on the exit states: dropping players while the engine is still shutting down can hang
+// it, and the next session queries its players before its own loading state.
+void CGameManager::end_session() {
+    s_running_since = 0;
+}
+
+static int deferred_player_count(int count) {
+    if (count <= kDeferredJoinStartPlayers) return count;
+
+    auto p_global = GameGlobal();
+    if (p_global == nullptr) return count;
+
+    if (p_global->current_game != CGameGlobal::Halo4)
+        return count;
+
+    ULONGLONG since = s_running_since;
+    if (since && GetTickCount64() - since >= kDeferredJoinDelayMs)
+        return count;
+
+    return kDeferredJoinStartPlayers;
+}
+
+int CGameManager::active_player_count() {
+    static std::atomic<int> s_last_logged = -1;
+    int active = deferred_player_count(AlphaRing::Global::MCC::Splitscreen()->player_count);
+
+    if (active != s_last_logged) {
+        s_last_logged = active;
+        auto p_global = GameGlobal();
+        LOG_INFO("Splitscreen: exposing {} local players (game {}, in game {})",
+                 active, p_global ? (int)p_global->current_game : -1, MCC::IsInGame());
+    }
+
+    return active;
+}
+
 static bool get_xbox_user_id_inner(CGameManager *self, __int64 *pId, wchar_t *pName, int size, int index,
                                    const char** path) {
     auto p_setting = AlphaRing::Global::MCC::Splitscreen();
@@ -39,7 +92,7 @@ static bool get_xbox_user_id_inner(CGameManager *self, __int64 *pId, wchar_t *pN
         return CGameManager::ppOriginal.get_xbox_user_id(self, pId, pName, size, index);
     }
 
-    if (index >= p_setting->player_count) {
+    if (index >= CGameManager::active_player_count()) {
         *path = "beyond player_count";
         return false;
     }

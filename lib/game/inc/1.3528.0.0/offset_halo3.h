@@ -42,6 +42,20 @@ DefOffset(OFFSET_HALO3_PF_OBJECT_POST_CREATE, 0x1EA04) // (int object) - called 
 // c_splitscreen_config::m_config_table; the black-bar patches rewrite entries 8, 9 and 12 (0x8AE150, 0x8AE164, 0x8AE1A0)
 DefOffset(OFFSET_HALO3_PV_SPLITSCREEN_TABLE, 0x8AE0B0)//0x8AD0C0
 
+// Left/Right split screen and each view's title-safe box (mcc/splitscreen/LeftRight)
+DefOffset(OFFSET_HALO3_PV_SCREEN_SIZE, 0x8AC3E8) // int width, height the views are laid out on
+DefOffset(OFFSET_HALO3_PF_SPLITSCREEN_PLAYER_COUNT, 0x2E0928) // int ()
+DefOffset(OFFSET_HALO3_PF_DRAW_SPLITSCREEN_BARS, 0x2D8174) // void () - black bars and dividers
+DefOffset(OFFSET_HALO3_PF_FILL_RECT, 0x1890C4) // void (short rect[4] {top, left, bottom, right}, unsigned argb)
+DefOffset(OFFSET_HALO3_PF_RT_CREATE, 0x2757C8) // (target*, int sizes[], descriptor*, int variant) - one pool render target
+DefOffset(OFFSET_HALO3_PF_RT_POOL_RELEASE, 0x27613C) // void () - the resize path's teardown ...
+DefOffset(OFFSET_HALO3_PF_RT_POOL_INIT, 0x275BBC) // void () - ... and rebuild
+DefOffset(OFFSET_HALO3_PF_HUD_RESOLUTION, 0x2F1E38) // int (int user) - HUD layout of a view: 0 full, 1 half, 4 quarter (2, 5, 6 on 4:3)
+DefOffset(OFFSET_HALO3_PF_HUD_LAYOUT, 0x2ECF38) // record* (int user, int resolution) - +0x10 int canvas width, height; 0x64 bytes
+DefOffset(OFFSET_HALO3_PF_VIEW_SETUP, 0x282EC4) // void (view*, int slot, int players, int, int, void*) - a split-screen view's rect, title-safe box, projection
+DefOffset(OFFSET_HALO3_PF_TITLE_SAFE, 0x272010) // void (short rect[4] {top, left, bottom, right}) - the screen's title-safe box, 5% in from each edge
+DefOffset(OFFSET_HALO3_VIEW_SETUP_TITLE_SAFE_RETURN, 0x282F10) // where the view setup's call to it returns
+
 struct halo3_teb_data_definition {
     void* zero;
     void* actor;
