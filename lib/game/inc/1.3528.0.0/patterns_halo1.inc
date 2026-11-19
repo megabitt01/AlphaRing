@@ -208,4 +208,13 @@ const OffsetPatterns kHalo1Patterns[] = {
     {&OFFSET_HALO1_PV_HIDDEN_OBJECT_CAMERA, 0x1b87a20, Data, {
         Rel("40 88 35 ?? ?? ?? ?? 48 81 C3 F8 00 00 00 C6 05 ?? ?? ?? ?? 01 66 83 FF 04", 0x3, 0x7, 0x0),
         Rel("80 3D ?? ?? ?? ?? 00 74 ?? B8 02 00 00 00 66 39 05 ?? ?? 0D 01 75 ?? 44 39 0D", 0x2, 0x7, 0x0)}},
+    {&OFFSET_HALO1_PF_HUD_CALCULATE_POINT, 0xb56a58, Code, {
+        At("48 8B C4 48 89 58 18 48 89 70 20 55 57 41 55 41 56", 0x0),
+        Rel("E8 ?? ?? ?? ?? 0F B7 45 E2 66 89 45 D2 0F B7 C3 66 03 45 4A", 0x1, 0x5, 0x0)}},
+    {&OFFSET_HALO1_PV_HUD_VIEWPORT_BOUNDS, 0x29af2f0, Data, {
+        Rel("0F BF 05 ?? ?? ?? ?? F3 0F 59 D7 0F 5B C0 66 0F 6E C8 0F 5B C9", 0x3, 0x7, 0x0),
+        Rel("44 0F B7 35 ?? ?? ?? ?? 41 0F B7 F4 8A 84 04 D8 00 00 00 FE C8", 0x4, 0x8, 0x0)}},
+    {&OFFSET_HALO1_PV_HUD_DRAWING_PLAYER, 0x29af2b8, Data, {
+        Rel("0F B7 35 ?? ?? ?? ?? B8 03 00 00 00 66 B9 04 00 66 3B F8 75", 0x3, 0x7, 0x0),
+        Rel("0F BF 0D ?? ?? ?? ?? 89 4D 67 48 8B C8 48 C1 E9 10 48 89 45 6F", 0x3, 0x7, 0x0)}},
 };

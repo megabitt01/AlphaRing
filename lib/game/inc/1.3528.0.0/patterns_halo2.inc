@@ -153,4 +153,18 @@ const OffsetPatterns kHalo2Patterns[] = {
     {&OFFSET_HALO2_PF_SABER_OBJECT_HIDE, 0x69ca0, Code, {
         At("4C 8B C1 48 85 C9 74 58 44 8B 49 0C 41 F6 C1 01 74", 0x0),
         Rel("E8 ?? ?? ?? ?? 45 84 E4 0F 84 ?? ?? ?? ?? 48 8B 43 08 48 85 C0 74 ?? 48 8B 00", 0x1, 0x5, 0x0)}},
+    {&OFFSET_HALO2_PF_HUD_ASPECT_LOCK, 0x954df2, Code, {
+        At("74 3C F3 0F 10 15 ?? ?? ?? ?? 66 0F 6E CF 66 0F 6E C3 0F 5B C9", 0x0)}},
+    {&OFFSET_HALO2_PV_HUD_ASPECT_LOCK, 0x197ee40, Data, {
+        Rel("88 05 ?? ?? ?? ?? 48 8B 01 FF 50 60 8B 54 24 54 8B 4C 24 50", 0x2, 0x6, 0x0),
+        Rel("38 15 ?? ?? ?? ?? 44 0F B7 C2 74 ?? F3 0F 10 15 ?? ?? ?? ?? 66 0F 6E CF 66 0F 6E C3", 0x2, 0x6, 0x0)}},
+    {&OFFSET_HALO2_PV_HUD_DRAWING_PLAYER, 0x165c398, Data, {
+        Rel("8B 0D ?? ?? ?? ?? F3 0F 59 C6 F3 0F 11 44 24 50 F2 0F 10 00", 0x2, 0x6, 0x0),
+        Rel("48 63 35 ?? ?? ?? ?? 8B CE 48 89 7C 24 60 0F 29 74 24 50 E8", 0x3, 0x7, 0x0)}},
+    {&OFFSET_HALO2_PV_HUD_VIEW_BOUNDS, 0x165c298, Data, {
+        Rel("66 41 F7 D8 48 8B 05 ?? ?? ?? ?? 66 F7 DA 48 89 44 24 50 E8", 0x7, 0xb, 0x0),
+        Rel("0F BF 15 ?? ?? ?? ?? 41 8B F0 45 8B E1 44 8B DA 41 8B FA 66 0F 6E C8", 0x3, 0x7, 0x0)}},
+    {&OFFSET_HALO2_PV_HUD_UNIT_SCALE, 0xe14f28, Data, {
+        Rel("F3 0F 11 0D ?? ?? ?? ?? 4C 8D 9C 24 A0 04 00 00 49 8B 73 18", 0x4, 0x8, 0x0),
+        Rel("0F 5B C0 F3 0F 59 05 ?? ?? ?? ?? F3 0F 2C C0 48 83 C4 28 C3", 0x7, 0xb, 0x0)}},
 };

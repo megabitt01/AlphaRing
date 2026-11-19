@@ -82,3 +82,7 @@ DefOffset(OFFSET_HALO1_PV_FIRST_PERSON_MODELS, 0x2B050E8) // the renderer's firs
 DefOffset(OFFSET_HALO1_PF_OBJECT_HIDDEN_VIEWS, 0xAB2890) // int (int object) - views (bits 0, 1) the object is hidden in
 DefOffset(OFFSET_HALO1_PF_DIRECTOR_CAMERA_MODE, 0xB14EA4) // short (int local) - 0 in first person
 DefOffset(OFFSET_HALO1_PV_HIDDEN_OBJECT_CAMERA, 0x1B87A20) // bool on, int16 mode at +2 (2 hides), int object at +0x34
+// Per-player HUD (mcc/hud, module/entry/halo1/hud.cpp)
+DefOffset(OFFSET_HALO1_PF_HUD_CALCULATE_POINT, 0xB56A58) // (player, placement, header, -, bool, float, short2* out, int mcc element)
+DefOffset(OFFSET_HALO1_PV_HUD_VIEWPORT_BOUNDS, 0x29AF2F0) // int16 top, left, bottom, right of the view being drawn
+DefOffset(OFFSET_HALO1_PV_HUD_DRAWING_PLAYER, 0x29AF2B8) // int16 local player whose HUD is being drawn

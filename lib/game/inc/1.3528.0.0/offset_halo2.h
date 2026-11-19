@@ -81,3 +81,10 @@ DefOffset(OFFSET_HALO2_PV_FIRST_PERSON_MODELS, 0x1AB11C0) // entries*, int count
 DefOffset(OFFSET_HALO2_PV_MODEL_LEVELS, 0x1DC36F0) // unsigned char* detail levels, int count at +8 - the current one is the last
 DefOffset(OFFSET_HALO2_PF_SABER_OBJECT_SHOW, 0x69C30) // void (object*)
 DefOffset(OFFSET_HALO2_PF_SABER_OBJECT_HIDE, 0x69CA0) // void (object*)
+// Per-player HUD (mcc/hud). With "HUD anchor: Centered" on a screen wider than 16:9, 0x954DD0 insets the whole-screen
+// HUD frame to a centred 16:9 box, which 0x7E0A40 splits among the players.
+DefOffset(OFFSET_HALO2_PF_HUD_ASPECT_LOCK, 0x954DF2) // je (74 3C) that skips the centred 16:9 HUD frame when the profile's aspect lock is off
+DefOffset(OFFSET_HALO2_PV_HUD_ASPECT_LOCK, 0x197EE40) // bool: the profiles' LockMaxAspectRatio ("HUD anchor: Centered"), the last loaded wins
+DefOffset(OFFSET_HALO2_PV_HUD_DRAWING_PLAYER, 0x165C398) // int local player whose HUD is being drawn
+DefOffset(OFFSET_HALO2_PV_HUD_VIEW_BOUNDS, 0x165C298) // int16 top, left, bottom, right of that player's HUD (window bounds)
+DefOffset(OFFSET_HALO2_PV_HUD_UNIT_SCALE, 0xE14F28) // float: pixels per HUD offset unit (times the element's scale)
