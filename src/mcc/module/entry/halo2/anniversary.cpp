@@ -591,16 +591,22 @@ namespace Halo2::Entry::Anniversary {
         // Two players: the game's quad leaves the screen black under Proton (megabitt01/AlphaRing#23), and the D3D11
         // composite clip that fixed it (render/d3d11/Hook.cpp) draws each image into half of its half - the quad
         // already places the image, and the clip's viewport shrinks it again. So each view is drawn into its half by
-        // our shaders, and the game's quad (and with it the clip, which only takes DrawIndexed) isn't drawn.
+        // our shaders, and the game's quad (and with it the clip, which only takes DrawIndexed) isn't drawn. Until our
+        // shaders are made for the device, the game's quad runs under the clip as before.
         if (split && index >= 0 && index <= 1 && !s_frame_quad && Players(module) == 2) {
+            // No image: the game's composite returns at once and binds nothing, so t0 wouldn't be this view's.
+            if (texture == nullptr) return original(texture, split, index);
             auto context = Context(module);
-            ID3D11ShaderResourceView* image = CollapsedImage(context, texture, split, index);
             ID3D11Device* device = nullptr;
             context->GetDevice(&device);
-            if (image != nullptr && device != nullptr && s_drawer.Ready(device))
-                DrawCell(context, image, PlayerCell(module, index, 2, true));
+            bool ready = device != nullptr && s_drawer.Ready(device);
             if (device != nullptr) device->Release();
-            if (image != nullptr) image->Release();
+            if (!ready) return original(texture, split, index);
+            ID3D11ShaderResourceView* image = CollapsedImage(context, texture, split, index);
+            if (image != nullptr) {
+                DrawCell(context, image, PlayerCell(module, index, 2, true));
+                image->Release();
+            }
             return;
         }
         if (!s_frame_quad || !split || index < 0 || index > 1) return original(texture, split, index);
@@ -609,6 +615,12 @@ namespace Halo2::Entry::Anniversary {
         Cell cell = PlayerCell(module, player, s_frame_players, true);
         auto context = Context(module);
         ID3D11ShaderResourceView* image = CollapsedImage(context, texture, split, index);
+        // No image: the game's composite bound nothing, so t0 isn't this view's. The frame's target is still prepared
+        // below; the cell isn't drawn or marked, so the player's kept picture is put back after the views.
+        if (texture == nullptr && image != nullptr) {
+            image->Release();
+            image = nullptr;
+        }
         ID3D11RenderTargetView* screen = nullptr;
         context->OMGetRenderTargets(1, &screen, nullptr);
         if (s_target == nullptr && screen != nullptr) s_target_ready = PrepareTarget(context, screen);
