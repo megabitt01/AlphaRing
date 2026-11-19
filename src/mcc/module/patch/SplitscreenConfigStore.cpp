@@ -27,6 +27,8 @@ namespace {
     std::atomic<AlphaRing::SplitscreenConfigStore::TwoPlayerLayout> g_twoPlayerLayout{
             AlphaRing::SplitscreenConfigStore::TwoPlayerLayout::TopBottom};
     std::atomic<unsigned> g_layoutGeneration{0};
+    std::atomic<bool> g_anniversaryQuad{false};
+    constexpr const char* ANNIVERSARY_QUAD_KEY = "anniversary_quad";
 
     // Publishes the layout and bumps the generation only on an actual change,
     // so re-selecting the current layout never triggers a render-target rebuild.
@@ -267,6 +269,8 @@ namespace AlphaRing::SplitscreenConfigStore {
         }
 
         g_twoPlayerLayout.store(layout, std::memory_order_release);
+        auto quad = g_states.find(MakeKey(-1, ANNIVERSARY_QUAD_KEY));
+        g_anniversaryQuad.store(quad != g_states.end() && quad->second != 0.0f, std::memory_order_release);
         RebuildWrites();
         if (migrated) WriteFile();
 
@@ -289,6 +293,15 @@ namespace AlphaRing::SplitscreenConfigStore {
 
     TwoPlayerLayout GetTwoPlayerLayout() {
         return g_twoPlayerLayout.load(std::memory_order_acquire);
+    }
+
+    bool GetAnniversaryQuad() {
+        return g_anniversaryQuad.load(std::memory_order_acquire);
+    }
+
+    void SetAnniversaryQuad(bool on) {
+        Set(-1, ANNIVERSARY_QUAD_KEY, on ? 1.0f : 0.0f);
+        g_anniversaryQuad.store(on, std::memory_order_release);
     }
 
     bool LeftRightAvailable() {

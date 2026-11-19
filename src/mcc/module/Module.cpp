@@ -12,6 +12,7 @@
 #include "mcc/module/patch/PatchConfig.h"
 #include "mcc/module/patch/SplitscreenConfigStore.h"
 #include "mcc/splitscreen/LeftRight.h"
+#include "mcc/splitscreen/Splitscreen.h"
 #include "global/Global.h"
 #include "log/DebugFlags.h"
 
@@ -243,6 +244,14 @@ namespace MCC::Module {
             MCC::Splitscreen::LeftRight::Choose(layout_index == 1);
         if (ImGui::IsItemHovered())
             ImGui::SetTooltip("Everyone's layout, in every game. Left / Right: 2 players get equal full-height halves; 3 players put player 1 on the full left half and players 2/3 on the right half. 1 and 4 players always use the game's own layout. Halo 3, ODST, Halo 4 and Reach switch at once; Halo CE and Halo 2 at the next mission start, in Classic graphics.");
+
+        // Everyone's choice for Halo CE and Halo 2 with 3-4 players (mcc/splitscreen/Splitscreen.h),
+        // saved in alpha_ring_splitscreen.cfg as the layout is.
+        bool anniversary = MCC::Splitscreen::AnniversaryQuadChosen();
+        if (ImGui::Checkbox("Anniversary graphics with 3-4 players (Halo CE, Halo 2; experimental)", &anniversary))
+            MCC::Splitscreen::ChooseAnniversaryQuad(anniversary);
+        if (ImGui::IsItemHovered())
+            ImGui::SetTooltip("Off: Halo CE and Halo 2 missions with 3 or 4 players start in Classic graphics, as their Anniversary renderers only draw two views. On: they keep Anniversary graphics (when MCC is set to them) and draw every view, also after Back switches graphics in the middle of a mission; side by side still starts in Classic. The renderers still draw two views at a time, so they alternate: players 1 and 2 on one frame, 3 and 4 on the next (each view updates at half the frame rate). Takes effect at the next mission start.");
 
         if (!ImGui::BeginTabBar("patch")) return;
 

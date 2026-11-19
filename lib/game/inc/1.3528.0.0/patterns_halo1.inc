@@ -41,4 +41,171 @@ const OffsetPatterns kHalo1Patterns[] = {
     {&OFFSET_HALO1_PV_ANNIVERSARY_SHOWN, 0x1b7aa84, Data, {
         Rel("83 3D ?? ?? ?? ?? 00 0F 94 40 D8 C7 40 DC 01 00 00 00 48 8D 0D", 0x2, 0x7, 0x0),
         Rel("83 3D ?? ?? ?? ?? 00 74 ?? 48 85 C9 74 ?? 83 B9 28 02 00 00 00 75", 0x2, 0x7, 0x0)}},
+    {&OFFSET_HALO1_PV_LOCAL_PLAYERS, 0x2ea2d90, Data, {
+        Rel("48 8B 05 ?? ?? ?? ?? 0F 57 C0 0F 57 C9 0F B7 88 B4 00 00 00", 0x3, 0x7, 0x0),
+        Rel("48 8B 05 ?? ?? ?? ?? 48 63 C9 8B 8C 88 C8 00 00 00 83 F9 FF", 0x3, 0x7, 0x0)}},
+    {&OFFSET_HALO1_PV_RENDER_WINDOWS, 0x2d9cadc, Data, {
+        Rel("48 8D 0D ?? ?? ?? ?? F3 0F 11 25 ?? ?? ?? ?? E8 ?? ?? ?? ?? 0F B7 87 B4 00 00 00 BE 01 00 00 00", 0x3, 0x7, 0x0)}},
+    {&OFFSET_HALO1_PV_RENDER_CAMERAS, 0x2d9bdd4, Data, {
+        Rel("48 0F BF C6 48 69 E8 A8 02 00 00 48 8D 05 ?? ?? ?? ?? 48 03 E8", 0xe, 0x12, 0x0),
+        Rel("48 0F BF C1 48 8D 0D ?? ?? ?? ?? 48 69 C0 A8 02 00 00 48 03 C1", 0x7, 0xb, 0x0)}},
+    {&OFFSET_HALO1_PV_WINDOW_FIELDS_OF_VIEW, 0x1b7d6e8, Data, {
+        Rel("4C 8D 35 ?? ?? ?? ?? 41 C7 04 B6 00 00 A0 42 41 3B C8 75 ?? 88 53 02", 0x3, 0x7, 0x0),
+        Rel("F3 0F 11 05 ?? ?? ?? ?? 4C 8D 05 ?? ?? ?? ?? 66 89 2D ?? ?? D1 02 8B D6 40 88 35", 0x4, 0x8, 0x0)}},
+    {&OFFSET_HALO1_PF_RENDER_WINDOW_CAMERA, 0xac450c, Code, {
+        At("48 8B C4 48 89 58 08 48 89 70 10 48 89 78 18 4C 89 70 20 55 48 8D 68 A1 48 81 EC 90 00 00 00 48 8B FA", 0x0),
+        Rel("E8 ?? ?? ?? ?? 0F B7 87 B4 00 00 00 BE 01 00 00 00 66 3B C6", 0x1, 0x5, 0x0)}},
+    {&OFFSET_HALO1_PF_SABER_HAND_OVER_VIEWS, 0x89b70, Code, {
+        At("48 89 5C 24 10 48 89 6C 24 18 48 89 74 24 20 57 48 83 EC 20 48 8B 3D ?? ?? ?? ?? 33 DB", 0x0),
+        Rel("E8 ?? ?? ?? ?? E8 ?? ?? ?? ?? 48 8B 5C 24 50 48 8B 6C 24 58 48 8B 74 24 60", 0x6, 0xa, 0x0)}},
+    {&OFFSET_HALO1_PF_SABER_HAND_OVER_VIEW, 0xb29268, Code, {
+        At("48 89 5C 24 08 55 48 8B EC 48 83 EC 60 80 3D ?? ?? ?? ?? 00", 0x0),
+        Rel("B9 01 00 00 00 66 39 88 B4 00 00 00 7E ?? E8 ?? ?? ?? ?? 48 83 C4 28", 0xf, 0x13, 0x0)}},
+    {&OFFSET_HALO1_PV_SABER_CAMERAS, 0x2b17b90, Data, {
+        Rel("48 8B 0D ?? ?? ?? ?? 0F 1F 00 83 C0 FE 4C 63 C0 49 C1 E0 03", 0x3, 0x7, 0x0),
+        Rel("48 8B 05 ?? ?? ?? ?? 48 8B 30 F3 0F 10 44 24 30 F3 0F 11 46 30", 0x3, 0x7, 0x0)}},
+    {&OFFSET_HALO1_PF_SABER_ADD_CAMERA, 0x4684c0, Code, {
+        At("48 89 5C 24 08 48 89 74 24 10 57 48 81 EC C0 00 00 00 E8 ?? ?? ?? ?? 48 8B C8 48 8B D8 FF 15 ?? ?? ?? ?? 8B 4B 30 33 F6 FF C1 89 4B 30 33 C0 F0 0F B1 35 ?? ?? ?? ?? 83 F8 10 75 ?? 8B D0 41 B8 98 03 00 00", 0x0),
+        Rel("E8 ?? ?? ?? ?? 85 C0 40 0F 94 C6 8B C6 48 83 C4 58 5F 5E 5D", 0x1, 0x5, 0x0)}},
+    {&OFFSET_HALO1_PF_SABER_DELETE_CAMERA, 0x2b1ea0, Code, {
+        Rel("E8 ?? ?? ?? ?? 4C 89 B3 20 28 00 00 48 8B 5C 24 50 48 8B 6C 24 58", 0x1, 0x5, 0x0),
+        Rel("E8 ?? ?? ?? ?? 8B 15 ?? ?? ?? ?? 48 8B 05 ?? ?? ?? ?? 2B D3 48 8D 0C 07 FF CA 4C 63 C2", 0x1, 0x5, 0x0)}},
+    {&OFFSET_HALO1_PF_SABER_CAMERA_SET_FOV, 0x11b020, Code, {
+        At("40 53 48 83 EC 20 F3 0F 11 89 4C 01 00 00 48 8B D9", 0x0),
+        Rel("E8 ?? ?? ?? ?? F3 0F 10 8C 24 F8 00 00 00 44 0F 28 7C 24 20", 0x1, 0x5, 0x0)}},
+    {&OFFSET_HALO1_PV_SABER_SPLIT, 0x2e3b821, Data, {
+        Rel("C6 05 ?? ?? ?? ?? 00 48 8B 5C 24 50 48 8B 6C 24 60 48 8B 74 24 68", 0x2, 0x7, 0x0),
+        Rel("0F 9F 05 ?? ?? ?? ?? 48 8B 4C 24 60 48 83 C1 38 E8 ?? ?? ?? ?? 48 8B 8D 40 11 00 00", 0x3, 0x7, 0x0)}},
+    {&OFFSET_HALO1_PF_SABER_SET_SPLIT, 0x4150f0, Code, {
+        At("40 53 48 83 EC 30 48 C7 44 24 20 FE FF FF FF 0F B6 1D", 0x0),
+        Rel("E8 ?? ?? ?? ?? 49 8D 4D 38 E8 ?? ?? ?? ?? 90 49 8B 0C 24 83 29 01 75 ?? E8", 0x1, 0x5, 0x0)}},
+    {&OFFSET_HALO1_PF_SABER_SPLIT_LAYOUT, 0x415200, Code, {
+        At("48 89 5C 24 08 48 89 6C 24 10 48 89 74 24 18 57 48 83 EC 40 48 8B 05 ?? ?? ?? ?? 0F 29 74 24 30", 0x0),
+        Rel("0F B6 D3 E8 ?? ?? ?? ?? 8B 0D ?? ?? ?? ?? 65 48 8B 04 25 58 00 00 00 BA 80 00 00 00", 0x4, 0x8, 0x0)}},
+    {&OFFSET_HALO1_PV_SABER_SPLIT_STATE, 0x2e3cca8, Data, {
+        Rel("C7 87 80 00 00 00 00 00 80 3F 48 8B 0D ?? ?? ?? ?? 8B 41 18", 0xd, 0x11, 0x0),
+        Rel("48 8B 2D ?? ?? ?? ?? 48 89 78 18 41 8B FD 4C 89 78 D8 44 8B 3D", 0x3, 0x7, 0x0)}},
+    {&OFFSET_HALO1_PV_SABER_DEVICE, 0x2e3bdd8, Data, {
+        Rel("48 8B 05 ?? ?? ?? ?? 48 8B 88 18 01 00 00 8B 51 2C 8B 41 28", 0x3, 0x7, 0x0),
+        Rel("48 8B 0D ?? ?? ?? ?? 48 8D 54 24 30 66 0F 7F 44 24 20 48 8B 01", 0x3, 0x7, 0x0)}},
+    {&OFFSET_HALO1_PV_SABER_CONTEXT, 0x2e3bde0, Data, {
+        Rel("48 8B 01 44 8B C2 48 8B 15 ?? ?? ?? ?? 48 FF A0 D8 00 00 00", 0x9, 0xd, 0x0),
+        Rel("48 8B 01 44 8B C2 48 8B 15 ?? ?? ?? ?? 48 FF A0 E8 00 00 00", 0x9, 0xd, 0x0)}},
+    {&OFFSET_HALO1_PV_SABER_RENDERER, 0x1c33e30, Data, {
+        Rel("48 8B 05 ?? ?? ?? ?? C6 80 91 00 00 00 01 48 8D 85 B0 00 00 00", 0x3, 0x7, 0x0),
+        Rel("48 8B 05 ?? ?? ?? ?? 48 8D 0C C9 48 8D 04 C8 48 05 18 05 00 00", 0x3, 0x7, 0x0)}},
+    {&OFFSET_HALO1_PV_SABER_SCENE, 0x1bea9e0, Data, {
+        Rel("48 8B 05 ?? ?? ?? ?? 8B 88 9C 00 00 00 C1 E9 08 F6 C1 01 75", 0x3, 0x7, 0x0),
+        Rel("C7 85 2C 02 00 00 00 00 80 3F 48 8B 0D ?? ?? ?? ?? 48 8B 01", 0xd, 0x11, 0x0)}},
+    {&OFFSET_HALO1_PF_SABER_PREPARE_FRAME, 0x455170, Code, {
+        At("4C 8B DC 53 56 41 56 48 81 EC 90 00 00 00 48 8B 05", 0x0)}},
+    {&OFFSET_HALO1_PF_SABER_BUILD_CAMERA_LIST, 0x4547e0, Code, {
+        At("48 8B C4 48 89 58 08 48 89 68 10 48 89 70 18 57 41 54 41 55 41 56 41 57 48 81 EC D0 00 00 00 8B 0D", 0x0),
+        Rel("E8 ?? ?? ?? ?? 48 8B 15 ?? ?? ?? ?? 83 BA 94 BE 00 00 01 4C 8D 82 E8 04 00 00", 0x1, 0x5, 0x0)}},
+    {&OFFSET_HALO1_PF_SABER_LIST_CAMERA, 0x2ea720, Code, {
+        At("48 8B C4 48 89 58 18 55 56 57 41 54 41 55 41 56 41 57 48 8D A8 78 FC FF FF", 0x0),
+        Rel("F3 44 0F 11 44 24 20 E8 ?? ?? ?? ?? 4C 8D 9C 24 D0 00 00 00", 0x8, 0xc, 0x0)}},
+    {&OFFSET_HALO1_PV_SABER_ZOOMED_FOV, 0x1944b70, Data, {
+        Rel("F3 0F 10 05 ?? ?? ?? ?? F3 0F 11 44 24 28 41 B9 68 05 00 00", 0x4, 0x8, 0x0),
+        Rel("F3 0F 10 0D ?? ?? ?? ?? F3 0F 11 4D F8 44 89 65 FC 45 8B FC", 0x4, 0x8, 0x0)}},
+    {&OFFSET_HALO1_PF_SABER_RENDER_FRAME, 0x455a10, Code, {
+        At("48 8B C4 55 41 54 41 55 41 56 41 57 48 8D A8 88 F3 FF FF", 0x0),
+        Rel("E8 ?? ?? ?? ?? 41 83 BE 88 00 00 00 00 74 ?? E8 ?? ?? ?? ?? 41 83 7E 70 00", 0x1, 0x5, 0x0)}},
+    {&OFFSET_HALO1_PF_SABER_COMPOSITE, 0x45e2b0, Code, {
+        At("48 89 5C 24 08 48 89 74 24 10 57 48 83 EC 60 80 3D ?? ?? ?? ?? 00", 0x0),
+        Rel("E8 ?? ?? ?? ?? 41 FF C6 48 8B 05 ?? ?? ?? ?? 8B 88 38 02 00 00 8B C6 85 C9", 0x1, 0x5, 0x0)}},
+    {&OFFSET_HALO1_PV_SABER_VIEW_IMAGES, 0x2d62890, Data, {
+        Rel("48 8D 3D ?? ?? ?? ?? 4C 8B 24 CF 33 F6 89 74 24 20 44 8B CE", 0x3, 0x7, 0x0),
+        Rel("48 8D 3D ?? ?? ?? ?? 48 8B 3C CF 0F 57 C0 F3 0F 7F 44 24 50", 0x3, 0x7, 0x0)}},
+    {&OFFSET_HALO1_PV_SABER_VIEW_IMAGE_INDEX, 0x1b7b11c, Data, {
+        Rel("48 8B 7C 24 68 89 1D ?? ?? ?? ?? 48 8B 5C 24 50 48 83 C4 40", 0x7, 0xb, 0x0),
+        Rel("48 8B 74 24 78 C7 05 ?? ?? ?? ?? FF FF FF FF 48 83 C4 60 5F", 0x7, 0xf, 0x0)}},
+    {&OFFSET_HALO1_PV_SABER_SCREEN_IMAGE, 0x2e3d0d0, Data, {
+        Rel("42 89 6C 01 1C EB ?? 48 8B 0D ?? ?? ?? ?? 40 32 FF 48 85 C9 74", 0xa, 0xe, 0x0),
+        Rel("48 8B 05 ?? ?? ?? ?? 48 85 C0 48 0F 45 C8 48 89 0D ?? ?? ?? ?? 4C 8D 05", 0x3, 0x7, 0x0)}},
+    {&OFFSET_HALO1_PF_SABER_TEXTURE_CREATE_CHILD, 0x1f9d20, Code, {
+        At("48 89 5C 24 10 48 89 6C 24 18 48 89 74 24 20 57 48 83 EC 40 8B 99 88 00 00 00", 0x0),
+        Rel("E8 ?? ?? ?? ?? 4C 8B E8 48 8D 84 24 90 00 00 00 48 3B F8 74", 0x1, 0x5, 0x0)}},
+    {&OFFSET_HALO1_PF_SABER_DELETE_TEXTURE, 0x1f6bf0, Code, {
+        At("48 89 5C 24 10 56 57 41 56 48 83 EC 20 48 63 C2", 0x0),
+        Rel("E8 ?? ?? ?? ?? 81 A3 28 01 00 00 FF FF FF DF 48 83 C4 20 5B", 0x1, 0x5, 0x0)}},
+    {&OFFSET_HALO1_PF_SABER_CLASSIC_HUD, 0x740b0, Code, {
+        At("48 8B C4 57 48 81 EC A0 00 00 00 48 C7 40 98 FE FF FF FF", 0x0),
+        Rel("48 8D 05 ?? ?? ?? ?? 48 89 05 ?? ?? ?? ?? 48 8D 05 ?? ?? ?? ?? 48 89 05 ?? ?? ?? ?? 4C 89 6D 90", 0x3, 0x7, 0x0)}},
+    {&OFFSET_HALO1_PF_HUD_VIEW, 0xb29438, Code, {
+        At("48 89 5C 24 08 57 48 83 EC 30 48 63 D9 33 D2 48 8D 0D", 0x0),
+        Rel("80 78 0A 00 74 ?? B9 FF FF FF FF E8 ?? ?? ?? ?? B9 FF FF FF FF", 0xc, 0x10, 0x0)}},
+    {&OFFSET_HALO1_PF_HUD_VIEW_DRAW, 0xbabd38, Code, {
+        At("48 8B C4 48 89 58 08 48 89 68 10 48 89 70 18 57 48 83 EC 40 80 3D ?? ?? ?? ?? 00", 0x0),
+        Rel("48 8D 95 60 01 00 00 41 0F B7 CF E8 ?? ?? ?? ?? 48 8D 4C 24 20", 0xc, 0x10, 0x0)}},
+    {&OFFSET_HALO1_PV_HUD_VIEW_DRAW_STATE, 0x29e07c0, Data, {
+        Rel("0F BF 0D ?? ?? ?? ?? BE 02 00 00 00 44 8D 76 0D 41 2B CF 0F 84", 0x3, 0x7, 0x0),
+        Rel("B9 01 00 00 00 E8 ?? ?? ?? ?? B9 01 00 00 00 48 8D 15 ?? ?? ?? ?? E8 ?? ?? ?? ?? E8", 0x12, 0x16, 0x0)}},
+    {&OFFSET_HALO1_PF_HUD_VIEW_DRAW_2, 0xb31d88, Code, {
+        At("48 8B C4 48 89 58 08 48 89 70 10 48 89 78 18 55 41 56 41 57 48 8D 68 A1 48 81 EC C0 00 00 00", 0x0),
+        Rel("B9 01 00 00 00 E8 ?? ?? ?? ?? B9 01 00 00 00 48 8D 15 ?? ?? ?? ?? E8 ?? ?? ?? ?? E8 ?? ?? ?? ??", 0x1c, 0x20, 0x0)}},
+    {&OFFSET_HALO1_PF_HUD_VIEW_DRAW_3, 0xac8844, Code, {
+        At("48 8B C4 48 89 58 08 48 89 70 10 48 89 78 18 4C 89 60 20 55 41 56 41 57 48 8D 68 D8 48 81 EC 10 01 00 00 0F 29 70 D8", 0x0),
+        Rel("E8 ?? ?? ?? ?? 48 8B 0D ?? ?? ?? ?? 48 8B 01 4C 8B 90 20 01 00 00 48 8B 05", 0x1, 0x5, 0x0)}},
+    {&OFFSET_HALO1_PV_HUD_VIEW_DRAW_3_SKIP_1, 0x2ea0218, Data, {
+        Rel("0F 94 C0 89 05 ?? ?? ?? ?? 48 8B 0F BB FF FF FF FF 48 85 C9", 0x5, 0x9, 0x0),
+        Rel("48 8B F9 39 1D ?? ?? ?? ?? 74 ?? 38 1D ?? ?? ?? ?? 75 ?? E8 ?? ?? ?? ?? 48 8B F8 48 85 FF", 0x5, 0x9, 0x0)}},
+    {&OFFSET_HALO1_PV_HUD_VIEW_DRAW_3_SKIP_2, 0x2e3b450, Data, {
+        Rel("88 05 ?? ?? ?? ?? F6 C1 10 0F 84 ?? ?? ?? ?? 48 8B 05 ?? ?? ?? ?? 48 89 84 24 88 00 00 00", 0x2, 0x6, 0x0),
+        Rel("74 ?? 80 3D ?? ?? ?? ?? 00 75 ?? E8 ?? ?? ?? ?? 83 FB 01 7E ?? 48 8B 0D ?? ?? ?? ?? 48 8B 01", 0x4, 0x9, 0x0)}},
+    {&OFFSET_HALO1_PF_SABER_VIEW_OVERLAY, 0x4512d0, Code, {
+        At("48 89 5C 24 08 55 48 8D 6C 24 A9 48 81 EC 90 00 00 00", 0x0),
+        Rel("E8 ?? ?? ?? ?? 48 8B 15 ?? ?? ?? ?? FF C3 48 81 C7 C8 03 00 00 3B 9A B8 00 00 00", 0x1, 0x5, 0x0)}},
+    {&OFFSET_HALO1_SABER_VIEW_OVERLAY_RECT, 0x4513ac, Code, {
+        At("F3 44 0F 2C D8 F3 44 0F 2C D2 41 FF CB 41 FF C2 EB ?? F3 0F 59 C3 F3 0F 5C D8 F3 44 0F 2C C8 F3 0F 2C C3 41 FF C9 FF C0 C7 05 ?? ?? ?? ?? 00 00 00 00 48 63 93 20 02 00 00 48 8B 0D", 0x32)}},
+    {&OFFSET_HALO1_PF_SABER_SYNC, 0x89f00, Code, {
+        At("48 8B C4 55 41 54 41 55 41 56 41 57 48 8D A8 08 FF FF FF 48 81 EC D0 01 00 00 48 C7 45 70 FE FF FF FF", 0x0),
+        Rel("E8 ?? ?? ?? ?? 48 8B 05 ?? ?? ?? ?? 48 85 C0 74 ?? 80 38 00 74 ?? 0F BF 40 10", 0x1, 0x5, 0x0)}},
+    {&OFFSET_HALO1_PF_SABER_SYNC_OBJECT, 0x7d350, Code, {
+        At("48 8B C4 55 41 54 41 55 41 56 41 57 48 8D A8 28 FE FF FF 48 81 EC B0 02 00 00 48 C7 85 F0 00 00 00 FE FF FF FF", 0x0),
+        Rel("48 C1 E1 05 48 03 C8 E8 ?? ?? ?? ?? FF C3 3B 1D ?? ?? ?? ?? 7C ?? 48 83 C4 20", 0x8, 0xc, 0x0)}},
+    {&OFFSET_HALO1_PV_RENDER_OBJECTS, 0x29e0900, Data, {
+        Rel("48 8B 05 ?? ?? ?? ?? 4D 8B F9 0F B7 C9 49 8B F0 4C 6B D1 7C", 0x3, 0x7, 0x0),
+        Rel("4C 8B 35 ?? ?? ?? ?? 44 8B E1 49 8B CE 49 8B F1 41 0F B7 E8", 0x3, 0x7, 0x0)}},
+    {&OFFSET_HALO1_PV_DIRECTORS, 0x2d9b960, Data, {
+        Rel("F3 0F 59 15 ?? ?? ?? ?? F3 0F 59 D5 F3 0F 5C C2 F3 0F 11 01", 0x4, 0x8, 0x0),
+        Rel("4C 8D 15 ?? ?? ?? ?? 33 C9 40 84 FF 75 ?? 66 46 39 4C 13 5A 74", 0x3, 0x7, 0x0)}},
+    {&OFFSET_HALO1_PF_FIRST_PERSON_DIRECTOR, 0xc5263c, Code, {
+        At("4C 8B DC 49 89 5B 08 49 89 6B 10 49 89 73 18 57 48 83 EC 30 48 0F BF 02", 0x0),
+        Rel("48 8D 05 ?? ?? ?? ?? 4A 39 44 31 10 75 ?? 46 0F 2F 54 31 0C 72", 0x3, 0x7, 0x0)}},
+    {&OFFSET_HALO1_PF_LOCAL_PLAYER_UNIT_FLAG, 0xab16a4, Code, {
+        At("48 83 EC 28 83 F9 FF 74 52 48 8B 05 ?? ?? ?? ?? 48 63 C9 8B 94 88 B8 00 00 00", 0x0),
+        Rel("E8 ?? ?? ?? ?? 85 C0 75 ?? 48 8B 07 41 8B D4 48 8B CF FF 90 30 03 00 00", 0x1, 0x5, 0x0)}},
+    {&OFFSET_HALO1_PF_FIRST_PERSON_PREPARE, 0xb27510, Code, {
+        At("40 53 48 83 EC 20 B9 11 00 00 00 E8 ?? ?? ?? ?? 0F B7 0D ?? ?? ?? ?? 84 C0", 0x0),
+        Rel("89 1D ?? ?? ?? ?? 66 39 B7 B4 00 00 00 7E ?? 8B CE E8 ?? ?? ?? ?? E8 ?? ?? ?? ?? 89 35", 0x17, 0x1b, 0x0)}},
+    {&OFFSET_HALO1_PF_FIRST_PERSON_UPDATE, 0xb275b8, Code, {
+        At("48 8B C4 48 89 58 08 48 89 70 10 48 89 78 18 55 41 54 41 55 41 56 41 57 48 8D A8 E8 F2 FF FF", 0x0),
+        Rel("E8 ?? ?? ?? ?? EB ?? 48 8D 4C 24 20 E8 ?? ?? ?? ?? 80 F3 01 40 80 FF 01 75", 0x1, 0x5, 0x0)}},
+    {&OFFSET_HALO1_PV_FIRST_PERSON_FOR_RENDERER, 0x2ea32f8, Data, {
+        Rel("44 8B 25 ?? ?? ?? ?? 48 89 44 24 78 49 8D 89 08 02 00 00 48 89 55 B8", 0x3, 0x7, 0x0),
+        Rel("89 1D ?? ?? ?? ?? 66 39 9F B4 00 00 00 7E ?? 33 C9 E8 ?? ?? ?? ?? 48 8B 3D", 0x2, 0x6, 0x0)}},
+    {&OFFSET_HALO1_PV_FIRST_PERSON_WEAPONS, 0x1b7aa88, Data, {
+        Rel("48 8D 3D ?? ?? ?? ?? BA 04 00 00 00 48 3B F8 8B CA 48 8B C5", 0x3, 0x7, 0x0),
+        Rel("48 8D 3D ?? ?? ?? ?? 48 3B C7 48 1B C9 48 83 C8 FF 48 F7 D1", 0x3, 0x7, 0x0)}},
+    {&OFFSET_HALO1_PV_FIRST_PERSON_ARMS, 0x1b7aa98, Data, {
+        Rel("48 8D 0D ?? ?? ?? ?? 48 3B C8 49 8B C6 48 1B C9 48 F7 D1 83 E1 04", 0x3, 0x7, 0x0),
+        Rel("48 8D 05 ?? ?? ?? ?? BA 04 00 00 00 48 3B F8 8B CA 48 C7 C0 FF FF FF FF", 0x3, 0x7, 0x0)}},
+    {&OFFSET_HALO1_PF_FIRST_PERSON_SYNC, 0x7ac60, Code, {
+        At("40 55 56 57 41 54 41 55 41 56 41 57 48 8D AC 24 F0 FE FF FF 48 81 EC 10 02 00 00 48 C7 45 80 FE FF FF FF", 0x0),
+        Rel("BA 01 00 00 00 E8 ?? ?? ?? ?? 8B 0D ?? ?? ?? ?? BA 01 00 00 00 E8 ?? ?? ?? ?? 8B 0D", 0x6, 0xa, 0x0)}},
+    {&OFFSET_HALO1_FIRST_PERSON_SYNC_SLOT_LIMIT, 0x7ae64, Code, {
+        At("41 83 FF 01 77 44 49 8B C7 48 8D 0D ?? ?? ?? ?? 42 3B BC B9", 0x0)}},
+    {&OFFSET_HALO1_PV_FIRST_PERSON_MODELS, 0x2b050e8, Data, {
+        Rel("48 03 35 ?? ?? ?? ?? 44 89 3E 89 7E 04 44 89 76 18 4C 8D 4E 08", 0x3, 0x7, 0x0),
+        Rel("48 8B 05 ?? ?? ?? ?? 48 8B 54 06 10 48 8D 1C 06 48 85 D2 0F 84", 0x3, 0x7, 0x0)}},
+    {&OFFSET_HALO1_PF_OBJECT_HIDDEN_VIEWS, 0xab2890, Code, {
+        At("48 83 EC 28 4C 8B 15 ?? ?? ?? ?? 41 BB 01 00 00 00 44 8B C9", 0x0),
+        Rel("8B D8 E8 ?? ?? ?? ?? 0B C3 48 8B 5C 24 30 48 83 C4 20 5F C3", 0x3, 0x7, 0x0)}},
+    {&OFFSET_HALO1_PF_DIRECTOR_CAMERA_MODE, 0xb14ea4, Code, {
+        At("48 0F BF C1 4C 8D 05 ?? ?? ?? ?? 48 69 C8 F8 00 00 00 48 8D 15", 0x0),
+        Rel("E8 ?? ?? ?? ?? 66 83 E8 02 66 83 F8 01 41 0F 97 C1 41 8B C1", 0x1, 0x5, 0x0)}},
+    {&OFFSET_HALO1_PV_HIDDEN_OBJECT_CAMERA, 0x1b87a20, Data, {
+        Rel("40 88 35 ?? ?? ?? ?? 48 81 C3 F8 00 00 00 C6 05 ?? ?? ?? ?? 01 66 83 FF 04", 0x3, 0x7, 0x0),
+        Rel("80 3D ?? ?? ?? ?? 00 74 ?? B8 02 00 00 00 66 39 05 ?? ?? 0D 01 75 ?? 44 39 0D", 0x2, 0x7, 0x0)}},
 };
