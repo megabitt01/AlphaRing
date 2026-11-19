@@ -13,11 +13,13 @@ namespace Halo1::Entry::Splitscreen {
 
     EntryFeature("Halo CE Left/Right split screen", OFFSET_HALO1_PF_SPLIT_VIEWS, OFFSET_HALO1_PV_WINDOW_BOUNDS,
                  OFFSET_HALO1_PV_SCREEN_BOUNDS, OFFSET_HALO1_PF_FILL_RECT, OFFSET_HALO1_PV_ANNIVERSARY_SHOWN);
+    const ::AlphaRing::Feature& Hooks() { return *entry_feature; }
+
+    bool ClassicShown(__int64 module) { return *(int*)(module + OFFSET_HALO1_PV_ANNIVERSARY_SHOWN) == 0; }
 
     // Side by side is Classic's layout (Back switches to Anniversary's stacked views in the middle of a mission).
     bool OnScreen(__int64 module, int views) {
-        return *(int*)(module + OFFSET_HALO1_PV_ANNIVERSARY_SHOWN) == 0 &&
-               MCC::Splitscreen::LeftRight::OnScreen(CGameGlobal::Halo1, views);
+        return ClassicShown(module) && MCC::Splitscreen::LeftRight::OnScreen(CGameGlobal::Halo1, views);
     }
 
     int Views(__int64 module) { return ((int (*)())(module + OFFSET_HALO1_PF_SPLIT_VIEWS))(); }
@@ -32,9 +34,12 @@ namespace Halo1::Entry::Splitscreen {
 
     Halo1Entry(entry_window, OFFSET_HALO1_PF_SPLIT_WINDOW, void, split_window, int view, int views, short* rect,
                short* copy) {
-        if (views == 3 && view >= 0 && view < 3 && OnScreen(entry_window.m_target - entry_window.m_offset, 3)) {
+        __int64 module = entry_window.m_target - entry_window.m_offset;
+        if (views == 3 && view >= 0 && view < 3 && OnScreen(module, 3)) {
             views = view == 0 ? 2 : 4;
             if (view == 2) view = 3;
+        } else if (views == 3 && Anniversary::Quad(module)) {
+            views = 4; // Anniversary graphics with 3-4 players draw every view in a quarter (anniversary.cpp)
         }
         ((split_window_t)entry_window.m_pOriginal)(view, views, rect, copy);
     }

@@ -44,6 +44,12 @@ namespace AlphaRing::SplitscreenConfigStore {
     TwoPlayerLayout GetTwoPlayerLayout();
     void SetTwoPlayerLayout(TwoPlayerLayout layout, __int64 hModule);
 
+    // Halo CE and Halo 2 missions with 3-4 players start in Anniversary graphics instead of Classic
+    // (MCC::Splitscreen::AnniversaryQuadChosen). Saved as -1.anniversary_quad, off unless saved on; read
+    // as missions start, so it's kept loaded like the layout preference.
+    bool GetAnniversaryQuad();
+    void SetAnniversaryQuad(bool on);
+
     // This haloreach.dll build has every hook that draws Left/Right: the full-height views' render targets and
     // their rebuild on a live switch, the CUI variant, the HUD, the black bars, and the render hook that re-applies
     // the table. On an MCC update where one isn't found (src/offsets) the saved preference is kept, but the stock

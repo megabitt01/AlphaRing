@@ -44,6 +44,7 @@ COVER = {
     "OFFSET_HALO1_PF_4PLAYERS": 0x1A,
     "OFFSET_HALO1_PF_PAUSE": 2,
     "OFFSET_HALO1_PF_IDK": 6,
+    "OFFSET_HALO1_FIRST_PERSON_SYNC_SLOT_LIMIT": 6,
     "OFFSET_HALO2_PF_PLAYER_COUNT1": 1,
     "OFFSET_HALO2_PF_PLAYER_COUNT2": 1,
     "OFFSET_HALO2_TWO_PLAYERS_TEST_HAND_OVER": 5,
@@ -58,10 +59,12 @@ COVER = {
 }
 
 # Mid-function hooks whose detours rewrite what the code before them set up: the pattern starts at least this many
-# bytes earlier (halo1/splitscreen.cpp ScopeGrid: rsp+0x40..0x48 and 0x64/xmm15). An offset right after a call - a
-# return address - always takes the call as well.
+# bytes earlier (halo1/splitscreen.cpp ScopeGrid: rsp+0x40..0x48 and 0x64/xmm15; halo1/anniversary.cpp
+# OverlayRect: the rect in r11d, r9d, r10d, eax). An offset right after a call - a return address - always takes
+# the call as well.
 COVER_BEFORE = {
     "OFFSET_HALO1_SCOPE_GRID_SET": 0x45,
+    "OFFSET_HALO1_SABER_VIEW_OVERLAY_RECT": 0x32,
 }
 
 # Offsets with no binary here to pattern from.

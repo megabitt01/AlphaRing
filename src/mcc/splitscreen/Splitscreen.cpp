@@ -8,7 +8,14 @@
 
 #include "../CGameManager.h"
 #include "log/MatchLog.h"
+#include "mcc/CGameGlobal.h"
+#include "mcc/module/patch/SplitscreenConfigStore.h"
 #include "LeftRight.h"
+
+#include <atomic>
+
+namespace Halo1::Entry::Anniversary { bool Available(); }
+namespace Halo2::Entry::Anniversary { bool Available(); }
 
 namespace MCC::Splitscreen {
     DefDetourFunction(__int64, __fastcall, get_index_by_xuid, void* a1, __int64 xuid) {
@@ -40,16 +47,38 @@ namespace MCC::Splitscreen {
         return true;
     }
 
+    static std::atomic<int> s_anniversary_quad_game{-1}; // the Halo CE / Halo 2 game whose mission started with it
+
+    bool AnniversaryQuadChosen() { return AlphaRing::SplitscreenConfigStore::GetAnniversaryQuad(); }
+    void ChooseAnniversaryQuad(bool on) { AlphaRing::SplitscreenConfigStore::SetAnniversaryQuad(on); }
+    bool AnniversaryQuadActive(int game) { return s_anniversary_quad_game == game; }
+
+    // The game's 3-4 player mode has all its offsets in this MCC build (always in the one they were written for), and
+    // for Halo CE the render targets it draws into.
+    static bool AnniversaryQuadAvailable(int game) {
+        return game == CGameGlobal::Halo1 ? Halo1::Entry::Anniversary::Available()
+             : game == CGameGlobal::Halo2 ? Halo2::Entry::Anniversary::Available()
+             : false;
+    }
+
     ClassicGraphicsScope::ClassicGraphicsScope(unsigned char* game_options, int game) {
         auto p_setting = AlphaRing::Global::MCC::Splitscreen();
 
-        bool left_right = p_setting->b_override && game_options != nullptr && LeftRight::Chosen() &&
-                          LeftRight::Supports(game, p_setting->player_count);
+        bool split = p_setting->b_override && game_options != nullptr; // AlphaRing's split screen sets this mission up
+        bool left_right = split && LeftRight::Chosen() && LeftRight::Supports(game, p_setting->player_count);
         LeftRight::StartClassicMission(game, left_right);
-        if (!p_setting->b_override || game_options == nullptr) return;
+        // Chosen, the 3-4 player mode is set up for the whole mission, whichever graphics it starts in: Back
+        // switches Halo CE and Halo 2 to Anniversary in the middle of one, side by side included.
+        bool quad = split && AnniversaryQuadChosen() && AnniversaryQuadAvailable(game);
+        s_anniversary_quad_game = quad ? game : -1;
+        if (!split) return;
         if (p_setting->player_count <= 2 && !left_right) return;
         bool anniversary = game_options[0] & 1;
         if (!anniversary) return;
+        if (quad && !left_right) {
+            LOG_INFO("Splitscreen: {} players in Anniversary graphics (experimental)", p_setting->player_count);
+            return;
+        }
 
         LOG_INFO("Splitscreen: {} players{}, starting in Classic graphics", p_setting->player_count,
                  left_right ? " side by side" : "");
