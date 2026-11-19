@@ -4,6 +4,7 @@
 
 #include "mcc/network/Network.h"
 #include "mcc/splitscreen/Splitscreen.h"
+#include "mcc/hud/Hud.h"
 #include "mcc/module/Module.h"
 
 static const char* tutorial_message = R"(TUTORIAL:
@@ -56,6 +57,8 @@ void CMCCContext::render() {
     MCC::Module::ImGuiContext();
 
     MCC::Splitscreen::ImGuiContext();
+
+    MCC::Hud::ImGuiContext();
 
     MCC::Network::ImGuiContext();
 

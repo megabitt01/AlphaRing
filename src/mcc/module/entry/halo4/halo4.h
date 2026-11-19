@@ -22,8 +22,11 @@ namespace Halo4::Entry {
     constexpr int kFullHudLayout = 0x80076, kHalfHudLayout = 0x80077, kQuarterHudLayout = 0x80078;
 
     namespace HudFit {
-        void Refresh(__int64 module); // each user's fit, once a frame (hud_fit.cpp)
         const ::AlphaRing::Feature& Hooks(); // its hooks and offsets, which Left/Right requires
+    }
+
+    namespace Splitscreen {
+        void Frame(__int64 module); // Left/Right's work before each frame, from hud_fit.cpp's hook (splitscreen.cpp)
     }
 }
 

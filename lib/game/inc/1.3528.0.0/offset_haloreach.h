@@ -139,6 +139,12 @@ DefOffset(OFFSET_HALOREACH_PV_HUD_CANVAS, 0xD1F6F0) // float width, height of th
 DefOffset(OFFSET_HALOREACH_DAT_HUD_BASIS, 0xD1F740) // float4[5], ending where the next begins
 DefOffset(OFFSET_HALOREACH_DAT_HUD_SCREEN_SCALE_AND_OFFSET, 0xD1F790) // chud_screen_scale_and_offset: float xInset, yInset, halfW, halfH
 
+// Per-player HUD (mcc/hud; the player is DAT_CURRENT_HUD_PLAYER, the canvas PV_HUD_CANVAS). Where the per-widget
+// get_hud_element_transform call (0x2D93A4, widget anchor -> element) returns. UpdatePlayerHudView already asks for the
+// motion sensor (element 1) once per view and bakes the answer into the radar centre the dish and blips draw from, so a
+// dish widget asking again here would get it twice.
+DefOffset(OFFSET_HALOREACH_V_HUD_WIDGET_TRANSFORM_RETURN, 0x2D9443)
+
 // Dev Tools' resolution/FOV table dump (mcc/module/Module.cpp)
 DefOffset(OFFSET_HALOREACH_PF_GET_SPLITSCREEN_SLOT_TOKEN, 0x53EC8) // unsigned (int slot)
 DefOffset(OFFSET_HALOREACH_PF_RESOLVE_HUD_PROFILE, 0x2C2F60) // int (unsigned token)

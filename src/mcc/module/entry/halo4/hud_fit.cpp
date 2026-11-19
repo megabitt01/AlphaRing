@@ -1,24 +1,25 @@
-// Halo 4's HUD in a Left/Right half. A half is 960x1080 for the quarter layout's 640x360 units (HUD units:
-// pixels over min(width / 1280, height / 720) of the screen), and the layout sits in the view's corner, so the
-// HUD kept to the top half of the view, the motion tracker at mid-height.
+// Halo 4's HUD in a split view shaped unlike its HUD layout. With the black bars removed a two-player view is
+// 1920x540 for the two-player layout's 960x360 units, and a Left/Right half is 960x1080 for the quarter
+// layout's 640x360 (HUD units: pixels over min(width / 1280, height / 720) of the screen). The layout sits in
+// the view's corner, so the bars-removed HUD kept to the left three quarters and the Left/Right one to the
+// top half.
 //
 // Halo 4 already fits its 1280x720 layout to screens of another shape (ultrawide): four helpers give the
 // screen's shape against 16:9 - wider or not, the aspect over 16:9's, the extra width or height either side
 // - and the UI uses them to centre each screen, keep edge-anchored elements at the screen's edges and place
-// what it projects from the world (nametags, waypoints). While a half's HUD is updated or drawn, the helpers
-// answer for that view and its layout instead (the other split views keep the game's own answers). The
-// crosshair sits at the view's centre already, so the screen's centring would move it: its group is moved back.
+// what it projects from the world (nametags, waypoints). While a split view's HUD is updated or drawn, the
+// helpers answer for that view and its layout instead (a view its layout fits, as every stock one on a 16:9
+// screen, keeps the game's own answers). The crosshair sits at the view's centre already, so the screen's
+// centring would move it: its group is moved back.
 #include "halo4.h"
 
 #include "mcc/module/entry/PreservingThunk.h"
 #include "mcc/module/patch/SplitscreenConfigStore.h"
-#include "mcc/splitscreen/LeftRight.h"
 
 #include <algorithm>
 #include <cmath>
 
 namespace Halo4::Entry::HudFit {
-    namespace LeftRight = MCC::Splitscreen::LeftRight;
     namespace Store = AlphaRing::SplitscreenConfigStore;
 
     EntryFeature("Halo 4 split-screen HUD fit", OFFSET_HALO4_PV_SPLITSCREEN_TABLE, OFFSET_HALO4_PV_SCREEN_SIZE,
@@ -40,8 +41,6 @@ namespace Halo4::Entry::HudFit {
     Fit Compute(__int64 module, int players, int user) {
         Fit fit;
         if (players < 2 || players > 4 || user >= players) return fit;
-        // a Left/Right half (both two-player views, the three-player left one)
-        if (!LeftRight::Active(players) || Store::LeftRightRegion(players, user).resolution != 3) return fit;
         auto& view = ((const Store::LayoutEntry*)(module + OFFSET_HALO4_PV_SPLITSCREEN_TABLE))
             [players * Store::SLOT_COUNT + user];
         auto screen = (const int*)(module + OFFSET_HALO4_PV_SCREEN_SIZE);
@@ -55,6 +54,8 @@ namespace Halo4::Entry::HudFit {
         if (view_h < 1 || (std::abs(view_w - layout_w) < 1 && std::abs(view_h - layout_h) < 1)) return fit;
         fit.on = true;
         fit.aspect = (view_w / view_h) / (layout_w / layout_h);
+        // One extra, Wide()'s: the world-marker projection (0x3F2783-0x3F27C5) cancels only that one, so a view with
+        // room both ways (a Left/Right half wider than 16:9, a bars-removed view on 4:3) is centred one way only.
         if (fit.aspect > 1.0f) fit.extra_x = (view_w - layout_w) * 0.5f;
         else fit.extra_y = (view_h - layout_h) * 0.5f;
         return fit;
@@ -62,7 +63,6 @@ namespace Halo4::Entry::HudFit {
 
     void Refresh(__int64 module) {
         s_any_fit = false;
-        if (!entry_feature->Available()) return; // from splitscreen.cpp's render hook: only with the hooks below
         int players = ((int (*)())(module + OFFSET_HALO4_PF_SPLITSCREEN_PLAYER_COUNT))();
         for (int user = 0; user < 4; ++user) {
             s_fits[user] = Compute(module, players, user);
@@ -71,6 +71,14 @@ namespace Halo4::Entry::HudFit {
         s_ever_fit |= s_any_fit;
     }
     const bool s_reset = (Halo4SplitscreenEntrySet()->on_remove([] { s_ever_fit = false; }), true);
+
+    // Before each frame is drawn: Left/Right's work (splitscreen.cpp, when its hooks are in), then each user's fit.
+    Halo4SplitscreenEntry(entry_frame, OFFSET_HALO4_PF_RENDER, void, frame) {
+        __int64 module = entry_frame.m_target - entry_frame.m_offset;
+        Splitscreen::Frame(module);
+        Refresh(module);
+        ((frame_t)entry_frame.m_pOriginal)();
+    }
 
     // The fit of the user whose HUD is being worked on, when it's on.
     const Fit* Current() {

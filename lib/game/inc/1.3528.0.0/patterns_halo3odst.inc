@@ -55,4 +55,10 @@ const OffsetPatterns kHalo3odstPatterns[] = {
         Rel("E8 ?? ?? ?? ?? 66 83 85 10 09 00 00 50 BA 04 00 00 00 48 8D 4D 70", 0x1, 0x5, 0x0)}},
     {&OFFSET_HALO3ODST_VIEW_SETUP_TITLE_SAFE_RETURN, 0x2abb14, Code, {
         At("E8 ?? ?? ?? ?? 48 8D 15 ?? ?? ?? ?? 49 8B EF 49 8D 47 FC 4A 8D 04 B0 48 8D 0C 80", 0x5)}},
+    {&OFFSET_HALO3ODST_PV_HUD_DRAWING_PLAYER, 0xb1aa04, Data, {
+        Rel("44 89 3D ?? ?? ?? ?? E8 ?? ?? ?? ?? 89 05 ?? ?? ?? ?? 41 8B CF 8B 94 3E 68 15 00 00", 0x3, 0x7, 0x0),
+        Rel("8B 15 ?? ?? ?? ?? 0F 29 74 24 20 F3 0F 10 35 ?? ?? ?? ?? F3 0F 59 C6 F3 4C 0F 2C C8", 0x2, 0x6, 0x0)}},
+    {&OFFSET_HALO3ODST_PV_HUD_CANVAS, 0xb1a9d8, Data, {
+        Rel("F3 0F 10 0D ?? ?? ?? ?? F3 0F 11 4D F8 66 0F 6E C0 0F 5B C0", 0x4, 0x8, 0x0),
+        Rel("F3 0F 10 05 ?? ?? ?? ?? F3 0F 11 44 24 38 F3 0F 11 4C 24 3C", 0x4, 0x8, 0x0)}},
 };
