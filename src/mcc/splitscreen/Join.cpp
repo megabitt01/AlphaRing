@@ -322,12 +322,17 @@ namespace MCC::Splitscreen {
             ImGui::BeginDisabled(HotJoinLocked());
             if (ImGui::Checkbox("Hot join (experimental)", &hot_join)) ChooseHotJoin(hot_join);
             ImGui::EndDisabled();
-            if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled))
-                ImGui::SetTooltip("Players join in the middle of a mission: a controller nobody is playing with presses "
-                                  "A to join, and comes in beside a teammate. In Halo CE the last player can also leave, "
-                                  "with B here; in the other games players leave at MCC's menus. Halo CE and Halo 2 take "
-                                  "it as a mission starts, so in their games it's changed at MCC's menus. On until MCC "
-                                  "closes.");
+            if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled)) {
+                ImGui::BeginTooltip(); // wrapped: one line would run off a 1080p screen
+                ImGui::PushTextWrapPos(ImGui::GetFontSize() * 35.0f);
+                ImGui::TextUnformatted("Players join in the middle of a mission: a controller nobody is playing with "
+                                       "presses A to join, and comes in beside a teammate. In Halo CE the last player can "
+                                       "also leave, with B here; in the other games players leave at MCC's menus. Halo CE "
+                                       "and Halo 2 take it as a mission starts, so in their games it's changed at MCC's "
+                                       "menus. On until MCC closes.");
+                ImGui::PopTextWrapPos();
+                ImGui::EndTooltip();
+            }
         }
         ImGui::End();
     }
