@@ -6,6 +6,7 @@
 #include "filesystem/Filesystem.h"
 #include "mcc/CGameManager.h"
 #include "mcc/CGameGlobal.h"
+#include "mcc/splitscreen/Splitscreen.h"
 #include "render/imgui/game/xbox/CXboxColorMapping.h"
 
 #include <Windows.h>
@@ -589,8 +590,9 @@ namespace AlphaRing::MenuSettings {
         auto p_setting = AlphaRing::Global::MCC::Splitscreen();
         if (!p_setting) return;
         auto& ms = State();
+        // hot join brings players in through AlphaRing's split screen, a lone player 1 as the first of several
         if (atGameStart)
-            p_setting->b_override = ms.playerCount > 1;
+            p_setting->b_override = ms.playerCount > 1 || MCC::Splitscreen::HotJoinChosen();
         else if (ms.playerCount > 1)
             p_setting->b_override = true;
         p_setting->player_count = ms.playerCount;

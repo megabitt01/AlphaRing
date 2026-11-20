@@ -47,6 +47,9 @@ const OffsetPatterns kHalo2Patterns[] = {
     {&OFFSET_HALO2_PV_SCENARIO, 0xe6f768, Data, {
         Rel("48 8B 05 ?? ?? ?? ?? 8B DE 48 89 7C 24 68 39 98 10 02 00 00", 0x3, 0x7, 0x0),
         Rel("48 8B 05 ?? ?? ?? ?? 33 D2 4C 63 80 6C 01 00 00 41 83 F8 FF", 0x3, 0x7, 0x0)}},
+    {&OFFSET_HALO2_PF_PLAYER_SPAWN, 0x69e580, Code, {
+        At("40 55 53 56 57 41 54 41 56 41 57 48 8D AC 24 60 EF FF FF", 0x0),
+        Rel("E8 ?? ?? ?? ?? B0 01 EB ?? 32 C0 48 8B 5C 24 30 48 8B 74 24 38 48 8B 7C 24 40", 0x1, 0x5, 0x0)}},
     {&OFFSET_HALO2_PV_TAG_INSTANCES, 0x15e4b30, Data, {
         Rel("48 8B 05 ?? ?? ?? ?? 48 03 C9 4C 89 7C 24 50 4C 63 74 C8 08", 0x3, 0x7, 0x0),
         Rel("66 90 0F B7 C8 48 8B 05 ?? ?? ?? ?? 48 03 C9 48 63 5C C8 08", 0x8, 0xc, 0x0)}},

@@ -24,6 +24,17 @@ DefOffset(OFFSET_HALO1_PF_OBJECT_TRY_AND_GET, 0xB389A4) // void* (int object, un
 DefOffset(OFFSET_HALO1_PF_ACTOR_CUSTOMIZE_UNIT, 0xC01DD0) // (int actor_variant, int unit) - weapon, grenades, colors
 DefOffset(OFFSET_HALO1_PF_AI_ATTACH_FREE, 0xBFF120) // (int unit, int actor_variant) - creates an encounterless actor
 
+// hot join (module/entry/halo1/hotjoin.cpp)
+DefOffset(OFFSET_HALO1_PF_PLAYERS_UPDATE, 0xAD0720) // void (state*) - each tick: the players' respawns (calls the below)
+DefOffset(OFFSET_HALO1_PF_PLAYER_SPAWN, 0xAD4184) // void (int player) - a start location or the co-op respawn; callers check the unit
+DefOffset(OFFSET_HALO1_PF_CHOOSE_START_LOCATION, 0xAD39AC) // int16 (int player) - the best free starting location, -1: none
+DefOffset(OFFSET_HALO1_PF_START_LOCATION, 0xAD3940) // entry* (int16 index) - a starting location, 0x34: point, facing +0xC
+DefOffset(OFFSET_HALO1_PF_OBJECT_DELETE, 0xC579D4) // void (int object) - object_destroy's; skips a player's unit
+DefOffset(OFFSET_HALO1_PF_PLAYER_SET_UNIT, 0xAD2404) // void (int player, int unit) - -1 takes the player out of theirs
+DefOffset(OFFSET_HALO1_PF_OBJECT_SET_POSITION, 0xB359E8) // void (int object, point3*, vector3* forward, vector3* up) - null keeps
+DefOffset(OFFSET_HALO1_PF_OBJECT_TELEPORTED, 0xBA83EC) // void (int object) - what object_teleport resets after the move
+DefOffset(OFFSET_HALO1_PF_PLAYER_MOVE_BESIDE, 0xAD2FBC) // bool (int player, int other, void*) - moves a just-spawned player's unit beside another player (the co-op respawn, players_update 0xAD058F); true when it did
+
 // Left/Right split screen (mcc/splitscreen/LeftRight)
 DefOffset(OFFSET_HALO1_PF_SPLIT_GRID, 0xAC4108) // void (int views, int* columns, int* rows) - the window grid, rows first
 DefOffset(OFFSET_HALO1_PF_SPLIT_WINDOW, 0xAC4154) // void (int view, int views, short rect[4], short copy[4]) - a view's window

@@ -12,6 +12,7 @@ using AlphaRing::MatchLog::Describe;
 using AlphaRing::MatchLog::FirstThisMatch;
 #include "input/MenuConfig.h"
 #include "mcc/spawn/Spawn.h"
+#include "mcc/splitscreen/Splitscreen.h"
 
 #include <atomic>
 
@@ -43,14 +44,19 @@ static constexpr ULONGLONG kDeferredJoinDelayMs = 3000;
 static std::atomic<ULONGLONG> s_running_since; // 0 until the current session first runs
 
 static std::atomic<unsigned> s_load_generation;
+static std::atomic<bool> s_map_running; // from the Running state until a map loads or the session exits
 
 unsigned CGameManager::load_generation() { return s_load_generation; }
+
+bool CGameManager::running() { return s_map_running; }
 
 void CGameManager::track_state(eState state) {
     if (state == Loading)
         ++s_load_generation;
     if (state == Running && !s_running_since) // also re-sent after level transitions
         s_running_since = GetTickCount64();
+    if (state == Running || state == Loading || state == Exit || state == Exiting)
+        s_map_running = state == Running;
 }
 
 // MCC ends every session with a restart after the exit states. The clock is cleared there,
@@ -58,6 +64,7 @@ void CGameManager::track_state(eState state) {
 // it, and the next session queries its players before its own loading state.
 void CGameManager::end_session() {
     s_running_since = 0;
+    s_map_running = false;
 }
 
 static int deferred_player_count(int count) {
@@ -78,7 +85,7 @@ static int deferred_player_count(int count) {
 
 int CGameManager::active_player_count() {
     static std::atomic<int> s_last_logged = -1;
-    int active = deferred_player_count(AlphaRing::Global::MCC::Splitscreen()->player_count);
+    int active = deferred_player_count(MCC::Splitscreen::PlayerCount());
 
     if (active != s_last_logged) {
         s_last_logged = active;
@@ -100,7 +107,8 @@ static bool get_xbox_user_id_inner(CGameManager *self, __int64 *pId, wchar_t *pN
         return CGameManager::ppOriginal.get_xbox_user_id(self, pId, pName, size, index);
     }
 
-    if (index >= CGameManager::active_player_count()) {
+    // MCC counts the local players it asks for here (all four slots in a Halo CE or Halo 2 hot-join mission)
+    if (index >= MCC::Splitscreen::HotJoinSlots(CGameManager::active_player_count())) {
         *path = "beyond player_count";
         return false;
     }
@@ -212,9 +220,11 @@ bool CGameManager::get_key_state(CGameManager *self, DWORD index, input_data_t *
             MATCH_LOG("input player={} first press buttons={:#06x} (input_user={})", index,
                       p_device->state.Gamepad.wButtons, p_device->input_user);
 
-        // While the player's spawn menu is open it has the pad, which the game sees released; after it closes, what
-        // was held then is taken out of the pad until released.
-        if (MCC::Spawn::HandlePlayerInput(index, p_device->state.Gamepad))
+        // Until what a player who just joined pressed is let go (Players window, hot join), and while the player's
+        // spawn menu is open, which then has the pad, the game sees it released; after a menu closes, what was held
+        // then is taken out of the pad until released.
+        if (MCC::Splitscreen::JoinPressHeld(p_device->input_user, p_device->state.Gamepad) ||
+            MCC::Spawn::HandlePlayerInput(index, p_device->state.Gamepad))
             memset(&p_device->state.Gamepad, 0, sizeof(p_device->state.Gamepad));
     }
 
@@ -265,7 +275,7 @@ CUserProfile* CGameManager::get_player_profile(CGameManager *self, __int64 xid) 
     // Reach initializes armor into the player-0 profile after game_setup fires, so the
     // snapshot taken by apply_profiles() is stale. Sync armor from the live player-0
     // profile on every call while preserving the per-player custom colors and look
-    // settings we applied.
+    // settings we applied, and a species chosen in the Players window.
     auto* gg = GameGlobal();
     if (gg && gg->current_game == CGameGlobal::HaloReach) {
         auto* base = ppOriginal.get_player_profile(self, get_xuid(0));
@@ -293,6 +303,7 @@ CUserProfile* CGameManager::get_player_profile(CGameManager *self, __int64 xid) 
             dest->profile.HorizontalLookSensitivity      = horizSens;
             // and the armor picked for this player in the advanced menu
             AlphaRing::MenuSettings::ApplyArmor(get_index(xid), dest->profile);
+            MCC::Splitscreen::ApplySpecies(index, dest->profile);
         }
     }
 

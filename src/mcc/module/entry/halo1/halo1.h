@@ -22,4 +22,8 @@ namespace Halo1::Entry {
     namespace Anniversary {
         bool Quad(__int64 module); // 3-4 players drawn in quarters, Anniversary graphics (anniversary.cpp)
     }
+
+    namespace HotJoin {
+        void Start(bool on); // as a mission starts (graphics.cpp): whether it's a hot-join one (hotjoin.cpp)
+    }
 }
