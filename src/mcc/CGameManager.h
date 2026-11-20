@@ -26,6 +26,7 @@
         };
 
         enum eState {
+            Loading = 0,
             Running = 1,
             Exit = 5,
             Exiting = 10,
@@ -38,6 +39,8 @@
         static Profile_t* get_profile(int index);
         static CInputDevice* get_controller(int index);
         static void apply_profiles();
+        // Increments every time a map starts loading.
+        static unsigned load_generation();
         // Local players in the game right now (see CGameManagerSplitscreen.cpp: Halo 4 starts with two).
         static int active_player_count();
 

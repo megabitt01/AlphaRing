@@ -39,6 +39,16 @@ DefOffset(OFFSET_HALO3_PF_OBJECT_PLACEMENT_DATA_NEW, 0x341508) // (data*, int ta
 DefOffset(OFFSET_HALO3_PF_OBJECT_NEW, 0x341AE8) // int (data*)
 DefOffset(OFFSET_HALO3_PF_OBJECT_POST_CREATE, 0x1EA04) // (int object) - called by the engine after object_new
 
+// spawning (mcc/spawn), with the three above and OFFSET_HALO3_PV_TAGS_HEADER / OFFSET_HALO3_PV_TAG_NAMES
+DefOffset(OFFSET_HALO3_PV_TAG_BASE, 0x1FCF4C8) // tag data = base + (instance address << 2)
+DefOffset(OFFSET_HALO3_PV_SCENARIO, 0xA46A08) // scenario tag data*
+DefOffset(OFFSET_HALO3_PF_AI_PLACE, 0x577AA4) // (int ai_index, bool) - ai_scripting_place_internal
+DefOffset(OFFSET_HALO3_PF_TAG_LOADED, 0x12C9EC) // bool (int tag): in the loaded zone set (object_new refuses others)
+// int (int input user) - the player datum that local user controls, -1: none. The player mapping globals (thread-local
+// slot +0x110): input user -> player int[4] at +0x4 (what this reads), player -> input user at +0x74, set together
+// at 0xEDF70; output users (views) at +0xB4 on.
+DefOffset(OFFSET_HALO3_PF_PLAYER_OF_INPUT_USER, 0xEE0D4)
+
 // c_splitscreen_config::m_config_table; the black-bar patches rewrite entries 8, 9 and 12 (0x8AE150, 0x8AE164, 0x8AE1A0)
 DefOffset(OFFSET_HALO3_PV_SPLITSCREEN_TABLE, 0x8AE0B0)//0x8AD0C0
 

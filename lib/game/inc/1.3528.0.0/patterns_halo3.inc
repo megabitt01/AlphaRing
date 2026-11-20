@@ -78,6 +78,21 @@ const OffsetPatterns kHalo3Patterns[] = {
     {&OFFSET_HALO3_PF_OBJECT_POST_CREATE, 0x1ea04, Code, {
         At("4C 8B DC 49 89 5B 08 49 89 6B 18 49 89 73 20 57 41 56 41 57 48 83 EC 50", 0x0),
         Rel("E8 ?? ?? ?? ?? 8B FB 4C 8D 9C 24 E0 01 00 00 8B C7 49 8B 5B 30", 0x1, 0x5, 0x0)}},
+    {&OFFSET_HALO3_PV_TAG_BASE, 0x1fcf4c8, Data, {
+        Rel("48 8B 05 ?? ?? ?? ?? 48 8D 0C 90 48 81 C1 3C 03 00 00 33 D2", 0x3, 0x7, 0x0),
+        Rel("48 8B 05 ?? ?? ?? ?? 48 8D 0C 90 8B 85 10 01 00 00 C1 E8 02", 0x3, 0x7, 0x0)}},
+    {&OFFSET_HALO3_PV_SCENARIO, 0xa46a08, Data, {
+        Rel("48 39 15 ?? ?? ?? ?? 8B C1 C7 47 38 00 09 00 02 66 89 4F 3C", 0x3, 0x7, 0x0),
+        Rel("48 39 15 ?? ?? ?? ?? F2 41 0F 11 03 41 89 43 08 48 0F BE 4E 01", 0x3, 0x7, 0x0)}},
+    {&OFFSET_HALO3_PF_AI_PLACE, 0x577aa4, Code, {
+        At("48 89 5C 24 08 48 89 74 24 10 57 48 81 EC 80 00 00 00 83 CF FF", 0x0),
+        Rel("83 38 FF 74 ?? 8B 08 B2 01 E8 ?? ?? ?? ?? 33 D2 8B CB E8 ?? ?? ?? ?? 48 83 C4 20", 0xa, 0xe, 0x0)}},
+    {&OFFSET_HALO3_PF_TAG_LOADED, 0x12c9ec, Code, {
+        At("83 F9 FF 74 25 48 8B 05 ?? ?? ?? ?? 8B D1 48 C1 E9 05 83 E2 1F", 0x0),
+        Rel("E8 ?? ?? ?? ?? 84 C0 8B CB 45 0F 45 01 41 8B D0 E8 ?? ?? ?? ?? 48 83 C4 20", 0x1, 0x5, 0x0)}},
+    {&OFFSET_HALO3_PF_PLAYER_OF_INPUT_USER, 0xee0d4, Code, {
+        At("83 C8 FF 3B C8 74 24 8B 15 ?? ?? ?? ?? 65 48 8B 04 25 58 00 00 00", 0x0),
+        Rel("E8 ?? ?? ?? ?? 0F B7 C8 49 8B 07 48 63 54 88 34 85 D2 0F 88", 0x1, 0x5, 0x0)}},
     {&OFFSET_HALO3_PV_SPLITSCREEN_TABLE, 0x8ae0b0, Data, {
         Rel("48 8D 0D ?? ?? ?? ?? F3 0F 10 44 91 08 F3 0F 5C 04 91 0F 2F 05", 0x3, 0x7, 0x0)}},
     {&OFFSET_HALO3_PV_SCREEN_SIZE, 0x8ac3e8, Data, {

@@ -2,6 +2,7 @@
 
 #include "common.h"
 
+#include "mcc/mcc.h"
 #include "mcc/CGameGlobal.h"
 #include "mcc/module/Module.h"
 #include "mcc/splitscreen/LeftRight.h"
@@ -138,6 +139,11 @@ namespace MCC::Hud {
             return &game;
         }
         return nullptr;
+    }
+
+    bool Supported() {
+        __int64 module;
+        return MCC::IsInGame() && CurrentGame(module) != nullptr;
     }
 
     static int ElementOf(const Game& game, int game_element) {
@@ -286,8 +292,7 @@ namespace MCC::Hud {
     static const char* kElementNames[kElementCount] = {"Motion tracker", "Shield / health", "Weapon / ammo",
                                                        "Grenades", "Crosshair", "Equipment", "Messages"};
 
-    static const char* const kAreaNames[kAreaCount] = {"Game default", "Screen edges", "21:9 box", "16:9 box",
-                                                       "4:3 box"};
+    const char* const kAreaNames[kAreaCount] = {"Game default", "Screen edges", "21:9 box", "16:9 box", "4:3 box"};
 
     // Edits a copy of the player's settings, published whole when something changed.
     static void PlayerTab(int p) {

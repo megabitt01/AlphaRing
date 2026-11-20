@@ -1,5 +1,7 @@
 #pragma once
 
+struct ImFont;
+
 namespace AlphaRing::Render::ImGui {
     bool Initialize();
 
@@ -10,4 +12,7 @@ namespace AlphaRing::Render::ImGui {
     // menu's close animation, which commits its settings, before it shows.
     void ToggleXboxMenu();
     void ToggleAdvancedMenu(bool showMouse);
+
+    // The players' spawn menus' font (mcc/spawn): the dashboard's face, drawn large.
+    ImFont* MenuFont();
 }

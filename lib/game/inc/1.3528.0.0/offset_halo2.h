@@ -5,6 +5,7 @@
 DefOffset(OFFSET_HALO2_PF_LOAD, 0x4F980)
 DefOffset(OFFSET_HALO2_PF_GAME, 0x67A220)
 DefOffset(OFFSET_HALO2_PF_COPY_GAME_OPTIONS, 0x39CE0) // copy_game_options(game_options)
+DefOffset(OFFSET_HALO2_PF_HS_COMPILE, 0x6E17C0) // compile a console script: (const char* text, bool)
 
 DefOffset(OFFSET_HALO2_PF_ADD_LOCAL_PLAYER, 0x69D2C0)//0x69D290
 
@@ -29,6 +30,24 @@ DefOffset(OFFSET_HALO2_PF_PLAYERS_UPDATE, 0x6A3910)
 DefOffset(OFFSET_HALO2_PF_COOP_CAMPAIGN, 0x6A6320) // bool () - a co-op campaign: session [0xE80A78] mode +8 == 1, byte +0x2C8
 DefOffset(OFFSET_HALO2_PF_COOP_RESPAWN_ALLOWED, 0x6A5D40) // bool () - not with the Iron skull (11), not on Legendary
 DefOffset(OFFSET_HALO2_PV_SCENARIO, 0xE6F768) // the loaded scenario*: int starting locations +0x100
+
+// spawning (mcc/spawn)
+DefOffset(OFFSET_HALO2_PV_TAG_INSTANCES, 0x15E4B30) // {u32 group, u32 datum, u32 address, u32 size}[tag count]
+DefOffset(OFFSET_HALO2_PV_TAG_COUNT, 0x15E4B60)
+DefOffset(OFFSET_HALO2_PV_TAG_NAME_OFFSETS, 0x15E4B68) // int32[tag count] into the name buffer
+DefOffset(OFFSET_HALO2_PV_TAG_NAMES, 0x15E4B78)
+DefOffset(OFFSET_HALO2_PV_TAG_BASE, 0xE80AB0) // tag block address -> map tag data + address
+DefOffset(OFFSET_HALO2_PV_SHARED_TAG_BASE, 0xE80AC0) // addresses with the top bit set are in the shared map
+// OFFSET_HALO2_PV_PLAYERS (above): data array (data at +*(+0x48)): 0x224 each, unit +0x2C
+DefOffset(OFFSET_HALO2_PV_OBJECTS, 0x18B7398) // object headers: data array of 0xC, object data offset +8
+DefOffset(OFFSET_HALO2_PV_OBJECT_MEMORY, 0x18B7360) // object data = ((pool + 0x57) & ~0xF) + offset
+DefOffset(OFFSET_HALO2_PF_OBJECT_GET_ORIGIN, 0x8D6780) // (int object, real_point3d*)
+DefOffset(OFFSET_HALO2_PF_OBJECT_PLACEMENT_DATA_NEW, 0x8D8880) // (data* [0xC4], int tag, int owner, void*)
+DefOffset(OFFSET_HALO2_PF_OBJECT_NEW, 0x8D79D0) // int (data*)
+DefOffset(OFFSET_HALO2_PF_AI_PLACE, 0x618890) // (int ai_index); starting location = (3 << 30) | (squad << 16) | location
+// int (int ai_index, short, int*, float*) - living actors; a squad's ai index is its index. ai_living_count (0x619B10)
+// is a 13-byte thunk to it with 0, null, null, too generic to find again by pattern.
+DefOffset(OFFSET_HALO2_PF_AI_LIVING_COUNT, 0x6198E0)
 
 // Left/Right split screen (mcc/splitscreen/LeftRight)
 DefOffset(OFFSET_HALO2_PF_SPLIT_GRID, 0x7E09D0) // void (int views, int mode, short grid[2] columns, rows) - mode 1 stacks, others side by side
@@ -81,3 +100,10 @@ DefOffset(OFFSET_HALO2_PV_FIRST_PERSON_MODELS, 0x1AB11C0) // entries*, int count
 DefOffset(OFFSET_HALO2_PV_MODEL_LEVELS, 0x1DC36F0) // unsigned char* detail levels, int count at +8 - the current one is the last
 DefOffset(OFFSET_HALO2_PF_SABER_OBJECT_SHOW, 0x69C30) // void (object*)
 DefOffset(OFFSET_HALO2_PF_SABER_OBJECT_HIDE, 0x69CA0) // void (object*)
+// Per-player HUD (mcc/hud). With "HUD anchor: Centered" on a screen wider than 16:9, 0x954DD0 insets the whole-screen
+// HUD frame to a centred 16:9 box, which 0x7E0A40 splits among the players.
+DefOffset(OFFSET_HALO2_PF_HUD_ASPECT_LOCK, 0x954DF2) // je (74 3C) that skips the centred 16:9 HUD frame when the profile's aspect lock is off
+DefOffset(OFFSET_HALO2_PV_HUD_ASPECT_LOCK, 0x197EE40) // bool: the profiles' LockMaxAspectRatio ("HUD anchor: Centered"), the last loaded wins
+DefOffset(OFFSET_HALO2_PV_HUD_DRAWING_PLAYER, 0x165C398) // int local player whose HUD is being drawn
+DefOffset(OFFSET_HALO2_PV_HUD_VIEW_BOUNDS, 0x165C298) // int16 top, left, bottom, right of that player's HUD (window bounds)
+DefOffset(OFFSET_HALO2_PV_HUD_UNIT_SCALE, 0xE14F28) // float: pixels per HUD offset unit (times the element's scale)

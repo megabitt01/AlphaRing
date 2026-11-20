@@ -4,12 +4,25 @@
 
 DefOffset(OFFSET_HALO1_PF_RENDER, 0x1F05B0)
 DefOffset(OFFSET_HALO1_PF_GAME_START, 0x939D0) // engine game_start(self, manager, game_options)
+DefOffset(OFFSET_HALO1_PF_HS_COMPILE, 0xB21470) // compile + run a console script: (const char* text)
 
 DefOffset(OFFSET_HALO1_PF_4PLAYERS, 0x67492)
 DefOffset(OFFSET_HALO1_PF_PAUSE, 0x427978)
 DefOffset(OFFSET_HALO1_PF_IDK, 0x85428)
 
 DefOffset(OFFSET_HALO1_PV_PLAYER_COUNT, 0x1B7B910)
+
+// spawning (mcc/spawn; found through the retail cheat_spawn_warthog / cheat_all_chars / ai_attach_free script functions)
+DefOffset(OFFSET_HALO1_PV_PLAYERS, 0x1C40480) // players data array*, element 0xC20, unit index at +0x64
+DefOffset(OFFSET_HALO1_PF_TAG_ITERATOR_NEXT, 0xA9B43C) // int (tag_iterator*)
+DefOffset(OFFSET_HALO1_PF_TAG_GET_NAME, 0xA9B25C) // const char* (int tag)
+DefOffset(OFFSET_HALO1_PF_TAG_GET, 0xA9B648) // void* (int tag) - tag definition data
+DefOffset(OFFSET_HALO1_PF_OBJECT_PLACEMENT_DATA_NEW, 0xB35EBC) // (data*, int tag, int owner_object)
+DefOffset(OFFSET_HALO1_PF_OBJECT_NEW, 0xB35F80) // int (data*)
+DefOffset(OFFSET_HALO1_PF_OBJECT_GET_ORIGIN, 0xB37DE0) // (int object, vector3* out)
+DefOffset(OFFSET_HALO1_PF_OBJECT_TRY_AND_GET, 0xB389A4) // void* (int object, unsigned type_mask) - object data, or null
+DefOffset(OFFSET_HALO1_PF_ACTOR_CUSTOMIZE_UNIT, 0xC01DD0) // (int actor_variant, int unit) - weapon, grenades, colors
+DefOffset(OFFSET_HALO1_PF_AI_ATTACH_FREE, 0xBFF120) // (int unit, int actor_variant) - creates an encounterless actor
 
 // Left/Right split screen (mcc/splitscreen/LeftRight)
 DefOffset(OFFSET_HALO1_PF_SPLIT_GRID, 0xAC4108) // void (int views, int* columns, int* rows) - the window grid, rows first
@@ -82,3 +95,7 @@ DefOffset(OFFSET_HALO1_PV_FIRST_PERSON_MODELS, 0x2B050E8) // the renderer's firs
 DefOffset(OFFSET_HALO1_PF_OBJECT_HIDDEN_VIEWS, 0xAB2890) // int (int object) - views (bits 0, 1) the object is hidden in
 DefOffset(OFFSET_HALO1_PF_DIRECTOR_CAMERA_MODE, 0xB14EA4) // short (int local) - 0 in first person
 DefOffset(OFFSET_HALO1_PV_HIDDEN_OBJECT_CAMERA, 0x1B87A20) // bool on, int16 mode at +2 (2 hides), int object at +0x34
+// Per-player HUD (mcc/hud, module/entry/halo1/hud.cpp)
+DefOffset(OFFSET_HALO1_PF_HUD_CALCULATE_POINT, 0xB56A58) // (player, placement, header, -, bool, float, short2* out, int mcc element)
+DefOffset(OFFSET_HALO1_PV_HUD_VIEWPORT_BOUNDS, 0x29AF2F0) // int16 top, left, bottom, right of the view being drawn
+DefOffset(OFFSET_HALO1_PV_HUD_DRAWING_PLAYER, 0x29AF2B8) // int16 local player whose HUD is being drawn

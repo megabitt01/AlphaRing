@@ -25,6 +25,7 @@ namespace MCC::Hud {
     constexpr float kFullWidth = 100.0f;
     constexpr float kAreas[] = {0.0f, kFullWidth, 21.0f / 9.0f, 16.0f / 9.0f, 4.0f / 3.0f};
     constexpr int kAreaCount = sizeof(kAreas) / sizeof(*kAreas);
+    extern const char* const kAreaNames[kAreaCount];
 
     struct PlayerHud {
         float scale = 1.0f;      // every element
@@ -49,9 +50,12 @@ namespace MCC::Hud {
     bool Anchor(int game_element, int* anchor);
     unsigned Color(int user, unsigned argb);
 
+    // The running game's HUD can be customized (in a mission of a game above, with all its offsets).
+    bool Supported();
+
     // Halo CE: pixels to move `element` of `player`'s HUD within a view of the given size.
     bool OffsetCE(int player, int game_element, float view_width, float view_height, float* dx, float* dy);
 
-    // The HUD window (overlay menu bar).
+    // The HUD window (overlay menu bar); each player's spawn menu has a HUD page too (mcc/spawn).
     void ImGuiContext();
 }

@@ -16,6 +16,18 @@ DefOffset(OFFSET_HALO3ODST_PF_ADD_LOCAL_PLAYER, 0xFBFE4)//0xFBEE4
 #define OFFSET_HALO3ODST_V_ENTRY_PLAYERS 0x2
 #define OFFSET_HALO3ODST_V_ENTRY_PLAYERS_ACTION 0xB
 
+// spawning (mcc/spawn; the Halo 3 functions and globals of the same names, matched by signature and call order)
+DefOffset(OFFSET_HALO3ODST_PV_TAGS_HEADER, 0x20F3068)
+DefOffset(OFFSET_HALO3ODST_PV_TAG_BASE, 0x2022AA8)
+DefOffset(OFFSET_HALO3ODST_PV_TAG_NAMES, 0xA9EFC8)
+DefOffset(OFFSET_HALO3ODST_PV_SCENARIO, 0xA9C9B8)
+DefOffset(OFFSET_HALO3ODST_PF_OBJECT_PLACEMENT_DATA_NEW, 0x37C954)
+DefOffset(OFFSET_HALO3ODST_PF_OBJECT_NEW, 0x37CF34)
+DefOffset(OFFSET_HALO3ODST_PF_OBJECT_POST_CREATE, 0x20B80)
+DefOffset(OFFSET_HALO3ODST_PF_AI_PLACE, 0x5BE6A0) // (int ai_index, bool); ai index type 4 = a squad's single location
+DefOffset(OFFSET_HALO3ODST_PF_TAG_LOADED, 0x14D4C8) // bool (int tag): in the loaded zone set (object_new refuses others)
+DefOffset(OFFSET_HALO3ODST_PF_PLAYER_OF_INPUT_USER, 0x108EA8) // as Halo 3's (player mapping globals: slot +0x108, set at 0x108D44)
+
 // c_splitscreen_config::m_config_table; the black-bar patches rewrite entries 8, 9 and 12 (0x8F1FB0, 0x8F1FC4, 0x8F2000)
 DefOffset(OFFSET_HALO3ODST_PV_SPLITSCREEN_TABLE, 0x8F1F10)//0x8F1F20
 
