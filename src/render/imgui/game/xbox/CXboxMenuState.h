@@ -16,4 +16,5 @@ struct MenuState {
     int teamIndex[4];
     PlayerColor playerColors[4];
     bool usePlayer0Profile; // players 2-4 use player 1's profile ("Use Player 1's Armor")
+    bool useBlackBars; // remove black bars for top/bottom split screen ("Remove Black Bars")
 };

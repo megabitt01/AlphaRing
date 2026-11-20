@@ -13,6 +13,8 @@ static bool Initialize() {
 
     assertm(result, "failed to initialize log");
 
+    AlphaRing::Log::DropConsole("at load");
+
     result = AlphaRing::Hook::Initialize();
 
     // An MCC build the offsets weren't written for (an update) has them looked
@@ -55,6 +57,8 @@ static bool Initialize() {
 	LOG_INFO("Initialized mcc.");
 
     LOG_INFO("AlphaRing initialization complete.");
+
+    AlphaRing::Log::DropConsole("after initialization");
 
     return true;
 }

@@ -222,12 +222,6 @@ namespace MCC::Module {
                 ImGui::SetTooltip("%s", patch->desc());
         };
 
-        auto find_patch = [](CPatchSet* p_patches, const char* name) -> CPatch* {
-            for (auto patch : p_patches->embed_patches())
-                if (strcmp(patch->name(), name) == 0) return patch;
-            return nullptr;
-        };
-
         if (ImGui::BeginMenuBar()) {
             if (ImGui::MenuItem("Reload Patch")) ReloadPatch();
 
@@ -251,12 +245,9 @@ namespace MCC::Module {
         if (ImGui::Checkbox("Anniversary graphics with 3-4 players (Halo CE, Halo 2; experimental)", &anniversary))
             MCC::Splitscreen::ChooseAnniversaryQuad(anniversary);
         if (ImGui::IsItemHovered())
-            ImGui::SetTooltip("Off: Halo CE and Halo 2 missions with 3 or 4 players start in Classic graphics, as their Anniversary renderers only draw two views. On: they keep Anniversary graphics (when MCC is set to them) and draw every view, also after Back switches graphics in the middle of a mission; side by side still starts in Classic. The renderers still draw two views at a time, so they alternate: players 1 and 2 on one frame, 3 and 4 on the next (each view updates at half the frame rate). Takes effect at the next mission start.");
+            ImGui::SetTooltip("On by default. Off: Halo CE and Halo 2 missions with 3 or 4 players start in Classic graphics, as their Anniversary renderers only draw two views. On: they keep Anniversary graphics (when MCC is set to them) and draw every view, also after Back switches graphics in the middle of a mission; side by side still starts in Classic. The renderers still draw two views at a time, so they alternate: players 1 and 2 on one frame, 3 and 4 on the next (each view updates at half the frame rate). Takes effect at the next mission start.");
 
         if (!ImGui::BeginTabBar("patch")) return;
-
-        // under each game's black-bar controls, disabled while Left / Right is chosen
-        static constexpr const char* kBarsKept = "Black-bar settings are kept and return with Top / Bottom.";
 
         counter = 0;
 
@@ -266,73 +257,10 @@ namespace MCC::Module {
             if (ImGui::BeginTabItem(cModuleName[i])) {
                 ImGui::Text("Embed Patches");
                 for (auto patch : p_patches->embed_patches()) {
-                    // Every game's black-bar patches get replaced below with
-                    // controls scoped by which player/slot they actually affect,
-                    // instead of three raw, easy-to-misread checkboxes.
-                    if (strcmp(patch->name(), "Remove Black Bar1") == 0 ||
-                        strcmp(patch->name(), "Remove Black Bar2") == 0 ||
-                        strcmp(patch->name(), "Remove Black Bar3") == 0)
-                        continue;
+                    // every game's at once: the Splitscreen window's Options > Remove black bars
+                    if (MCC::Splitscreen::IsBlackBarPatch(patch)) continue;
 
                     p_print(patch, cModuleName[i]);
-                }
-
-                if (i == MODULE_HALOREACH) {
-                    auto p_bar1 = find_patch(p_patches, "Remove Black Bar1");
-                    auto p_bar2 = find_patch(p_patches, "Remove Black Bar2");
-                    auto p_bar3 = find_patch(p_patches, "Remove Black Bar3");
-
-                    ImGui::Separator();
-                    ImGui::Text("Splitscreen Display");
-
-                    // THE BLACK-BAR PATCHES STAY USER-OWNED. Both they and the
-                    // Left/Right layout write m_config_table entries 8/9/12,
-                    // but the layout never changes or persists their state:
-                    // while Left/Right is selected SplitscreenConfigStore::Apply
-                    // rewrites every field of those entries each frame, so an
-                    // enabled patch's bytes never show, and the painter bypass
-                    // is derived in blackbars.cpp. Selecting Top/Bottom (the
-                    // layout combo above the tabs) writes the stock entries,
-                    // then re-applies each enabled patch so the user's saved
-                    // bar choice comes back exactly as it was.
-                    // (The old exclusion rationale - D1F710 as a stale table
-                    // cache - was disproved: D1F710 is not table-derived.)
-                    const bool left_right = MCC::Splitscreen::LeftRight::Chosen();
-                    if (left_right) ImGui::TextDisabled(kBarsKept);
-
-                    if (left_right) ImGui::BeginDisabled();
-
-                    if (p_bar1 != nullptr && p_bar3 != nullptr) {
-                        bool top = p_bar1->enabled() && p_bar3->enabled();
-                        ImGui::PushID(counter++);
-                        if (ImGui::Checkbox("Remove Black Bars - Player 1 (Top, 2 or 3 Player)", &top)) {
-                            p_bar1->setState(top);
-                            p_bar3->setState(top);
-                            AlphaRing::PatchConfig::Set(cModuleName[i], p_bar1->name(), top);
-                            AlphaRing::PatchConfig::Set(cModuleName[i], p_bar3->name(), top);
-                        }
-                        ImGui::PopID();
-                        if (ImGui::IsItemHovered())
-                            ImGui::SetTooltip("Removes the black bar for whichever player occupies the top half of the screen. Applies to both 2-player and 3-player splitscreen - that slot is the same shape in either mode.");
-                    }
-
-                    if (p_bar2 != nullptr) {
-                        bool bottom = p_bar2->enabled();
-
-                        ImGui::PushID(counter++);
-                        if (ImGui::Checkbox("Remove Black Bars - Player 2 (Bottom, 2 Player Only)", &bottom)) {
-                            p_bar2->setState(bottom);
-                            AlphaRing::PatchConfig::Set(cModuleName[i], p_bar2->name(), bottom);
-                        }
-                        ImGui::PopID();
-
-                        if (ImGui::IsItemHovered())
-                            ImGui::SetTooltip("Removes the black bar for player 2's bottom half of the screen. 2-player only - in 3-player mode, players 2 and 3 already fill their quarter of the screen with no black bars.");
-                    }
-
-                    if (left_right) ImGui::EndDisabled();
-
-                    ImGui::Separator();
                 }
 
                 ImGui::Text("Patches");
@@ -514,7 +442,7 @@ namespace MCC::Module {
                     }
 
                     if (ImGui::IsItemHovered())
-                        ImGui::SetTooltip("Reads the live, unpatched-if-not-toggled bytes directly from haloreach.dll and logs them. Run this BEFORE toggling any Remove Black Bar checkbox to capture true defaults.");
+                        ImGui::SetTooltip("Reads the live, unpatched-if-not-toggled bytes directly from haloreach.dll and logs them. Run this BEFORE turning on Remove black bars (Splitscreen > Options) to capture true defaults.");
 
                     // Per-resolution HUD FOV/scale lookup table (the runtime-loaded map/tag
                     // data D1F6F0/D1F6F4 are read from inside UpdatePlayerHudView, RVA
@@ -599,81 +527,6 @@ namespace MCC::Module {
                     }
                     if (ImGui::IsItemHovered())
                         ImGui::SetTooltip("Reads the real per-resolution HUD FOV/scale table values (what D1F6F0/D1F6F4 are drawn from) for every candidate resolution, per slot. Run this while actually in a splitscreen game.");
-                } else if (i == MODULE_HALO3 || i == MODULE_HALO3ODST || i == MODULE_HALO4 || i == MODULE_GROUNDHOG) {
-                    // Same wholesale-NOP black-bar patches Reach shipped with before
-                    // its per-slot painter detour (see haloreach/blackbars.cpp). These
-                    // games haven't had that detour ported yet, so unlike Reach we
-                    // can't promise Player 1/2 toggle independently of each other -
-                    // the tooltips say so until that's verified per game.
-                    auto p_bar1 = find_patch(p_patches, "Remove Black Bar1");
-                    auto p_bar2 = find_patch(p_patches, "Remove Black Bar2");
-                    auto p_bar3 = find_patch(p_patches, "Remove Black Bar3");
-
-                    if (p_bar1 != nullptr || p_bar2 != nullptr || p_bar3 != nullptr) {
-                        ImGui::Separator();
-                        ImGui::Text("Splitscreen Display");
-
-                        // Confirmed (2026-09-10, in-game) that this game shares Reach's
-                        // pre-fix bug: the black-bar painter only reads Player 1's bounds,
-                        // so removing Player 2's bar alone does nothing/breaks things unless
-                        // Player 1's is also removed. Until this gets its own per-slot
-                        // detour (see haloreach/blackbars.cpp for the real fix), gate the
-                        // Player 2 checkbox behind Player 1's being on - same stopgap Reach
-                        // used before that fix existed.
-                        bool player1_on = (p_bar1 == nullptr || p_bar3 == nullptr)
-                                ? true : (p_bar1->enabled() && p_bar3->enabled());
-
-                        // Left / Right owns the same table entries and puts back the ones it
-                        // found when the player returns to Top / Bottom, so the bars hold still
-                        // meanwhile (as in Reach).
-                        const bool left_right = i != MODULE_GROUNDHOG && MCC::Splitscreen::LeftRight::Chosen();
-                        if (left_right) ImGui::TextDisabled(kBarsKept);
-                        ImGui::BeginDisabled(left_right);
-
-                        if (p_bar1 != nullptr && p_bar3 != nullptr) {
-                            bool top = player1_on;
-                            ImGui::PushID(counter++);
-                            if (ImGui::Checkbox("Remove Black Bars - Player 1 (Top)", &top)) {
-                                p_bar1->setState(top);
-                                p_bar3->setState(top);
-                                AlphaRing::PatchConfig::Set(cModuleName[i], p_bar1->name(), top);
-                                AlphaRing::PatchConfig::Set(cModuleName[i], p_bar3->name(), top);
-
-                                // Player 1 turning off makes Player 2 non-functional (see
-                                // above) - turn it off too so the checkbox doesn't sit
-                                // checked-but-disabled and inert.
-                                if (!top && p_bar2 != nullptr) {
-                                    p_bar2->setState(false);
-                                    AlphaRing::PatchConfig::Set(cModuleName[i], p_bar2->name(), false);
-                                }
-                            }
-                            ImGui::PopID();
-                            if (ImGui::IsItemHovered())
-                                ImGui::SetTooltip("Removes the black bar for whichever player occupies the top half of the screen.");
-                        }
-
-                        if (p_bar2 != nullptr) {
-                            bool bottom = p_bar2->enabled();
-
-                            ImGui::PushID(counter++);
-                            ImGui::BeginDisabled(!player1_on);
-                            if (ImGui::Checkbox("Remove Black Bars - Player 2 (Bottom)", &bottom)) {
-                                p_bar2->setState(bottom);
-                                AlphaRing::PatchConfig::Set(cModuleName[i], p_bar2->name(), bottom);
-                            }
-                            ImGui::EndDisabled();
-                            ImGui::PopID();
-
-                            if (ImGui::IsItemHovered())
-                                ImGui::SetTooltip(player1_on
-                                    ? "Removes the black bar for player 2's half of the screen."
-                                    : "Enable Player 1's black-bar removal first. On this game, Player 2's toggle only takes effect when Player 1's is also on - same shared-painter bug Reach had before its dedicated fix.");
-                        }
-
-                        ImGui::EndDisabled();
-
-                        ImGui::Separator();
-                    }
                 }
 
                 ImGui::EndTabItem();

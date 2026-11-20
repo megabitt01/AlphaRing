@@ -2,6 +2,7 @@
 #include "CModule.h"
 #include "mcc/module/patch/PatchConfig.h"
 #include "mcc/module/patch/SplitscreenConfigStore.h"
+#include "mcc/splitscreen/Splitscreen.h"
 #include "global/Global.h"
 #include "common.h"
 #include "mcc/module/entry/haloreach/haloreach.h"
@@ -49,13 +50,16 @@ void CModule::load_module(const module_info_t *p_info) {
         bool saved;
 
         for (auto patch : m_patches.embed_patches())
-            if (AlphaRing::PatchConfig::Get(module_name, patch->name(), saved))
+            if (!MCC::Splitscreen::IsBlackBarPatch(patch) && AlphaRing::PatchConfig::Get(module_name, patch->name(), saved))
                 patch->setState(saved);
 
         for (auto patch : m_patches.patches())
             if (AlphaRing::PatchConfig::Get(module_name, patch->name(), saved))
                 patch->setState(saved);
     }
+
+    // one choice for every game, saved with the menus
+    MCC::Splitscreen::ApplyBlackBars();
 
     m_patches.apply();
 

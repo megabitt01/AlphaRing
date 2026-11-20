@@ -10,10 +10,13 @@
 #include "log/MatchLog.h"
 #include "mcc/CGameGlobal.h"
 #include "mcc/mcc.h"
+#include "mcc/module/CModule.h"
 #include "mcc/module/patch/SplitscreenConfigStore.h"
+#include "mcc/settings/MenuSettings.h"
 #include "LeftRight.h"
 
 #include <atomic>
+#include <cstring>
 
 namespace Halo1::Entry::Anniversary { bool Available(); bool QuadShown(); }
 namespace Halo2::Entry::Anniversary { bool Available(); }
@@ -65,6 +68,32 @@ namespace MCC::Splitscreen {
         return game == CGameGlobal::Halo1 ? Halo1::Entry::Anniversary::Available()
              : game == CGameGlobal::Halo2 ? Halo2::Entry::Anniversary::Available()
              : false;
+    }
+
+    static constexpr const char* kBlackBarPatches[] = {"Remove Black Bar1", "Remove Black Bar2", "Remove Black Bar3"};
+
+    bool IsBlackBarPatch(const CPatch* patch) {
+        for (auto name : kBlackBarPatches)
+            if (strcmp(patch->name(), name) == 0) return true;
+        return false;
+    }
+
+    void ApplyBlackBars() {
+        std::lock_guard lock(AlphaRing::MenuSettings::Mutex());
+        bool removed = AlphaRing::MenuSettings::State().useBlackBars;
+        for (int i = MCC::Module::MODULE_HALO1; i < MCC::Module::MODULE_MCC; ++i)
+            for (auto patch : MCC::Module::GetSubModule(i)->patches()->embed_patches())
+                if (IsBlackBarPatch(patch)) patch->setState(removed);
+    }
+
+    void ReapplyBlackBars(__int64 module) {
+        for (int i = MCC::Module::MODULE_HALO1; i < MCC::Module::MODULE_MCC; ++i) {
+            auto p_module = MCC::Module::GetSubModule(i);
+            if (p_module->info().hModule != module) continue;
+            // apply() writes the patch's bytes when it's on and the module's own when it's off
+            for (auto patch : p_module->patches()->embed_patches())
+                if (IsBlackBarPatch(patch)) patch->apply();
+        }
     }
 
     ClassicGraphicsScope::ClassicGraphicsScope(unsigned char* game_options, int game) {
@@ -291,8 +320,8 @@ namespace MCC::Splitscreen {
             Settings::Save();
         }
 
-        if (ImGui::SliderInt("Look Sensitivity", &ms.sensitivity[index], 1, 20)) {
-            Settings::ApplyPlayerControls(index);
+        if (ImGui::SliderInt("Look Sensitivity", &ms.sensitivity[index], 1, 10)) {
+            Settings::ApplyPlayerControls(index*2);
             ReloadSettings();
         }
         if (ImGui::IsItemDeactivatedAfterEdit())
@@ -640,6 +669,17 @@ namespace MCC::Splitscreen {
                     ms.useKM = p_setting->b_player0_use_km;
                     Settings::Save();
                 }
+                // the Xbox menu's "Remove Black Bars"
+                if (ImGui::MenuItem("Remove black bars", nullptr, &ms.useBlackBars)) {
+                    ApplyBlackBars();
+                    Settings::Save();
+                }
+                if (ImGui::IsItemHovered())
+                    ImGui::SetTooltip("Top / Bottom: two players' views fill their halves of the screen, and player 1's "
+                                      "with three, instead of keeping the game's shape between black bars. Every game: "
+                                      "Halo 3, ODST, Halo 4, Halo 2 Anniversary multiplayer and Reach.%s",
+                                      LeftRight::Chosen() ? "\nLeft / Right lays the views out itself: this shows "
+                                                            "with Top / Bottom." : "");
                 ImGui::EndMenu();
             }
             ImGui::EndMenuBar();

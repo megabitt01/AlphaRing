@@ -160,12 +160,18 @@ void CGameManager::apply_profiles() {
     auto* base_mapping  = p_mng->ppOriginal.retrive_gamepad_mapping(p_mng, xuid);
     if (!base_profile || !base_mapping)
         return;
+    // Each profile is made whole - with the armor picked for the player - before it's written: the game can read
+    // it at any time from its own thread (Halo 3 does as a settings reload re-runs the match setup), and a copy of
+    // player 1's profile without the pick in between was read as the player's armor (ApplyAll applies it again).
+    static CUserProfile s_profile;
     for (int i = 0; i < 4; ++i) {
         auto profile = get_profile(i);
         if (profile) {
-            memcpy(&profile->profile, base_profile, sizeof(CUserProfile));
+            memcpy(&s_profile, base_profile, sizeof(CUserProfile));
+            MCC::Splitscreen::ApplySpecies(i, s_profile);
+            AlphaRing::MenuSettings::ApplyArmor(i, s_profile);
+            memcpy(&profile->profile, &s_profile, sizeof(CUserProfile));
             memcpy(&profile->mapping,  base_mapping,  sizeof(CGamepadMapping));
-            MCC::Splitscreen::ApplySpecies(i, profile->profile);
         }
     }
 }

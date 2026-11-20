@@ -17,6 +17,25 @@ DefOffset(OFFSET_HALO3_PF_OBJECT_CHANGE_COLOR, 0x28B960) //0x28B5B0
 DefOffset(OFFSET_HALO3_PF_PLAYER_PUSH_MESSAGE, 0x2D4C34) //0x2D4884
 DefOffset(OFFSET_HALO3_PF_PLAYER_POSSESS, 0xE3748) //0xE33FC
 DefOffset(OFFSET_HALO3_PF_PLAYERS_CONTROL_CAMERA, 0x1313C8) //0x131078
+// (settings*, const c_player_appearance*) - stores a local user's appearance, built from their MCC profile, into
+// their settings (OFFSET_HALO3_PV_GLOBAL_VARIABLE + user * 0xD78, user at +0x10); the profile copy that load_setting
+// runs calls it (halo3/armor.cpp)
+DefOffset(OFFSET_HALO3_PF_SETTINGS_SET_APPEARANCE, 0x2D8CB4)
+// (int player, const c_player_configuration*) - a player's configuration in the match, as the session's player
+// updates set it: keeps a copy at +0xF8, kills the body on a team change, writes it to +0x58. Reads the simulation
+// thread's TLS (halo3/armor.cpp)
+DefOffset(OFFSET_HALO3_PF_PLAYER_SET_CONFIGURATION, 0xE2370)
+// (int user) - rebuilds a local user's configuration from their settings and gives it to the network session's
+// local-user table (0x1E24800, stored by 0x133F8), whose player updates the match applies with PLAYER_SET_CONFIGURATION (halo3/armor.cpp)
+DefOffset(OFFSET_HALO3_PF_SESSION_UPDATE_LOCAL_USER, 0x2BF194)
+// (const c_player_appearance*, object_placement_data* (0x180 bytes)) - appends the armor pieces of an appearance to
+// placement data's region permutations (count at +0xA8, up to 16 {region, permutation} pairs at +0xAC); a player's
+// spawn makes their body with it (halo3/armor.cpp)
+DefOffset(OFFSET_HALO3_PF_APPEARANCE_TO_PLACEMENT, 0x384C1C)
+// (int object, int variant, const pair* permutations, int count) - an object's region permutations from its model
+// variant (placement + 0x12C, 0 = the default) and those pairs, as an object is made or updated from placement data
+// (halo3/armor.cpp)
+DefOffset(OFFSET_HALO3_PF_OBJECT_SET_PERMUTATIONS, 0x345A1C)
 
 #define OFFSET_HALO3_DAT_SKINNING_POOL 0x4680DC4
 #define OFFSET_HALO3_PF_SKINNING_POOL_ALLOCATE 0x2A84F8

@@ -1,7 +1,6 @@
 #include "Log.h"
 
 #include "spdlog.h"
-#include "sinks/stdout_color_sinks.h"
 #include "sinks/basic_file_sink.h"
 
 #include "common.h"
@@ -18,14 +17,9 @@ namespace AlphaRing::Log {
 
     static LPTOP_LEVEL_EXCEPTION_FILTER previous_exception_filter = nullptr;
 
-    // Real console screen buffer, obtained once up front. Used directly by spdlog's
-    // console sink and by the stdio tee below, independent of whatever stdout/stderr
-    // get redirected to later.
-    static HANDLE console_handle = nullptr;
-
     // Everything written through the CRT's stdout/stderr (raw printf/fprintf/std::cout,
     // the CRT's own assert() diagnostics, third-party library output, etc.) is captured
-    // by redirecting those streams into this pipe instead of the console directly.
+    // by redirecting those streams into this pipe, which goes to the log file.
     static HANDLE stdout_pipe_read = nullptr;
     static HANDLE stdout_pipe_write = nullptr;
     static HANDLE tee_thread = nullptr;
@@ -125,19 +119,13 @@ namespace AlphaRing::Log {
             : EXCEPTION_CONTINUE_SEARCH;
     }
 
-    // Drains stdout_pipe_read for the lifetime of the process: every chunk is mirrored
-    // to the real console (so the pop-up terminal is unaffected) and appended verbatim
-    // to alpha_ring_info.log, so the file always matches what the terminal showed.
+    // Drains stdout_pipe_read for the lifetime of the process: every chunk is appended
+    // verbatim to alpha_ring_info.log.
     static DWORD WINAPI TeeThreadProc(LPVOID) {
         char buffer[4096];
         DWORD bytes_read = 0;
 
         while (ReadFile(stdout_pipe_read, buffer, sizeof(buffer), &bytes_read, nullptr) && bytes_read > 0) {
-            if (console_handle != nullptr && console_handle != INVALID_HANDLE_VALUE) {
-                DWORD written = 0;
-                WriteFile(console_handle, buffer, bytes_read, &written, nullptr);
-            }
-
             if (raw_log_file != nullptr) {
                 fwrite(buffer, 1, bytes_read, raw_log_file);
                 fflush(raw_log_file);
@@ -148,8 +136,7 @@ namespace AlphaRing::Log {
     }
 
     // Redirects the CRT's stdout/stderr to stdout_pipe_write without disturbing the
-    // process-wide STD_OUTPUT_HANDLE/STD_ERROR_HANDLE (spdlog's console sink is
-    // constructed against the console handle directly, so it is unaffected by this).
+    // process-wide STD_OUTPUT_HANDLE/STD_ERROR_HANDLE.
     static void RedirectStdioToPipe() {
         HANDLE duplicate = nullptr;
         DuplicateHandle(GetCurrentProcess(), stdout_pipe_write, GetCurrentProcess(), &duplicate, 0, FALSE, DUPLICATE_SAME_ACCESS);
@@ -164,24 +151,11 @@ namespace AlphaRing::Log {
     }
 
     // Best-effort throughout: main.cpp asserts on the result and asserts stay live in
-    // Release (common.h), so a console, log file or pipe we can't get only narrows
-    // where the log goes; it must never be what stops the game.
+    // Release (common.h), so a log file or pipe we can't get only narrows where the
+    // log goes; it must never be what stops the game. No console window: the log is
+    // alpha_ring_info.log (and the debugger's output, for crashes and asserts).
     bool Init() {
-        // No console under Wine/Proton: it opens as a separate window that takes focus
-        // from the game (gamescope), and closing it closes MCC.
-        if (!AlphaRing::Hook::IsWine() && AllocConsole()) {
-            freopen("CONIN$", "r", stdin);
-
-            console_handle = CreateFileA("CONOUT$", GENERIC_READ | GENERIC_WRITE,
-                FILE_SHARE_READ | FILE_SHARE_WRITE, nullptr, OPEN_EXISTING, 0, nullptr);
-        }
-
         std::vector<spdlog::sink_ptr> sinks;
-
-        if (console_handle != nullptr && console_handle != INVALID_HANDLE_VALUE) {
-            sinks.push_back(std::make_shared<spdlog::sinks::wincolor_sink<spdlog::details::console_mutex>>(
-                console_handle, spdlog::color_mode::automatic));
-        }
 
         // basic_file_sink throws when it can't open the file (read-only game folder,
         // antivirus lock); logging then carries on without the file.
@@ -224,6 +198,22 @@ namespace AlphaRing::Log {
         return true;
     }
 
+    void DropConsole(const char* when) {
+        HWND window = GetConsoleWindow();
+        if (window == nullptr) return;
+
+        char title[256] = "";
+        GetConsoleTitleA(title, sizeof(title));
+        DWORD pids[16] = {};
+        DWORD count = GetConsoleProcessList(pids, (DWORD)std::size(pids));
+        std::string attached;
+        for (DWORD i = 0; i < count && i < std::size(pids); ++i)
+            attached += (i ? ", " : "") + std::to_string(pids[i]);
+        LOG_WARNING("A console is open ({}): \"{}\", processes {} (MCC is {}) - detaching from it", when, title,
+                    attached, GetCurrentProcessId());
+        FreeConsole();
+    }
+
     bool Shutdown() {
         if (default_logger) {
             default_logger->flush();
@@ -255,15 +245,6 @@ namespace AlphaRing::Log {
             fclose(raw_log_file);
             raw_log_file = nullptr;
         }
-
-        fclose(stdin);
-
-        if (console_handle != nullptr && console_handle != INVALID_HANDLE_VALUE) {
-            CloseHandle(console_handle);
-            console_handle = nullptr;
-        }
-
-        FreeConsole();
 
         return true;
     }

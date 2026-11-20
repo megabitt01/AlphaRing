@@ -283,13 +283,15 @@ void StateMachine::handleOption() {
         if (opt.type == OptionType::Boolean) {
             bool& value = (opt.subOptionType == Menu::k_usePlayer0ProfileOption)
                 ? currentState.menuState.usePlayer0Profile
+                : (opt.subOptionType == Menu::k_useBlackBarsOption)
+                    ? currentState.menuState.useBlackBars
                 : currentState.menuState.useKM;
             value = !value;
         }
     } else {
         int player = currentState.pageIndex - 1;
 
-        if (opt.type == OptionType::Increment && currentState.menuState.sensitivity[player] < 20)
+        if (opt.type == OptionType::Increment && currentState.menuState.sensitivity[player] < 10)
             currentState.menuState.sensitivity[player]++;
 
         if (opt.type == OptionType::Decrement && currentState.menuState.sensitivity[player] > 1)

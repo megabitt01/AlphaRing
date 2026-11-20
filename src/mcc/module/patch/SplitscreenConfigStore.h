@@ -45,7 +45,7 @@ namespace AlphaRing::SplitscreenConfigStore {
     void SetTwoPlayerLayout(TwoPlayerLayout layout, __int64 hModule);
 
     // Halo CE and Halo 2 missions with 3-4 players start in Anniversary graphics instead of Classic
-    // (MCC::Splitscreen::AnniversaryQuadChosen). Saved as -1.anniversary_quad, off unless saved on; read
+    // (MCC::Splitscreen::AnniversaryQuadChosen). Saved as -1.anniversary_quad, on unless saved off; read
     // as missions start, so it's kept loaded like the layout preference.
     bool GetAnniversaryQuad();
     void SetAnniversaryQuad(bool on);

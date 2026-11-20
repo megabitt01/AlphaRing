@@ -129,6 +129,13 @@ namespace AlphaRing::Render::ImGui {
     }
 
     void Render() {
+        // and once the game draws (a console opened late in startup)
+        static bool s_console_checked = false;
+        if (!s_console_checked) {
+            s_console_checked = true;
+            AlphaRing::Log::DropConsole("first frame");
+        }
+
         MCC::Splitscreen::HotJoinPoll();
         AlphaRing::Input::Update();
 

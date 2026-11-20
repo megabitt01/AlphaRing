@@ -365,7 +365,9 @@ void renderMenu(
                     ? state.menuState.invert[state.pageIndex - 1]
                     : (opt.subOptionType == Menu::k_usePlayer0ProfileOption)
                         ? state.menuState.usePlayer0Profile
-                        : state.menuState.useKM;
+                    : (opt.subOptionType == Menu::k_useBlackBarsOption)
+                        ? state.menuState.useBlackBars
+                    : state.menuState.useKM;
 
                 drawButton(
                     menuPosX,

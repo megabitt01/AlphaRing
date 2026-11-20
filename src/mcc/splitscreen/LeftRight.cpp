@@ -4,6 +4,7 @@
 
 #include "mcc/CGameGlobal.h"
 #include "mcc/module/CModule.h"
+#include "Splitscreen.h"
 
 #include <algorithm>
 #include <atomic>
@@ -129,6 +130,7 @@ namespace MCC::Splitscreen::LeftRight {
         } else if (state.table_left_right) {
             for (size_t i = 0; i < std::size(kSlots); ++i)
                 CPatch::apply(Entry(game, module, kSlots[i]), &state.saved[i], sizeof(state.saved[i]));
+            ReapplyBlackBars(module); // chosen since they were saved
             state.table_left_right = false;
         }
 

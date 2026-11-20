@@ -8,6 +8,11 @@ namespace AlphaRing::Log {
     bool Init();
     bool Shutdown();
 
+    // AlphaRing opens no console, but one was reported open with the game: if MCC has one, logs what it is
+    // (its title and the processes attached to it) and detaches from it, which closes it unless another
+    // process (a terminal MCC was started from) shares it. `when` names the moment checked, for the log.
+    void DropConsole(const char* when);
+
     // Logs an assertion failure (reason, expression, and source location) before the
     // process aborts, so the cause survives in alpha_ring_info.log even without a debugger.
     void AssertFailure(const char* expr, const char* msg, const char* file, int line);

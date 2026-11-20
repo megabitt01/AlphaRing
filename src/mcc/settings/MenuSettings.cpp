@@ -6,6 +6,8 @@
 #include "filesystem/Filesystem.h"
 #include "mcc/CGameManager.h"
 #include "mcc/CGameGlobal.h"
+#include "mcc/module/CModule.h"
+#include "mcc/module/patch/PatchConfig.h"
 #include "mcc/splitscreen/Splitscreen.h"
 #include "render/imgui/game/xbox/CXboxColorMapping.h"
 
@@ -28,8 +30,9 @@ namespace AlphaRing::MenuSettings {
     static constexpr uint32_t k_magic = 0x534D5241;
     // 3 added usePlayer0Profile to the menu state block, 4 the per-player armor,
     // 5 the characters' player names, 6 the players' names, 7 the profiles'
-    // built-in index, 8 the per-game armor and the characters' game
-    static constexpr uint32_t k_version = 8;
+    // built-in index, 8 the per-game armor and the characters' game, 9
+    // useBlackBars to the menu state block
+    static constexpr uint32_t k_version = 9;
 
     // Caps on counts read from the file, so a corrupt one can't ask for a huge allocation.
     static constexpr uint32_t k_maxEntries = 1024;
@@ -184,6 +187,7 @@ namespace AlphaRing::MenuSettings {
         ms.playerCount = 1;
         ms.useKM = false;
         ms.usePlayer0Profile = false;
+        ms.useBlackBars = true;
         for (int i = 0; i < 4; ++i) {
             ms.controllerIndex[i] = i;
             ms.controllerProfile[i] = 0;
@@ -245,6 +249,22 @@ namespace AlphaRing::MenuSettings {
         Write(os, ms.teamIndex);
         Write(os, ms.playerColors);
         Write(os, (uint8_t)(ms.usePlayer0Profile ? 1 : 0));
+        Write(os, (uint8_t)(ms.useBlackBars ? 1 : 0));
+    }
+
+    // Files before 9 had the black bars chosen per game in Dev Tools (alpha_ring_patches.cfg): removed if any
+    // game had them removed, kept if every game saved them kept, and removed (the default) if none saved a choice.
+    // Read before Module::Initialize loads that file, so it's loaded here.
+    static bool BlackBarsFromPatchConfig() {
+        AlphaRing::PatchConfig::Load();
+        bool saved = false;
+        for (int i = MCC::Module::MODULE_HALO1; i < MCC::Module::MODULE_MCC; ++i) {
+            bool removed = false;
+            if (!AlphaRing::PatchConfig::Get(MCC::Module::cModuleName[i], "Remove Black Bar1", removed)) continue;
+            if (removed) return true;
+            saved = true;
+        }
+        return !saved;
     }
 
     // `version` 0 is a file from before the menus were united.
@@ -258,6 +278,10 @@ namespace AlphaRing::MenuSettings {
         if (ok && version >= 3)
             ok = Read(is, usePlayer0Profile);
         ms.usePlayer0Profile = usePlayer0Profile != 0;
+        uint8_t useBlackBars = 0;
+        if (ok && version >= 9)
+            ok = Read(is, useBlackBars);
+        ms.useBlackBars = version >= 9 ? useBlackBars != 0 : BlackBarsFromPatchConfig();
         // Unchecked file data: the count indexes the four player profiles and
         // per-player settings, so keep it to 1-4 even for a corrupt file.
         ms.playerCount = std::clamp(ms.playerCount, 1, 4);
@@ -598,9 +622,10 @@ namespace AlphaRing::MenuSettings {
         p_setting->player_count = ms.playerCount;
         p_setting->b_player0_use_km = ms.useKM;
         p_setting->b_use_player0_profile = ms.usePlayer0Profile;
-        MATCH_LOG("ApplySplitscreen(atGameStart={}): override={} player_count={} p1_km={} use_p1_profile={}",
-                  atGameStart, p_setting->b_override, p_setting->player_count, p_setting->b_player0_use_km,
-                  p_setting->b_use_player0_profile);
+        MCC::Splitscreen::ApplyBlackBars();
+        MATCH_LOG("ApplySplitscreen(atGameStart={}): override={} player_count={} p1_km={} use_p1_profile={} "
+                  "no_black_bars={}", atGameStart, p_setting->b_override, p_setting->player_count,
+                  p_setting->b_player0_use_km, p_setting->b_use_player0_profile, ms.useBlackBars);
     }
 
     static bool TeamChangeLeavesMatch() {

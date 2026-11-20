@@ -50,21 +50,13 @@ namespace AlphaRing::Render::Window {
                     DropChar(hWnd, wParam);
                 return 0; // consume all keyboard input
             }
-            switch (uMsg) {
-                case WM_KEYUP:
-                case WM_CHAR:
-                case WM_SYSKEYDOWN:
-                case WM_SYSKEYUP:
-                case WM_LBUTTONDOWN:
-                case WM_LBUTTONUP:
-                case WM_RBUTTONDOWN:
-                case WM_RBUTTONUP:
-                case WM_MBUTTONDOWN:
-                case WM_MBUTTONUP:
-                case WM_MOUSEMOVE:
-                case WM_MOUSEWHEEL:
-                    return 0;
-            }
+            // every other key and mouse message (characters, Alt chords, all buttons, both wheels)
+            if ((uMsg >= WM_KEYFIRST && uMsg <= WM_KEYLAST) || (uMsg >= WM_MOUSEFIRST && uMsg <= WM_MOUSELAST))
+                return 0;
+            // MCC registers for raw input (RegisterRawInputDevices) and reads its mouse and keyboard from WM_INPUT
+            // (GetRawInputData); the system still needs its cleanup, so it goes to DefWindowProc, not the game.
+            if (uMsg == WM_INPUT)
+                return DefWindowProc(hWnd, uMsg, wParam, lParam);
         }
 
         // Only feed ImGui real WndProc input while one of our menus is actually

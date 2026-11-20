@@ -2,6 +2,7 @@
 
 struct CUserProfile;
 struct _XINPUT_GAMEPAD;
+class CPatch;
 
 namespace MCC::Splitscreen {
     bool Initialize();
@@ -54,8 +55,8 @@ namespace MCC::Splitscreen {
 }
 
 namespace MCC::Splitscreen {
-    // Halo CE and Halo 2 with 3-4 players in Anniversary graphics: everyone's saved choice (off unless
-    // chosen), which takes effect as a mission starts, and whether the mission running in `game`
+    // Halo CE and Halo 2 with 3-4 players in Anniversary graphics: everyone's saved choice (on unless
+    // turned off), which takes effect as a mission starts, and whether the mission running in `game`
     // (CGameGlobal::Halo1 or Halo2) started with it. Such a mission draws its 3-4 views whenever
     // Anniversary graphics are on screen; it starts in them unless it's side by side.
     bool AnniversaryQuadChosen();
@@ -64,6 +65,21 @@ namespace MCC::Splitscreen {
     // The mode is drawing Halo CE (module/entry/halo1/anniversary.cpp) and puts three players in quarters, as four;
     // Halo 2's keeps its own grid, player 1 on the top half.
     bool AnniversaryQuartersShown(int game);
+}
+
+namespace MCC::Splitscreen {
+    // Remove black bars: one choice for every game with the "Remove Black Bar1-3" patches (Halo 3, ODST, Halo 4, Halo 2
+    // Anniversary multiplayer, Reach; module/CModule.cpp), which widen the two-player views and the first three-player
+    // one to fill their part of the screen. It's the menus' MenuState::useBlackBars (mcc/settings/MenuSettings), which
+    // the Splitscreen window and the Xbox menu both edit and the menu file saves; the patches follow it, not the
+    // per-game patch config. While Left / Right is chosen it owns the same table entries, so the choice shows with
+    // Top / Bottom.
+    bool IsBlackBarPatch(const CPatch* patch);
+    // Every game's black-bar patches on or off as chosen (a module not loaded takes it as it loads).
+    void ApplyBlackBars();
+    // After the table entries of the module loaded at `module` were put back (Left / Right turned off): its black-bar
+    // patches written again as chosen, over entries saved before the choice changed.
+    void ReapplyBlackBars(__int64 module);
 }
 
 namespace MCC::Splitscreen {

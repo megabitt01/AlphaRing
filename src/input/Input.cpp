@@ -4,6 +4,8 @@
 #include "common.h"
 #include "MinHook.h"
 
+#include <atomic>
+
 #include "imgui.h"
 #include "global/Global.h"
 #include "render/imgui/ImGui.h"
@@ -13,14 +15,34 @@ static HMODULE hModule;
 static DWORD (WINAPI* g_pXInputGetState)(_In_ DWORD dwUserIndex, _Out_ XINPUT_STATE* pState) WIN_NOEXCEPT;
 static DWORD (WINAPI* g_pXInputSetState)(_In_ DWORD dwUserIndex, _In_ XINPUT_VIBRATION* pVibration) WIN_NOEXCEPT;
 
+// MCC's own reads (ordinal 2 of XINPUT1_3, what it imports); AlphaRing's go through the trampoline.
 static DWORD WINAPI XInputGetStateDetour(DWORD dwUserIndex, XINPUT_STATE* pState) {
     DWORD result = g_pXInputGetState(dwUserIndex, pState);
-    if (result == ERROR_SUCCESS && pState && g_pXboxContext && g_pXboxContext->isOpen())
+    if (result == ERROR_SUCCESS && pState && AlphaRing::Input::PadTakenByMenu(dwUserIndex, pState->Gamepad))
         ZeroMemory(&pState->Gamepad, sizeof(pState->Gamepad));
     return result;
 }
 
 namespace AlphaRing::Input {
+    bool XboxMenuOpen() { return g_pXboxContext && g_pXboxContext->isOpen(); }
+
+    static std::atomic<unsigned> g_menu_pads{0}; // pads the Xbox menu had, still holding what they pressed there
+
+    bool PadTakenByMenu(DWORD pad, const XINPUT_GAMEPAD& gamepad) {
+        if (pad >= 4) return false;
+        unsigned bit = 1u << pad;
+        if (XboxMenuOpen()) {
+            g_menu_pads |= bit;
+            return true;
+        }
+        if (!(g_menu_pads & bit)) return false;
+        if (gamepad.wButtons != 0 || gamepad.bLeftTrigger > XINPUT_GAMEPAD_TRIGGER_THRESHOLD ||
+            gamepad.bRightTrigger > XINPUT_GAMEPAD_TRIGGER_THRESHOLD)
+            return true;
+        g_menu_pads &= ~bit;
+        return false;
+    }
+
     bool Init() {
         if ((hModule = GetModuleHandleA("XINPUT1_3.dll")) ||
             (hModule = GetModuleHandleA("XINPUT1_4.dll")) ||

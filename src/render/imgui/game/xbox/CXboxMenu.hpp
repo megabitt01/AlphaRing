@@ -85,9 +85,10 @@ public:
     static constexpr int MAX_PAGES = 5;
     static constexpr int k_controllerOption = 0;
     static constexpr int k_controllerProfileOption = 1;
-    // subOptionType of the Splitscreen page's two Boolean options
+    // subOptionType of the Splitscreen page's Boolean options
     static constexpr int k_useKMOption = 0;
     static constexpr int k_usePlayer0ProfileOption = 1;
+    static constexpr int k_useBlackBarsOption = 2;
     Page pages[MAX_PAGES];
 
     Menu() {
@@ -146,6 +147,7 @@ private:
         pages[0].addOption(Option("Add Player", OptionType::Increment));
         pages[0].addOption(Option("Use K/M for Player 1", OptionType::Boolean, k_useKMOption));
         pages[0].addOption(Option("Use Player 1's Armor", OptionType::Boolean, k_usePlayer0ProfileOption));
+        pages[0].addOption(Option("Remove Black Bars", OptionType::Boolean, k_useBlackBarsOption));
 
         for (int i = 1; i <= 4; i++) {
             initPlayer(i);

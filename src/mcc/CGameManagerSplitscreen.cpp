@@ -179,6 +179,10 @@ bool CGameManager::get_key_state(CGameManager *self, DWORD index, input_data_t *
             return true;
     }
 
+    // The Xbox menu has every player's input, keyboard and mouse too: they're seen released.
+    if (AlphaRing::Input::XboxMenuOpen())
+        return true;
+
     if (!p_profile->b_override) {
         if (index == 0 && PlayerOneSpawnMenuHasPad())
             return true; // the game sees player 1 released
@@ -222,9 +226,11 @@ bool CGameManager::get_key_state(CGameManager *self, DWORD index, input_data_t *
 
         // Until what a player who just joined pressed is let go (Players window, hot join), and while the player's
         // spawn menu is open, which then has the pad, the game sees it released; after a menu closes, what was held
-        // then is taken out of the pad until released.
+        // then is taken out of the pad until released. Read through the XInput hook's trampoline, so the Xbox
+        // menu's hold (what closed it) is checked here too.
         if (MCC::Splitscreen::JoinPressHeld(p_device->input_user, p_device->state.Gamepad) ||
-            MCC::Spawn::HandlePlayerInput(index, p_device->state.Gamepad))
+            MCC::Spawn::HandlePlayerInput(index, p_device->state.Gamepad) ||
+            AlphaRing::Input::PadTakenByMenu(p_device->input_user, p_device->state.Gamepad))
             memset(&p_device->state.Gamepad, 0, sizeof(p_device->state.Gamepad));
     }
 
