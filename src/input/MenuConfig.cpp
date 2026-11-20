@@ -310,6 +310,14 @@ MenuConfig MenuConfig::load() {
             if (vk != 0) cfg.debugKeyboardVKey = vk;
             else LOG_WARNING("MenuConfig: unknown key '{}' for {}, keeping the default", val, key);
         }
+        else if (key == "spawn_menu_controller") {
+            // the players' spawn menus: a button or combo, or NONE to turn them off
+            std::string upper = val;
+            std::transform(upper.begin(), upper.end(), upper.begin(), ::toupper);
+            WORD mask = upper == "NONE" ? 0 : parseCombo(val);
+            if (mask != 0 || upper == "NONE") cfg.spawnMenuMask = mask;
+            else LOG_WARNING("MenuConfig: invalid combo '{}' for {}, keeping the default", val, key);
+        }
         else if (key.size() > 2 && key[1] == '_') {
             // Controller profile binding: "<prefix>_<action> = BUTTON" (e.g. d_jump = A)
             auto profileIt = k_profilePrefixMap.find(key.substr(0, 2));

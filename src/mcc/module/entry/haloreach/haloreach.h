@@ -10,7 +10,7 @@ inline EntrySet* HaloReachEntrySet() {return &g_pHaloReachEntrySet;};
 #define HaloReachEntry(name, offset, returnType, pDetour, ...) \
     returnType pDetour(__VA_ARGS__); \
     typedef returnType (*pDetour##_t)(...); \
-    ::Entry name(HaloReachEntrySet(), offset, pDetour); \
+    ::Entry name(HaloReachEntrySet(), offset, pDetour, entry_feature); \
     returnType pDetour(__VA_ARGS__)
 
 namespace HaloReach::Entry::SplitscreenRt {

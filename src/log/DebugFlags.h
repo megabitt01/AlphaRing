@@ -116,6 +116,12 @@ namespace AlphaRing::DebugFlags {
     // 1P, windows 4/5 and the HUD/CHUD path are untouched. Set false to
     // reproduce the uncorrected ultrawide CUI.
     inline constexpr bool g_cuiUltrawideCanvasFit = true;
+
+    // TEST GATE, off. Looks every offset up from its byte patterns (src/offsets)
+    // even in the MCC build they were written for, as an update would: the log
+    // then lists each one "at X (was X)", and everything should behave exactly
+    // as without it. For box-testing pattern mode without an MCC update.
+    inline constexpr bool g_forceOffsetLookup = false;
 }
 
 // Gated log. Compiles to nothing observable when the flag is false, but keeps

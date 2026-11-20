@@ -6,10 +6,10 @@
 // (table index, field name) instead of (module, patch name) since the table
 // itself has no config file section of its own.
 namespace AlphaRing::SplitscreenConfigStore {
-    // c_splitscreen_config::m_config_table layout in haloreach.dll. Table index
+    // c_splitscreen_config::m_config_table layout in haloreach.dll
+    // (OFFSET_HALOREACH_PV_SPLITSCREEN_TABLE). Table index
     // is (block * SLOT_COUNT + slot), where block is the player-count variant
     // (0: alias of 4p, 1: 1p, 2: 2p, 3: 3p, 4: 4p).
-    constexpr __int64 TABLE_OFFSET = 0xB43C40;
     constexpr int     ENTRY_SIZE   = 20;
     constexpr int     BLOCK_COUNT  = 5;
     constexpr int     SLOT_COUNT   = 4;
@@ -44,6 +44,18 @@ namespace AlphaRing::SplitscreenConfigStore {
     TwoPlayerLayout GetTwoPlayerLayout();
     void SetTwoPlayerLayout(TwoPlayerLayout layout, __int64 hModule);
 
+    // Halo CE and Halo 2 missions with 3-4 players start in Anniversary graphics instead of Classic
+    // (MCC::Splitscreen::AnniversaryQuadChosen). Saved as -1.anniversary_quad, off unless saved on; read
+    // as missions start, so it's kept loaded like the layout preference.
+    bool GetAnniversaryQuad();
+    void SetAnniversaryQuad(bool on);
+
+    // This haloreach.dll build has every hook that draws Left/Right: the full-height views' render targets and
+    // their rebuild on a live switch, the CUI variant, the HUD, the black bars, and the render hook that re-applies
+    // the table. On an MCC update where one isn't found (src/offsets) the saved preference is kept, but the stock
+    // split is used: Apply leaves the Left/Right entries alone and ResolveActiveLayout says Native.
+    bool LeftRightAvailable();
+
     enum class ActiveLayout {
         Native,
         LeftRight,
@@ -52,7 +64,8 @@ namespace AlphaRing::SplitscreenConfigStore {
     // The layout actually in effect for a live local-player count, which the
     // caller must read on the game thread (GetSplitscreenPlayerCount is
     // TLS-rooted and returns 1 outside gameplay). This is the one place that
-    // knows which player counts have a Left/Right implementation: 2 and 3.
+    // knows which player counts have a Left/Right implementation: 2 and 3
+    // (and only where LeftRightAvailable).
     ActiveLayout ResolveActiveLayout(int playerCount);
 
     // True while Left/Right is active and this slot's Left/Right region is a
@@ -60,6 +73,19 @@ namespace AlphaRing::SplitscreenConfigStore {
     // quadrants. Pure layout geometry; HUD (res=3 semantic, canvas fit) and
     // CUI (half -> quarter variant) corrections both key on it.
     bool UsesFullHeightLeftRightSlot(int playerCount, int slot);
+
+    // One m_config_table entry. Halo 3, ODST and Halo 4 share Reach's table layout, so the
+    // Left/Right regions serve them too (mcc/splitscreen/LeftRight).
+    struct LayoutEntry {
+        float x0;
+        float y0;
+        float x1;
+        float y1;
+        __int32 resolution;
+    };
+
+    // The Left/Right region of a slot with 2 or 3 players.
+    const LayoutEntry& LeftRightRegion(int playerCount, int slot);
 
     // Incremented only when the published TwoPlayerLayout actually changes,
     // after the new geometry is in the table. Both layouts share res=3, so the

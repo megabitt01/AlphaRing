@@ -26,7 +26,7 @@ static struct Node {
 static void SaveFileHandler();
 
 namespace Halo3::Entry::Simulation {
-    Halo3Entry(entry1, 0xEEFA8/*0xEEC5C*/, __int64, detour1, int tick, float* a2) {
+    Halo3Entry(entry1, OFFSET_HALO3_PF_SIMULATION_TICKS, __int64, detour1, int tick, float* a2) {
         {
             std::lock_guard<std::mutex> g_lock(g_mutex1);
             if (bTAS) {
@@ -68,7 +68,7 @@ namespace Halo3::Entry::Simulation {
 }
 
 namespace Halo3::Entry::Simulation {
-    Halo3Entry(entry, 0x350ED4/*0x350B24*/, char, detour, unsigned __int16 unit, unit_control_definition* control_data) {
+    Halo3Entry(entry, OFFSET_HALO3_PF_UNIT_CONTROL, char, detour, unsigned __int16 unit, unit_control_definition* control_data) {
         if (bCapture) {
             // create new node
             auto node = new Node();

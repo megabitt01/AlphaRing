@@ -8,6 +8,9 @@
 #include <intrin.h>
 
 namespace HaloReach::Entry::FovBaseline {
+    // The five hooks below work together (slot context from the loops, answered in the getter).
+    EntryFeature("Reach per-player split-screen FOV", OFFSET_HALOREACH_DAT_TLS_INDEX);
+
     // Per-player split-screen FOV through Reach's own FOV baseline.
     // Policy: 1P always native. In split-screen (2-4 local players) a slot
     // whose Alpha Ring override is ON gets that value; OFF gets Reach's

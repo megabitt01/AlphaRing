@@ -16,6 +16,7 @@ bool CPatch::apply(void *dst, const void *src, size_t size)  {
         result = true;
     }
     VirtualProtect(dst, size, oldprotect, &oldprotect);
+    if (result) FlushInstructionCache(GetCurrentProcess(), dst, size); // the bytes may be code
 
     return result;
 }
@@ -30,17 +31,21 @@ static bool ReadBytes(void* dst, const void* src, size_t size) {
     }
 }
 
+bool CPatch::usable() const {
+    return (m_base ? m_base->found() : m_parent->knownBuild()) && (m_needs == nullptr || m_needs());
+}
+
 void CPatch::capture() {
-    m_captured = m_parent->moduleAddress() != 0 &&
-                 ReadBytes(m_backup.data(), (const void*)(m_parent->moduleAddress() + m_offset), m_backup.size());
+    m_captured = m_parent->moduleAddress() != 0 && usable() &&
+                 ReadBytes(m_backup.data(), (const void*)(m_parent->moduleAddress() + address()), m_backup.size());
 }
 
 void CPatch::inheritBackup(const CPatch& other) {
     if (&other == this || !m_captured || !other.m_captured || !other.m_enabled) return;
-    __int64 lo = (std::max)(m_offset, other.m_offset);
-    __int64 hi = (std::min)(m_offset + (__int64)m_backup.size(), other.m_offset + (__int64)other.m_backup.size());
+    __int64 lo = (std::max)(address(), other.address());
+    __int64 hi = (std::min)(address() + (__int64)m_backup.size(), other.address() + (__int64)other.m_backup.size());
     for (__int64 at = lo; at < hi; ++at)
-        m_backup[at - m_offset] = other.m_backup[at - other.m_offset];
+        m_backup[at - address()] = other.m_backup[at - other.address()];
 }
 
 bool CPatch::setState(bool state) {
@@ -53,11 +58,11 @@ bool CPatch::setState(bool state) {
 }
 
 bool CPatch::apply()  {
-    if (!m_captured || m_parent->moduleAddress() == 0) return false; // module not loaded (applied on load), or the patch is outside it
+    if (!m_captured || m_parent->moduleAddress() == 0) return false; // module not loaded (applied on load), the patch is outside it or not in its build
     // m_backup holds the module's own bytes, captured once when it loaded (CPatchSet::update),
     // so enabling and disabling can each be repeated safely in any order - e.g. a saved state
     // restored before the first apply, then CPatchSet::apply() sweeping every enabled patch.
   
-    auto dst = (void*)(m_parent->moduleAddress() + m_offset);
+    auto dst = (void*)(m_parent->moduleAddress() + address());
     return m_enabled ? apply(dst, m_data.data(), m_data.size()) : apply(dst, m_backup.data(), m_backup.size());
 }

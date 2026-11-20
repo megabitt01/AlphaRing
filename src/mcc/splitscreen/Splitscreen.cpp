@@ -8,6 +8,17 @@
 
 #include "../CGameManager.h"
 #include "log/MatchLog.h"
+#include "mcc/CGameGlobal.h"
+#include "mcc/mcc.h"
+#include "mcc/module/patch/SplitscreenConfigStore.h"
+#include "LeftRight.h"
+
+#include <atomic>
+
+namespace Halo1::Entry::Anniversary { bool Available(); bool QuadShown(); }
+namespace Halo2::Entry::Anniversary { bool Available(); }
+namespace Halo1::Entry::HotJoin { bool Available(); bool Active(); }
+namespace Halo2::Entry::HotJoin { bool Available(); bool Active(); }
 
 namespace MCC::Splitscreen {
     DefDetourFunction(__int64, __fastcall, get_index_by_xuid, void* a1, __int64 xuid) {
@@ -31,12 +42,128 @@ namespace MCC::Splitscreen {
 
         // fix: changing team freeze the game
         result = AlphaRing::Hook::Detour({
-            {0x38A09C/*0x2D01DC*/, 0x374164/*0x2BD620*/, get_index_by_xuid, (void**)&ppOriginal_get_index_by_xuid},
+            {OFFSET_MCC_PF_GET_INDEX_BY_XUID, OFFSET_MCC_WS_PF_GET_INDEX_BY_XUID, get_index_by_xuid, (void**)&ppOriginal_get_index_by_xuid},
         });
 
         assertm(result, "MCC:Splitscreen: failed to hook");
 
         return true;
+    }
+
+    static std::atomic<int> s_anniversary_quad_game{-1}; // the Halo CE / Halo 2 game whose mission started with it
+
+    bool AnniversaryQuadChosen() { return AlphaRing::SplitscreenConfigStore::GetAnniversaryQuad(); }
+    void ChooseAnniversaryQuad(bool on) { AlphaRing::SplitscreenConfigStore::SetAnniversaryQuad(on); }
+    bool AnniversaryQuadActive(int game) { return s_anniversary_quad_game == game; }
+    bool AnniversaryQuartersShown(int game) {
+        return game == CGameGlobal::Halo1 && Halo1::Entry::Anniversary::QuadShown();
+    }
+
+    // The game's 3-4 player mode has all its offsets in this MCC build (always in the one they were written for), and
+    // for Halo CE the render targets it draws into.
+    static bool AnniversaryQuadAvailable(int game) {
+        return game == CGameGlobal::Halo1 ? Halo1::Entry::Anniversary::Available()
+             : game == CGameGlobal::Halo2 ? Halo2::Entry::Anniversary::Available()
+             : false;
+    }
+
+    ClassicGraphicsScope::ClassicGraphicsScope(unsigned char* game_options, int game) {
+        auto p_setting = AlphaRing::Global::MCC::Splitscreen();
+
+        bool split = p_setting->b_override && game_options != nullptr; // AlphaRing's split screen sets this mission up
+        // A hot-join mission can have any number of players: it's set up as one for four, and side by side for when
+        // two or three are in.
+        bool hot_join = split && HotJoinReserves(game);
+        bool left_right = split && LeftRight::Chosen() &&
+                          LeftRight::Supports(game, hot_join ? 2 : p_setting->player_count);
+        LeftRight::StartClassicMission(game, left_right);
+        // Chosen, the 3-4 player mode is set up for the whole mission, whichever graphics it starts in: Back
+        // switches Halo CE and Halo 2 to Anniversary in the middle of one, side by side included.
+        bool quad = split && AnniversaryQuadChosen() && AnniversaryQuadAvailable(game);
+        s_anniversary_quad_game = quad ? game : -1;
+        if (!split) return;
+        if (p_setting->player_count <= 2 && !hot_join && !left_right) return;
+        bool anniversary = game_options[0] & 1;
+        if (!anniversary) return;
+        if (quad && !left_right) {
+            LOG_INFO("Splitscreen: {} players{} in Anniversary graphics (experimental)", p_setting->player_count,
+                     hot_join ? " and hot join" : "");
+            return;
+        }
+
+        LOG_INFO("Splitscreen: {} players{}{}, starting in Classic graphics", p_setting->player_count,
+                 left_right ? " side by side" : "", hot_join ? " and hot join" : "");
+        m_options = game_options;
+        m_saved = game_options[0];
+        game_options[0] &= ~1;
+    }
+
+    ClassicGraphicsScope::~ClassicGraphicsScope() {
+        if (m_options) m_options[0] = m_saved;
+    }
+
+    static std::atomic<bool> s_hot_join{false};
+
+    bool HotJoinChosen() { return s_hot_join; }
+
+    // The slots are AlphaRing's, a lone player 1 the first of several; every game start keeps split screen on for it
+    // too (AlphaRing::MenuSettings::ApplySplitscreen).
+    void ChooseHotJoin(bool on) {
+        s_hot_join = on;
+        if (on) AlphaRing::Global::MCC::Splitscreen()->b_override = true;
+    }
+
+    bool HotJoinOn() { return AlphaRing::Global::MCC::Splitscreen()->b_override && s_hot_join; }
+
+    // How a game takes a player joining in the middle of a mission. Halo 3, ODST, Reach and Halo 4 make the player MCC
+    // signs in. Halo CE and Halo 2 make their players as a mission loads, so their modules keep all four and hold back
+    // the ones who haven't joined (module/entry/halo1/hotjoin.cpp, halo2/hotjoin.cpp), where this build has all the
+    // module's addresses; the module notes whether the running mission started so (Active).
+    bool HotJoinReserves(int game) {
+        return HotJoinOn() && (game == CGameGlobal::Halo1 ? Halo1::Entry::HotJoin::Available()
+                             : game == CGameGlobal::Halo2 && Halo2::Entry::HotJoin::Available());
+    }
+
+    static bool SignsIn(int game) {
+        return game == CGameGlobal::Halo3 || game == CGameGlobal::Halo3ODST || game == CGameGlobal::HaloReach ||
+               game == CGameGlobal::Halo4;
+    }
+
+    // A running map takes joins (not one that is still loading).
+    bool HotJoinActive() {
+        if (!HotJoinOn() || !MCC::IsInGame() || !CGameManager::running()) return false;
+        auto p_global = GameGlobal();
+        if (p_global == nullptr) return false;
+        int game = p_global->current_game;
+        return game == CGameGlobal::Halo1 ? Halo1::Entry::HotJoin::Active()
+             : game == CGameGlobal::Halo2 ? Halo2::Entry::HotJoin::Active()
+             : SignsIn(game);
+    }
+
+    // Players leave in the middle of a Halo CE mission only: its module takes the leaver's Spartan away, and the games
+    // that sign players in end the mission when MCC signs one out.
+    bool HotJoinLeaves() {
+        auto p_global = GameGlobal();
+        return HotJoinActive() && p_global && p_global->current_game == CGameGlobal::Halo1;
+    }
+
+    int HotJoinSlots(int player_count) {
+        auto p_global = GameGlobal();
+        return p_global && HotJoinReserves(p_global->current_game) ? 4 : player_count;
+    }
+
+    // Halo CE and Halo 2 take the choice as a mission starts, and MCC ends one whose held-back players go away.
+    bool HotJoinLocked() {
+        auto p_global = GameGlobal();
+        return MCC::IsInGame() && p_global &&
+               (p_global->current_game == CGameGlobal::Halo1 || p_global->current_game == CGameGlobal::Halo2);
+    }
+
+    // Its missions start as hot-join ones (with split screen on, as every game start puts it with hot join chosen).
+    bool HotJoinHeld() {
+        if (!HotJoinChosen() || !HotJoinLocked()) return false;
+        return GameGlobal()->current_game == CGameGlobal::Halo1 ? Halo1::Entry::HotJoin::Available()
+                                                               : Halo2::Entry::HotJoin::Available();
     }
 }
 
@@ -69,6 +196,7 @@ namespace MCC::Splitscreen {
         for (int i = 0; i < 4; i++) {
             XINPUT_STATE state;
             if (AlphaRing::Input::GetXInputGetState(i, &state)) {
+                if (PressTaken(i, state.Gamepad)) continue; // the Players window or hot join acted on it (Join.cpp)
                 if (state.Gamepad.wButtons != 0 ||
                     state.Gamepad.bLeftTrigger > 30 ||
                     state.Gamepad.bRightTrigger > 30) {
@@ -82,8 +210,20 @@ namespace MCC::Splitscreen {
     // Binding state: which player slot is waiting for controller input (-1 = none)
     static int s_binding_player = -1;
 
+    // Bind takes a controller only on its player's page as it's drawn, with the overlay shown: so only while that page
+    // was drawn waiting the frame before (or this one: before a frame starts the count is still the last one's). A Bind
+    // whose player has gone is dropped.
+    static int s_binding_frame = -2; // the frame the page last drew the Bind waiting
+    bool BindPending() {
+        if (s_binding_player >= PlayerCount()) s_binding_player = -1;
+        return s_binding_player >= 0 && AlphaRing::Global::Global()->show_imgui &&
+               s_binding_frame >= ImGui::GetFrameCount() - 1;
+    }
+
     void ImGuiContext() {
         static bool show_splitscreen;
+
+        JoinContext();
 
         if (ImGui::BeginMainMenuBar()) {
             ImGui::MenuItem("Splitscreen", nullptr, &show_splitscreen);
@@ -400,6 +540,12 @@ namespace MCC::Splitscreen {
                 s_binding_player = index;
             }
         }
+        if (s_binding_player == index) s_binding_frame = ImGui::GetFrameCount(); // BindPending
+
+        if (p_profile->controller_index != controller_index) {
+            ms.controllerIndex[index] = p_profile->controller_index;
+            Settings::Save();
+        }
 
         if (p_profile->controller_index != controller_index) {
             ms.controllerIndex[index] = p_profile->controller_index;
@@ -505,7 +651,9 @@ namespace MCC::Splitscreen {
         ImGui::AlignTextToFramePadding();
         ImGui::TextUnformatted("Players");
         ImGui::SameLine();
-        ImGui::BeginDisabled(player_count <= 1);
+        // in a hot-join Halo CE or Halo 2 game the count changes only by joining and leaving
+        bool held = HotJoinHeld();
+        ImGui::BeginDisabled(held || player_count <= 1);
         if (ImGui::Button("-", ImVec2(button_size, button_size)))
             --player_count;
         ImGui::EndDisabled();
@@ -517,10 +665,12 @@ namespace MCC::Splitscreen {
         ImGui::SetCursorPosX(ImGui::GetCursorPosX() + (button_size - text_width) * 0.5f);
         ImGui::TextUnformatted(count_text);
         ImGui::SameLine(0.0f, ImGui::GetStyle().ItemSpacing.x + (button_size - text_width) * 0.5f);
-        ImGui::BeginDisabled(player_count >= 4);
+        ImGui::BeginDisabled(held || player_count >= 4);
         if (ImGui::Button("+", ImVec2(button_size, button_size)))
             ++player_count;
         ImGui::EndDisabled();
+        if (held && ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled))
+            ImGui::SetTooltip("Players join and leave in the Players window until this hot-join game ends");
         if (player_count != ms.playerCount) {
             ms.playerCount = player_count;
             Settings::ApplySplitscreen(false);

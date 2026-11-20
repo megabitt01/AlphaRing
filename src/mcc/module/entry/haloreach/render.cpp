@@ -165,6 +165,12 @@ namespace {
 
     void CaptureRenderThrottle(__int64 hModule) {
         if (!AlphaRing::DebugFlags::g_renderThrottle) return;
+        if (!AlphaRing::Found({OFFSET_HALOREACH_DAT_RENDER_THROTTLE_LIVE, OFFSET_HALOREACH_PF_GET_SPLITSCREEN_PLAYER_COUNT,
+                               OFFSET_HALOREACH_DAT_MCC_QUALITY_SETTINGS, OFFSET_HALOREACH_DAT_QUALITY_TIER_GATE,
+                               OFFSET_HALOREACH_PF_APPLY_QUALITY_TIER, OFFSET_HALOREACH_DAT_TAG_SEGMENT_TABLE,
+                               OFFSET_HALOREACH_DAT_TAG_INDEX_TABLE, OFFSET_HALOREACH_DAT_SCENARIO_GLOBALS,
+                               OFFSET_HALOREACH_DAT_ENGINE_GLOBALS}))
+            return;
 
         // The static fallback table at 0xB43E40 is not read here: use_static
         // (0x4E389B0) measured 0 and no static record ever matched the live
@@ -287,6 +293,9 @@ namespace {
         unsigned current = AlphaRing::SplitscreenConfigStore::GetLayoutGeneration();
         unsigned built   = HaloReach::Entry::SplitscreenRt::BuiltLayoutGeneration();
         if (current == built) return;
+        if (!AlphaRing::Found({OFFSET_HALOREACH_DAT_RT_SCRATCH_DEPTH, OFFSET_HALOREACH_PF_RT_POOL_RELEASE,
+                               OFFSET_HALOREACH_PF_RT_POOL_INIT}))
+            return; // an MCC build without them (src/offsets/Offsets.h)
 
         // Bounded: at most one line per rebuild/deferral transition, and a hard
         // cap for the session so a pathological toggle loop cannot flood.

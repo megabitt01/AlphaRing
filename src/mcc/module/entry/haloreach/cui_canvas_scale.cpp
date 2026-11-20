@@ -69,21 +69,17 @@ namespace HaloReach::Entry::CuiCanvasScale {
     constexpr float kCanvasRefHeight = 720.0f;
     constexpr float kSixteenByNine = 16.0f / 9.0f;
 
-    // Backbuffer dimensions, published by the graphics startup/resize paths.
-    // Read here exactly as the native code reads them - signed 16-bit.
-    constexpr __int64 kRvaBackbufferWidth = 0xB43A90;
-    constexpr __int64 kRvaBackbufferHeight = 0xB43A94;
+    // Backbuffer dimensions (OFFSET_HALOREACH_PV_SCREEN_SIZE), published by the
+    // graphics startup/resize paths. Read here exactly as the native code reads
+    // them - signed 16-bit.
 
-    // The shared CUI canvas scale (two floats) and the cache keys that gate its
-    // recomputation. FUN_1802f1890 (0x2F18AC), the inlined copy in
+    // The shared CUI canvas scale (two floats, OFFSET_HALOREACH_DAT_CUI_CANVAS_SCALE)
+    // and the cache keys that gate its recomputation (..._CACHE_W/H).
+    // FUN_1802f1890 (0x2F18AC), the inlined copy in
     // FUN_1802f1a2c (0x2F1B8C) and the one in FUN_1802f2e74 (0x2F2F47) all use
     // the same guard: recompute only when (backbufferW, backbufferH) differ
     // from these keys. Seeding the keys with the live dimensions makes every
     // one of those sites take the "unchanged" branch and honour our values.
-    constexpr __int64 kRvaCanvasScaleX = 0xB4BBD8;
-    constexpr __int64 kRvaCanvasScaleY = 0xB4BBDC;
-    constexpr __int64 kRvaCanvasCacheW = 0x4E38C8C;
-    constexpr __int64 kRvaCanvasCacheH = 0x4E38C94;
 
     // 0x2AAB24 is reached from four call sites; only one is the per-player
     // window draw:
@@ -93,11 +89,15 @@ namespace HaloReach::Entry::CuiCanvasScale {
     //   0x26FACD  FUN_18026fa88       loops windows 4..5 only
     //   0x1D3D1D  FUN_1801d3894
     //
-    // Gating on the return address keeps the correction strictly inside the
-    // per-player draw, so windows 4/5 and the other readers of the same global
-    // (DrawLetterboxAndNotificationBars, DrawHintTextOverlay, FUN_1802d2018,
-    // FUN_1802d5884, FUN_180305b44, FUN_1802dd4b0) are untouched.
-    constexpr __int64 kPerPlayerCallSiteReturnRva = 0x26CEE9;
+    // Gating on the return address (OFFSET_HALOREACH_V_CUI_WINDOW_DRAW_RETURN)
+    // keeps the correction strictly inside the per-player draw, so windows 4/5
+    // and the other readers of the same global (DrawLetterboxAndNotificationBars,
+    // DrawHintTextOverlay, FUN_1802d2018, FUN_1802d5884, FUN_180305b44,
+    // FUN_1802dd4b0) are untouched.
+    EntryFeature("Reach split-screen CUI canvas fit", OFFSET_HALOREACH_PF_GET_SPLITSCREEN_PLAYER_COUNT,
+                 OFFSET_HALOREACH_PV_SCREEN_SIZE, OFFSET_HALOREACH_DAT_CUI_CANVAS_SCALE,
+                 OFFSET_HALOREACH_DAT_CUI_CANVAS_CACHE_W, OFFSET_HALOREACH_DAT_CUI_CANVAS_CACHE_H,
+                 OFFSET_HALOREACH_V_CUI_WINDOW_DRAW_RETURN);
 
     // Restores every byte of modified global state, including the cache keys,
     // so that after the draw the engine is bit-identical to what it would have
@@ -118,10 +118,10 @@ namespace HaloReach::Entry::CuiCanvasScale {
 
         void Apply(__int64 hModule, int backbufferWidth, int backbufferHeight,
                    float effectiveWidth) {
-            scaleX = (float*)(hModule + kRvaCanvasScaleX);
-            scaleY = (float*)(hModule + kRvaCanvasScaleY);
-            cacheW = (int*)(hModule + kRvaCanvasCacheW);
-            cacheH = (int*)(hModule + kRvaCanvasCacheH);
+            scaleX = (float*)(hModule + OFFSET_HALOREACH_DAT_CUI_CANVAS_SCALE);
+            scaleY = (float*)(hModule + OFFSET_HALOREACH_DAT_CUI_CANVAS_SCALE + 4);
+            cacheW = (int*)(hModule + OFFSET_HALOREACH_DAT_CUI_CANVAS_CACHE_W);
+            cacheH = (int*)(hModule + OFFSET_HALOREACH_DAT_CUI_CANVAS_CACHE_H);
 
             savedScaleX = *scaleX;
             savedScaleY = *scaleY;
@@ -162,7 +162,7 @@ namespace HaloReach::Entry::CuiCanvasScale {
         CanvasScaleOverride canvasFit;
 
         if (AlphaRing::DebugFlags::g_cuiUltrawideCanvasFit && g_depth == 0 &&
-            (__int64)_ReturnAddress() - hModule == kPerPlayerCallSiteReturnRva && window < 4) {
+            (__int64)_ReturnAddress() - hModule == OFFSET_HALOREACH_V_CUI_WINDOW_DRAW_RETURN && window < 4) {
             auto GetSplitscreenPlayerCount = (GetSplitscreenPlayerCount_t)(hModule + OFFSET_HALOREACH_PF_GET_SPLITSCREEN_PLAYER_COUNT);
             int player_count = (int)GetSplitscreenPlayerCount();
 
@@ -172,8 +172,8 @@ namespace HaloReach::Entry::CuiCanvasScale {
             // were validated. 1P keeps stock behaviour; windows 4/5 are already
             // excluded by the call-site gate and again by window < player_count.
             if (player_count >= 2 && window < (unsigned int)player_count) {
-                int backbufferWidth = *(short*)(hModule + kRvaBackbufferWidth);
-                int backbufferHeight = *(short*)(hModule + kRvaBackbufferHeight);
+                int backbufferWidth = *(short*)(hModule + OFFSET_HALOREACH_PV_SCREEN_SIZE);
+                int backbufferHeight = *(short*)(hModule + OFFSET_HALOREACH_PV_SCREEN_SIZE + 4);
 
                 if (backbufferWidth > 0 && backbufferHeight > 0) {
                     const float sixteenByNineWidth = (float)backbufferHeight * kSixteenByNine;

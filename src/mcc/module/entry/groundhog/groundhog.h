@@ -10,6 +10,6 @@ inline EntrySet* GroundHogEntrySet() {return &g_pGroundHogEntrySet;};
 #define GroundHogEntry(name, offset, returnType, pDetour, ...) \
     returnType pDetour(__VA_ARGS__); \
     typedef returnType (*pDetour##_t)(...); \
-    ::Entry name(GroundHogEntrySet(), offset, pDetour); \
+    ::Entry name(GroundHogEntrySet(), offset, pDetour, entry_feature); \
     returnType pDetour(__VA_ARGS__)
 

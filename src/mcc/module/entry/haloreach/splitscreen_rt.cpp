@@ -48,14 +48,13 @@ namespace HaloReach::Entry::SplitscreenRt {
     // 4p sizing is untouched. Normalisation is PER-VARIANT - see the branch
     // table at the scale computation below.
 
-    constexpr __int64 CONFIG_TABLE = 0xB43C40;   // c_splitscreen_config::m_config_table
-    constexpr int     CONFIG_ENTRY = 20;
-    constexpr __int64 DESC_TABLE   = 0xBB9230;
-    constexpr int     DESC_STRIDE  = 0x58;
-    constexpr __int64 SCREEN_W     = 0xB43A90;
-    constexpr __int64 SCREEN_H     = 0xB43A94;
-    constexpr __int64 STOCK_FRAC_W = 0xA8AE58;   // _DAT_180a8ae58 = 0.805208325
-    constexpr __int64 STOCK_FRAC_H = 0xA8AD74;   // DAT_180a8ad74  = 0.5 (shared - read only)
+    constexpr int     CONFIG_ENTRY = 20;   // OFFSET_HALOREACH_PV_SPLITSCREEN_TABLE's
+    constexpr int     DESC_STRIDE  = 0x58; // OFFSET_HALOREACH_DAT_RT_DESC_TABLE's
+
+    EntryFeature("Reach split-screen render-target sizing", OFFSET_HALOREACH_PV_SPLITSCREEN_TABLE,
+                 OFFSET_HALOREACH_DAT_RT_DESC_TABLE, OFFSET_HALOREACH_PV_SCREEN_SIZE,
+                 OFFSET_HALOREACH_DAT_RT_STOCK_FRAC_W, OFFSET_HALOREACH_DAT_RT_STOCK_FRAC_H);
+    bool Available() { return entry_feature->Available(); }
 
     struct SplitscreenViewConfig { float x0, y0, x1, y1; int resolution; };
 
@@ -86,7 +85,7 @@ namespace HaloReach::Entry::SplitscreenRt {
         // nothing ever binds while leaving the bound one stock - silently doing
         // nothing. Read the res from the same table the game publishes it from.
         int index0 = 2 * 4 + 0;
-        auto cfg0 = (SplitscreenViewConfig*)(hModule + CONFIG_TABLE + (__int64)index0 * CONFIG_ENTRY);
+        auto cfg0 = (SplitscreenViewConfig*)(hModule + OFFSET_HALOREACH_PV_SPLITSCREEN_TABLE + (__int64)index0 * CONFIG_ENTRY);
         int configRes = cfg0->resolution;
 
         // res 5 exists and falls back to row 0 in the content table; it is not a
@@ -108,7 +107,7 @@ namespace HaloReach::Entry::SplitscreenRt {
         constexpr int SHARED_ENTRIES[] = { 2 * 4 + 0, 2 * 4 + 1, 3 * 4 + 0, 3 * 4 + 1, 3 * 4 + 2 };
         float maxW = 0.0f, maxH = 0.0f;
         for (int index : SHARED_ENTRIES) {
-            auto cfg = (SplitscreenViewConfig*)(hModule + CONFIG_TABLE + (__int64)index * CONFIG_ENTRY);
+            auto cfg = (SplitscreenViewConfig*)(hModule + OFFSET_HALOREACH_PV_SPLITSCREEN_TABLE + (__int64)index * CONFIG_ENTRY);
             if (cfg->resolution != configRes) continue;
             float w = cfg->x1 - cfg->x0;
             float h = cfg->y1 - cfg->y0;
@@ -116,8 +115,8 @@ namespace HaloReach::Entry::SplitscreenRt {
             if (h > maxH) maxH = h;
         }
 
-        int screenW = *(int*)(hModule + SCREEN_W);
-        int screenH = *(int*)(hModule + SCREEN_H);
+        int screenW = *(int*)(hModule + OFFSET_HALOREACH_PV_SCREEN_SIZE);
+        int screenH = *(int*)(hModule + OFFSET_HALOREACH_PV_SCREEN_SIZE + 4);
 
         // A zero/absurd table (reset mid-load, or read before restore) must not
         // produce a degenerate surface - fall through untouched and let the log
@@ -165,8 +164,8 @@ namespace HaloReach::Entry::SplitscreenRt {
             case 0:  stockFracW = 1.0f; stockFracH = 1.0f; break;
             case 1:  stockFracW = 1.0f; stockFracH = 0.5f; break;
             case 2:  stockFracW = 0.5f; stockFracH = 0.5f; break;
-            default: stockFracW = *(float*)(hModule + STOCK_FRAC_W);
-                     stockFracH = *(float*)(hModule + STOCK_FRAC_H); break;
+            default: stockFracW = *(float*)(hModule + OFFSET_HALOREACH_DAT_RT_STOCK_FRAC_W);
+                     stockFracH = *(float*)(hModule + OFFSET_HALOREACH_DAT_RT_STOCK_FRAC_H); break;
         }
 
         if (!(stockFracW > 0.0001f) || !(stockFracH > 0.0001f)) {
@@ -244,7 +243,7 @@ namespace HaloReach::Entry::SplitscreenRt {
         resolve(oldW1, oldH1, newW1, newH1);
         resolve(oldW2, oldH2, newW2, newH2);
 
-        int descIndex = (int)(((__int64)param_3 - (hModule + DESC_TABLE)) / DESC_STRIDE);
+        int descIndex = (int)(((__int64)param_3 - (hModule + OFFSET_HALOREACH_DAT_RT_DESC_TABLE)) / DESC_STRIDE);
 
         *(int*)(param_2 + 0x04) = newW1;
         *(int*)(param_2 + 0x08) = newH1;

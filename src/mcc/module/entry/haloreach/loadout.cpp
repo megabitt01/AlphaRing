@@ -9,6 +9,10 @@
 #include "mcc/module/patch/SplitscreenConfigStore.h"
 
 namespace HaloReach::Entry::Loadout {
+    EntryFeature("Reach split-screen CUI variant", OFFSET_HALOREACH_PF_GET_SPLITSCREEN_PLAYER_COUNT,
+                 OFFSET_HALOREACH_PV_SPLITSCREEN_TABLE);
+    bool Available() { return entry_feature->Available(); }
+
     typedef unsigned __int64 (*GetSplitscreenPlayerCount_t)();
 
     // 0x2CA86C is Reach's generic per-window CUI resolution-variant selector
@@ -63,7 +67,8 @@ namespace HaloReach::Entry::Loadout {
         if (slot_index >= 0 && slot_index < 4) {
             auto GetSplitscreenPlayerCount = (GetSplitscreenPlayerCount_t)(hModule + OFFSET_HALOREACH_PF_GET_SPLITSCREEN_PLAYER_COUNT);
             int player_count = (int)GetSplitscreenPlayerCount();
-            int* p_resolution = (int*)(hModule + 0xB43C40 + 0x10 + (size_t)(slot_index + player_count * 4) * 20);
+            int* p_resolution = (int*)(hModule + OFFSET_HALOREACH_PV_SPLITSCREEN_TABLE + 0x10 +
+                                       (size_t)(slot_index + player_count * 4) * 20);
 
             // The selector indexes m_config_table by (slot + playerCount*4), so
             // the variant depends on the live player count at lookup time as

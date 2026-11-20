@@ -4,6 +4,7 @@
 #include "mcc/mcc.h"
 #include "mcc/settings/MenuSettings.h"
 #include "log/MatchLog.h"
+#include "mcc/splitscreen/Splitscreen.h"
 
 #include <cstdio>
 #include <guiddef.h>
@@ -87,6 +88,9 @@ bool CGameManager::Initialize(CGameManager* mng) {
         {pGameManager->table->set_state, set_state, (void**)&ppOriginal.set_state},
         {pGameManager->table->game_restart, game_restart, (void**)&ppOriginal.game_restart},
         {pGameManager->table->game_setup, game_setup, (void**)&ppOriginal.game_setup},
+        {pGameManager->table->get_hud_element_anchor, get_hud_element_anchor, (void**)&ppOriginal.get_hud_element_anchor},
+        {pGameManager->table->get_hud_element_transform, get_hud_element_transform, (void**)&ppOriginal.get_hud_element_transform},
+        {pGameManager->table->transform_hud_color, transform_hud_color, (void**)&ppOriginal.transform_hud_color},
     });
 }
 
@@ -131,6 +135,7 @@ void CGameManager::set_state(CGameManager *self, eState state) {
     static std::atomic<int> s_last_state{-1};
     if (s_last_state.exchange((int)state) != (int)state)
         MATCH_LOG("set_state {} (caller {})", (int)state, AlphaRing::MatchLog::Describe(_ReturnAddress()));
+    track_state(state);
     return ppOriginal.set_state(self, state);
 }
 
@@ -160,6 +165,7 @@ void CGameManager::apply_profiles() {
         if (profile) {
             memcpy(&profile->profile, base_profile, sizeof(CUserProfile));
             memcpy(&profile->mapping,  base_mapping,  sizeof(CGamepadMapping));
+            MCC::Splitscreen::ApplySpecies(i, profile->profile);
         }
     }
 }
@@ -237,6 +243,7 @@ static bool ShouldThrottleApply() {
 }
 
 void *CGameManager::game_restart(CGameManager *self, int type, const char *reason) {
+    end_session();
     AlphaRing::MatchLog::NewMatch();
     MATCH_LOG("game_restart enter: type={} reason=\"{}\" (caller {})", type, reason ? reason : "<null>",
               AlphaRing::MatchLog::Describe(_ReturnAddress()));

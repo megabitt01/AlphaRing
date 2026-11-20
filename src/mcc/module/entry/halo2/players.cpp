@@ -5,8 +5,15 @@
 // there. Local players past the mission's starting locations take the co-op respawn instead, which brings them in
 // beside a teammate (once that teammate is out of combat, as for any co-op respawn) - only where the game gives co-op
 // respawns. On Legendary or with the Iron skull it doesn't, and counts a co-op player waiting for one as dead, which
-// reverts to the checkpoint: there they keep waiting for a starting location, as before.
+// reverts to the checkpoint: there they keep waiting for a starting location, as before. In a hot-join mission
+// (hotjoin.cpp) the players who haven't joined keep waiting for a starting location (one waiting for the co-op respawn
+// counts as a dead teammate, and no checkpoint would be saved), and one who has joined takes the co-op respawn whenever
+// they have no unit - a checkpoint from before they joined included - so they come in beside a teammate.
 namespace Halo2::Entry::Players {
+    EntryFeature("Halo 2 co-op respawn", OFFSET_HALO2_PV_RESPAWN, OFFSET_HALO2_PV_PLAYERS, OFFSET_HALO2_PV_SCENARIO,
+                 OFFSET_HALO2_PF_COOP_CAMPAIGN, OFFSET_HALO2_PF_COOP_RESPAWN_ALLOWED);
+    const ::AlphaRing::Feature& Hooks() { return *entry_feature; }
+
     // players globals: player handle per local player, int[4] at +0xC (-1: none)
     int Handle(__int64 module, int local) {
         char* globals = *(char**)(module + OFFSET_HALO2_PV_RESPAWN);
@@ -33,13 +40,16 @@ namespace Halo2::Entry::Players {
 
     Halo2Entry(entry, OFFSET_HALO2_PF_PLAYERS_UPDATE, void, detour, void* state) {
         __int64 module = entry.m_target - entry.m_offset;
+        int joined = HotJoin::Hold(module); // every slot outside a hot-join mission
         int places = CoopRespawn(module) ? StartingLocations(module) : 0;
-        for (int local = places; places > 0 && local < 4; ++local) {
+        for (int local = 0; places > 0 && local < 4; ++local) {
+            if (local >= joined || (local < places && !HotJoin::JoinedLate(local))) continue;
             int handle = Handle(module, local);
             char* player = handle != -1 ? Player(module, handle) : nullptr;
             if (player && *(int*)(player + 0x2C) == -1) // still waiting for a unit
                 *(unsigned short*)(player + 6) &= ~8;
         }
         ((detour_t)entry.m_pOriginal)(state);
+        HotJoin::Account(module);
     }
 }

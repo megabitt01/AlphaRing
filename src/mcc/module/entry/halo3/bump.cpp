@@ -1,6 +1,8 @@
 #include "halo3.h"
 
 namespace Halo3::Entry::Bump {
+    EntryFeature("Halo 3 bump possession", OFFSET_HALO3_PF_PLAYER_POSSESS, OFFSET_HALO3_PF_ENGINE); // reads what the engine hook sets up
+
     using units_t = units_definition;
 
     static bool bSwap = false;
@@ -13,6 +15,7 @@ namespace Halo3::Entry::Bump {
 
         bSwap = false;
         if (!AlphaRing::Global::Halo3::Physics()->enable_bump_possession || target == NONE || self == NONE) return;
+        if (p_object == nullptr) return;
         auto p_obj_s = p_object->get(self)->address;
         auto p_obj_t = p_object->get(target)->address;
         if (p_obj_s == nullptr || p_obj_t == nullptr) return;

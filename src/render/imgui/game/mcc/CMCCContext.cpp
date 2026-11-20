@@ -4,11 +4,14 @@
 
 #include "mcc/network/Network.h"
 #include "mcc/splitscreen/Splitscreen.h"
+#include "mcc/spawn/Spawn.h"
+#include "mcc/hud/Hud.h"
 #include "mcc/module/Module.h"
 
 static const char* tutorial_message = R"(TUTORIAL:
 
-Press "F4" or "Start + Back" to toggle the menu.
+Press "F1" or "Start + Right Stick Click" to toggle this menu, and "F4" or "Start + Left Stick Click" for the
+"Xbox 360" menu (both can be changed in alpha_ring_menu.cfg).
 
 To navigate using Controller use the "Right Stick" to move the mouse and "RB" to click.
 
@@ -56,6 +59,10 @@ void CMCCContext::render() {
     MCC::Module::ImGuiContext();
 
     MCC::Splitscreen::ImGuiContext();
+
+    MCC::Spawn::ImGuiContext();
+
+    MCC::Hud::ImGuiContext();
 
     MCC::Network::ImGuiContext();
 

@@ -1,0 +1,53 @@
+name: build
+
+# Builds WTSAPI32.dll and offset_test.exe from a clean checkout, so a release's DLL can be matched to a commit.
+# The pattern tables (lib/game/inc/<version>/patterns_*.inc) are checked in; regenerating or testing them needs the
+# game's binaries, so that stays local (tools/offsets/gen_patterns.py --check, offset_test).
+on:
+  push:
+    branches: [master-chief]
+    tags: ['v*']
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  windows:
+    runs-on: windows-2022
+    env:
+      # vcpkg's built packages (SDL2, SDL2_mixer), kept between runs by actions/cache below
+      VCPKG_BINARY_SOURCES: clear;files,${{ github.workspace }}\vcpkg-cache,readwrite
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Every offset use is gated
+        run: python tools/offsets/check_gates.py
+
+      - uses: actions/cache@v4
+        with:
+          path: vcpkg-cache
+          key: vcpkg-${{ runner.os }}-${{ hashFiles('vcpkg.json', 'vcpkg-configuration.json') }}
+          restore-keys: vcpkg-${{ runner.os }}-
+
+      - name: Configure
+        run: |
+          New-Item -ItemType Directory -Force -Path vcpkg-cache | Out-Null
+          cmake -S . -B build -G "Visual Studio 17 2022" -A x64 `
+            -DCMAKE_TOOLCHAIN_FILE="$env:VCPKG_INSTALLATION_ROOT/scripts/buildsystems/vcpkg.cmake" `
+            -DVCPKG_TARGET_TRIPLET=x64-windows-static-md
+
+      - name: Build
+        run: cmake --build build --config Release --target WTSAPI32 offset_test
+
+      - name: SHA-256
+        shell: pwsh
+        run: |
+          $hash = (Get-FileHash build/Release/WTSAPI32.dll -Algorithm SHA256).Hash.ToLower()
+          "$hash  WTSAPI32.dll" | Tee-Object -FilePath build/Release/WTSAPI32.dll.sha256
+          "### WTSAPI32.dll`nSHA-256: ``$hash``" >> $env:GITHUB_STEP_SUMMARY
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: WTSAPI32-${{ github.sha }}
+          path: |
+            build/Release/WTSAPI32.dll
+            build/Release/WTSAPI32.dll.sha256

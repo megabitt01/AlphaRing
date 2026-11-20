@@ -33,12 +33,15 @@
 // behavior"). The live count comes from GetSplitscreenPlayerCount, which
 // UpdatePlayerHudView itself calls later in the same update on this thread.
 namespace {
-    constexpr __int64 UPDATE_HUD_SELECTOR_RETURN_RVA = 0x2D95DF;
-
     typedef unsigned __int64 (*GetSplitscreenPlayerCount_t)();
 }
 
 namespace HaloReach::Entry::HudLayoutProbe {
+    EntryFeature("Reach Left/Right HUD layout", OFFSET_HALOREACH_V_SELECT_HUD_LAYOUT_RETURN,
+                 OFFSET_HALOREACH_PF_GET_SPLITSCREEN_PLAYER_COUNT, OFFSET_HALOREACH_DAT_CURRENT_HUD_PLAYER,
+                 OFFSET_HALOREACH_DAT_CURRENT_HUD_RESOLUTION);
+    bool Available() { return entry_feature->Available(); }
+
     // At the confirmed UpdatePlayerHudView -> FUN_1802d91bc call site, for a
     // slot that is a full-height Left/Right half in the ACTIVE layout
     // (UsesFullHeightLeftRightSlot - both 2p slots, 3p player 1 only; 3p
@@ -60,7 +63,7 @@ namespace HaloReach::Entry::HudLayoutProbe {
         __int64 hModule = entry.m_target - entry.m_offset;
         __int64 returnRva = (__int64)_ReturnAddress() - hModule;
 
-        if (returnRva == UPDATE_HUD_SELECTOR_RETURN_RVA) {
+        if (returnRva == OFFSET_HALOREACH_V_SELECT_HUD_LAYOUT_RETURN) {
             auto GetSplitscreenPlayerCount = (GetSplitscreenPlayerCount_t)(
                     hModule + OFFSET_HALOREACH_PF_GET_SPLITSCREEN_PLAYER_COUNT);
             int playerCount = (int)GetSplitscreenPlayerCount();

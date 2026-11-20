@@ -5,3 +5,4 @@ dep/
 vcpkg/
 vcpkg_installed/
 .claude/
+__pycache__/

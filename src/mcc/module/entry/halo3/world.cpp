@@ -2,6 +2,9 @@
 
 #include "common.h"
 
+#include "mcc/CGameGlobal.h"
+#include "mcc/spawn/Command.h"
+
 #include <queue>
 #include <mutex>
 
@@ -25,6 +28,7 @@ namespace Halo3::Entry::World {
     }
 
     void Prologue() {
+        MCC::Command::Tick(CGameGlobal::Halo3); // spawning's tasks due on this tick (mcc/spawn/Command.h)
         ExecuteTask();
     }
 
@@ -38,3 +42,7 @@ namespace Halo3::Entry::World {
         Epilogue();
     }
 }
+
+// Spawning's engine calls must run on this (the simulation) thread (mcc/spawn/Command.h).
+static const bool s_registered_scheduler =
+    (MCC::Command::RegisterScheduler(CGameGlobal::Halo3, Halo3::Entry::World::AddTask), true);

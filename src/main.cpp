@@ -15,11 +15,13 @@ static bool Initialize() {
 
     result = AlphaRing::Hook::Initialize();
 
-    // false means an MCC build the offsets weren't written for (e.g. after an
-    // update). Install nothing and let the game run unmodified: assertm stays
-    // live in Release builds (common.h), so asserting here would stop MCC.
+    // An MCC build the offsets weren't written for (an update) has them looked
+    // up from patterns (src/offsets); false means one where the executable's
+    // essential offsets can't be found. Install nothing and let the game run
+    // unmodified: assertm stays live in Release builds (common.h), so
+    // asserting here would stop MCC.
     if (!result) {
-        LOG_ERROR("AlphaRing disabled: unsupported MCC build, the game runs unmodified.");
+        LOG_ERROR("AlphaRing disabled: unsupported MCC build (see the offset lines above), the game runs unmodified.");
         return false;
     }
 

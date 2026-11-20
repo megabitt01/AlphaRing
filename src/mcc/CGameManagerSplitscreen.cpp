@@ -10,6 +10,11 @@
 
 using AlphaRing::MatchLog::Describe;
 using AlphaRing::MatchLog::FirstThisMatch;
+#include "input/MenuConfig.h"
+#include "mcc/spawn/Spawn.h"
+#include "mcc/splitscreen/Splitscreen.h"
+
+#include <atomic>
 
 void CGameManager::set_vibration(CGameManager *self, DWORD dwUserIndex, XINPUT_VIBRATION *pVibration) {
     CInputDevice* p_device;
@@ -29,6 +34,69 @@ void CGameManager::set_vibration(CGameManager *self, DWORD dwUserIndex, XINPUT_V
     AlphaRing::Input::SetState(p_device->input_user, pVibration);
 }
 
+// Halo 4 campaigns fail when a mission *starts* with players 3-4 (every view stays black),
+// yet the engine spawns late joiners next to a teammate, like a controller signing in
+// mid-game on the original console. So Halo 4 starts with two players and the rest are
+// revealed once the game has been running for a moment. (Halo CE and Halo 2 never pick up
+// late joiners, so they - like the other games - start with everyone.)
+static constexpr int kDeferredJoinStartPlayers = 2;
+static constexpr ULONGLONG kDeferredJoinDelayMs = 3000;
+static std::atomic<ULONGLONG> s_running_since; // 0 until the current session first runs
+
+static std::atomic<unsigned> s_load_generation;
+static std::atomic<bool> s_map_running; // from the Running state until a map loads or the session exits
+
+unsigned CGameManager::load_generation() { return s_load_generation; }
+
+bool CGameManager::running() { return s_map_running; }
+
+void CGameManager::track_state(eState state) {
+    if (state == Loading)
+        ++s_load_generation;
+    if (state == Running && !s_running_since) // also re-sent after level transitions
+        s_running_since = GetTickCount64();
+    if (state == Running || state == Loading || state == Exit || state == Exiting)
+        s_map_running = state == Running;
+}
+
+// MCC ends every session with a restart after the exit states. The clock is cleared there,
+// not on the exit states: dropping players while the engine is still shutting down can hang
+// it, and the next session queries its players before its own loading state.
+void CGameManager::end_session() {
+    s_running_since = 0;
+    s_map_running = false;
+}
+
+static int deferred_player_count(int count) {
+    if (count <= kDeferredJoinStartPlayers) return count;
+
+    auto p_global = GameGlobal();
+    if (p_global == nullptr) return count;
+
+    if (p_global->current_game != CGameGlobal::Halo4)
+        return count;
+
+    ULONGLONG since = s_running_since;
+    if (since && GetTickCount64() - since >= kDeferredJoinDelayMs)
+        return count;
+
+    return kDeferredJoinStartPlayers;
+}
+
+int CGameManager::active_player_count() {
+    static std::atomic<int> s_last_logged = -1;
+    int active = deferred_player_count(MCC::Splitscreen::PlayerCount());
+
+    if (active != s_last_logged) {
+        s_last_logged = active;
+        auto p_global = GameGlobal();
+        LOG_INFO("Splitscreen: exposing {} local players (game {}, in game {})",
+                 active, p_global ? (int)p_global->current_game : -1, MCC::IsInGame());
+    }
+
+    return active;
+}
+
 static bool get_xbox_user_id_inner(CGameManager *self, __int64 *pId, wchar_t *pName, int size, int index,
                                    const char** path) {
     auto p_setting = AlphaRing::Global::MCC::Splitscreen();
@@ -39,7 +107,8 @@ static bool get_xbox_user_id_inner(CGameManager *self, __int64 *pId, wchar_t *pN
         return CGameManager::ppOriginal.get_xbox_user_id(self, pId, pName, size, index);
     }
 
-    if (index >= p_setting->player_count) {
+    // MCC counts the local players it asks for here (all four slots in a Halo CE or Halo 2 hot-join mission)
+    if (index >= MCC::Splitscreen::HotJoinSlots(CGameManager::active_player_count())) {
         *path = "beyond player_count";
         return false;
     }
@@ -73,6 +142,19 @@ bool CGameManager::get_xbox_user_id(CGameManager *self, __int64 *pId, wchar_t *p
     return result;
 }
 
+// One player, without AlphaRing's split screen: MCC reads the pads itself, and player 1's spawn menu (mcc/spawn)
+// reads the controller the dashboard gives player 1. True while the menu keeps any of it - all of it while open,
+// what was held as it closed until released - which MCC's own read can only be kept from by no input at all.
+static bool PlayerOneSpawnMenuHasPad() {
+    auto profile = CGameManager::get_profile(0);
+    XINPUT_STATE state;
+    if (!g_menuConfig.spawnMenuMask || !profile || profile->controller_index < 0 || profile->controller_index >= 4 ||
+        !AlphaRing::Input::GetXInputGetState(profile->controller_index, &state))
+        return false;
+    XINPUT_GAMEPAD pad = state.Gamepad;
+    return MCC::Spawn::HandlePlayerInput(0, pad) || memcmp(&pad, &state.Gamepad, sizeof(pad)) != 0;
+}
+
 bool CGameManager::get_key_state(CGameManager *self, DWORD index, input_data_t *p_input) {
     bool result;
     LARGE_INTEGER qpc;
@@ -97,8 +179,11 @@ bool CGameManager::get_key_state(CGameManager *self, DWORD index, input_data_t *
             return true;
     }
 
-    if (!p_profile->b_override)
+    if (!p_profile->b_override) {
+        if (index == 0 && PlayerOneSpawnMenuHasPad())
+            return true; // the game sees player 1 released
         return ppOriginal.get_key_state(self, index, p_input);
+    }
 
     if (index >= p_profile->player_count)
         return false;
@@ -134,6 +219,13 @@ bool CGameManager::get_key_state(CGameManager *self, DWORD index, input_data_t *
         if (index < 8 && p_device->state.Gamepad.wButtons != 0 && FirstThisMatch(s_press_seen[index]))
             MATCH_LOG("input player={} first press buttons={:#06x} (input_user={})", index,
                       p_device->state.Gamepad.wButtons, p_device->input_user);
+
+        // Until what a player who just joined pressed is let go (Players window, hot join), and while the player's
+        // spawn menu is open, which then has the pad, the game sees it released; after a menu closes, what was held
+        // then is taken out of the pad until released.
+        if (MCC::Splitscreen::JoinPressHeld(p_device->input_user, p_device->state.Gamepad) ||
+            MCC::Spawn::HandlePlayerInput(index, p_device->state.Gamepad))
+            memset(&p_device->state.Gamepad, 0, sizeof(p_device->state.Gamepad));
     }
 
     result = p_device
@@ -183,7 +275,7 @@ CUserProfile* CGameManager::get_player_profile(CGameManager *self, __int64 xid) 
     // Reach initializes armor into the player-0 profile after game_setup fires, so the
     // snapshot taken by apply_profiles() is stale. Sync armor from the live player-0
     // profile on every call while preserving the per-player custom colors and look
-    // settings we applied.
+    // settings we applied, and a species chosen in the Players window.
     auto* gg = GameGlobal();
     if (gg && gg->current_game == CGameGlobal::HaloReach) {
         auto* base = ppOriginal.get_player_profile(self, get_xuid(0));
@@ -211,6 +303,7 @@ CUserProfile* CGameManager::get_player_profile(CGameManager *self, __int64 xid) 
             dest->profile.HorizontalLookSensitivity      = horizSens;
             // and the armor picked for this player in the advanced menu
             AlphaRing::MenuSettings::ApplyArmor(get_index(xid), dest->profile);
+            MCC::Splitscreen::ApplySpecies(index, dest->profile);
         }
     }
 

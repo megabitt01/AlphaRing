@@ -16,8 +16,9 @@ void CPatchSet::apply() {
             patch->apply();
 }
 
-void CPatchSet::update(__int64 hModule) {
+void CPatchSet::update(__int64 hModule, bool known_build) {
     this->hModule = hModule;
+    m_known_build = known_build;
     for (auto patch : m_embed_patches) patch->capture();
     for (auto patch : m_patches) patch->capture();
 }

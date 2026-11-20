@@ -87,5 +87,8 @@ else ()
     target_link_options(${WRAPPER_NAME} PUBLIC -g)
 endif()
 
+# The offset lookup an MCC update gets (src/offsets), run over the installed game's files (tools/offsets).
+add_executable(offset_test tools/offsets/offset_test.cpp src/offsets/Pattern.cpp src/offsets/Tables.cpp)
+
 install(TARGETS ${WRAPPER_NAME} DESTINATION "${MCC_DIR}/mcc/binaries/win64")
 install(DIRECTORY "${CMAKE_SOURCE_DIR}/res/" DESTINATION "${MCC_DIR}/alpha_ring")

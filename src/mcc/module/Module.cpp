@@ -6,10 +6,13 @@
 #include "tinyxml2.h"
 
 #include "common.h"
+#include "offset_haloreach.h"
 #include "offset_mcc.h"
 #include "mcc/CGameManager.h"
 #include "mcc/module/patch/PatchConfig.h"
 #include "mcc/module/patch/SplitscreenConfigStore.h"
+#include "mcc/splitscreen/LeftRight.h"
+#include "mcc/splitscreen/Splitscreen.h"
 #include "global/Global.h"
 #include "log/DebugFlags.h"
 
@@ -231,7 +234,29 @@ namespace MCC::Module {
             ImGui::EndMenuBar();
         }
 
+        // Everyone's split-screen layout, in every game (mcc/splitscreen/LeftRight). It was Reach's
+        // "Two-player layout" combo; Choose() also re-applies Reach's enabled black-bar patches over
+        // the stock entries when going back to Top / Bottom.
+        int layout_index = MCC::Splitscreen::LeftRight::Chosen() ? 1 : 0;
+        const char* layout_names[] = { "Top / Bottom", "Left / Right" };
+        ImGui::SetNextItemWidth(180.0f);
+        if (ImGui::Combo("Split-screen layout", &layout_index, layout_names, 2))
+            MCC::Splitscreen::LeftRight::Choose(layout_index == 1);
+        if (ImGui::IsItemHovered())
+            ImGui::SetTooltip("Everyone's layout, in every game. Left / Right: 2 players get equal full-height halves; 3 players put player 1 on the full left half and players 2/3 on the right half. 1 and 4 players always use the game's own layout. Halo 3, ODST, Halo 4 and Reach switch at once; Halo CE and Halo 2 at the next mission start, in Classic graphics.");
+
+        // Everyone's choice for Halo CE and Halo 2 with 3-4 players (mcc/splitscreen/Splitscreen.h),
+        // saved in alpha_ring_splitscreen.cfg as the layout is.
+        bool anniversary = MCC::Splitscreen::AnniversaryQuadChosen();
+        if (ImGui::Checkbox("Anniversary graphics with 3-4 players (Halo CE, Halo 2; experimental)", &anniversary))
+            MCC::Splitscreen::ChooseAnniversaryQuad(anniversary);
+        if (ImGui::IsItemHovered())
+            ImGui::SetTooltip("Off: Halo CE and Halo 2 missions with 3 or 4 players start in Classic graphics, as their Anniversary renderers only draw two views. On: they keep Anniversary graphics (when MCC is set to them) and draw every view, also after Back switches graphics in the middle of a mission; side by side still starts in Classic. The renderers still draw two views at a time, so they alternate: players 1 and 2 on one frame, 3 and 4 on the next (each view updates at half the frame rate). Takes effect at the next mission start.");
+
         if (!ImGui::BeginTabBar("patch")) return;
+
+        // under each game's black-bar controls, disabled while Left / Right is chosen
+        static constexpr const char* kBarsKept = "Black-bar settings are kept and return with Top / Bottom.";
 
         counter = 0;
 
@@ -266,38 +291,14 @@ namespace MCC::Module {
                     // while Left/Right is selected SplitscreenConfigStore::Apply
                     // rewrites every field of those entries each frame, so an
                     // enabled patch's bytes never show, and the painter bypass
-                    // is derived in blackbars.cpp. Selecting Top/Bottom writes
-                    // the stock entries, then re-applies each enabled patch so
-                    // the user's saved bar choice comes back exactly as it was.
+                    // is derived in blackbars.cpp. Selecting Top/Bottom (the
+                    // layout combo above the tabs) writes the stock entries,
+                    // then re-applies each enabled patch so the user's saved
+                    // bar choice comes back exactly as it was.
                     // (The old exclusion rationale - D1F710 as a stale table
                     // cache - was disproved: D1F710 is not table-derived.)
-                    auto layout = AlphaRing::SplitscreenConfigStore::GetTwoPlayerLayout();
-                    int layout_index = (int)layout;
-                    const char* layout_names[] = { "Top / Bottom", "Left / Right" };
-
-                    ImGui::PushID(counter++);
-                    ImGui::SetNextItemWidth(180.0f);
-                    if (ImGui::Combo("Two-player layout", &layout_index, layout_names, 2)) {
-                        layout = (AlphaRing::SplitscreenConfigStore::TwoPlayerLayout)layout_index;
-
-                        auto h = GetSubModule((eModule)i)->info().hModule;
-                        AlphaRing::SplitscreenConfigStore::SetTwoPlayerLayout(layout, h);
-
-                        if (layout == AlphaRing::SplitscreenConfigStore::TwoPlayerLayout::TopBottom) {
-                            CPatch* bars[3] = { p_bar1, p_bar2, p_bar3 };
-                            for (auto p_bar : bars)
-                                if (p_bar != nullptr && p_bar->enabled())
-                                    p_bar->apply();
-                        }
-                    }
-                    ImGui::PopID();
-                    if (ImGui::IsItemHovered())
-                        ImGui::SetTooltip("Selects the 2- and 3-player rectangles explicitly. Left / Right: 2 players get equal full-height halves; 3 players put player 1 on the full left half (as in 2 players) and players 2/3 on the right half. 1 and 4 players always use Reach's own layout.");
-
-                    const bool left_right =
-                            layout == AlphaRing::SplitscreenConfigStore::TwoPlayerLayout::LeftRight;
-                    if (left_right)
-                        ImGui::TextDisabled("Black-bar settings are kept and return with Top / Bottom.");
+                    const bool left_right = MCC::Splitscreen::LeftRight::Chosen();
+                    if (left_right) ImGui::TextDisabled(kBarsKept);
 
                     if (left_right) ImGui::BeginDisabled();
 
@@ -341,7 +342,8 @@ namespace MCC::Module {
                 if (i == MODULE_HALOREACH) {
                     auto hModule = GetSubModule((eModule)i)->info().hModule;
 
-                    constexpr __int64 base_offset = 0xB43C40;
+                    // not found in an MCC build without it (src/offsets)
+                    const AlphaRing::Offset& base_offset = OFFSET_HALOREACH_PV_SPLITSCREEN_TABLE;
                     constexpr int entry_size = 20;
                     constexpr int block_count = 5;
                     constexpr int slot_count = 4;
@@ -422,7 +424,9 @@ namespace MCC::Module {
                             ImGui::TextDisabled("Edits write directly to live game memory and are saved automatically -");
                             ImGui::TextDisabled("restored next time haloreach.dll loads, no patch needed.");
 
-                            if (ImGui::BeginTable("splitscreen_config", 6,
+                            if (!OFFSET_HALOREACH_PV_SPLITSCREEN_TABLE.found())
+                                ImGui::TextDisabled("The table isn't in this MCC build.");
+                            else if (ImGui::BeginTable("splitscreen_config", 6,
                                                    ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg |
                                                    ImGuiTableFlags_SizingFixedFit)) {
                                 ImGui::TableSetupColumn("Slot", ImGuiTableColumnFlags_WidthFixed, 120.0f);
@@ -482,8 +486,10 @@ namespace MCC::Module {
                     if (ImGui::Button("Dump Splitscreen Config Table to Log")) {
                         if (hModule == 0) {
                             LOG_ERROR("Dump Splitscreen Config Table: haloreach.dll not loaded");
+                        } else if (!OFFSET_HALOREACH_PV_SPLITSCREEN_TABLE.found()) {
+                            LOG_ERROR("Dump Splitscreen Config Table: not in this MCC build");
                         } else {
-                            LOG_INFO("=== c_splitscreen_config::m_config_table @ base+0x{:X} ===", base_offset);
+                            LOG_INFO("=== c_splitscreen_config::m_config_table @ base+0x{:X} ===", base_offset.value);
 
                             for (int block = 0; block < block_count; ++block) {
                                 for (int slot = 0; slot < slot_count; ++slot) {
@@ -523,19 +529,26 @@ namespace MCC::Module {
                     if (ImGui::Button("Dump Resolution/FOV Table to Log")) {
                         if (hModule == 0) {
                             LOG_ERROR("Dump Resolution/FOV Table: haloreach.dll not loaded");
+                        } else if (!AlphaRing::Found({OFFSET_HALOREACH_PF_GET_SPLITSCREEN_SLOT_TOKEN,
+                                                      OFFSET_HALOREACH_PF_RESOLVE_HUD_PROFILE,
+                                                      OFFSET_HALOREACH_PF_SELECT_HUD_LAYOUT_SUBRECORD,
+                                                      OFFSET_HALOREACH_DAT_PLAYER_VIEW_CONTAINER,
+                                                      OFFSET_HALOREACH_DAT_VIEW_CONTEXT,
+                                                      OFFSET_HALOREACH_DAT_TAG_SEGMENT_TABLE})) {
+                            LOG_ERROR("Dump Resolution/FOV Table: not available in this MCC build");
                         } else {
                             typedef unsigned int (*GetSplitscreenSlotToken_t)(int);
                             typedef int (*ResolveHudProfile_t)(unsigned int);
                             typedef int (*SelectResolutionRow_t)(void*, int, unsigned char);
-                            auto GetSplitscreenSlotToken = (GetSplitscreenSlotToken_t)(hModule + 0x53EC8);
-                            auto ResolveHudProfile = (ResolveHudProfile_t)(hModule + 0x2C2F60);
-                            auto SelectResolutionRow = (SelectResolutionRow_t)(hModule + 0x2D91BC);
+                            auto GetSplitscreenSlotToken = (GetSplitscreenSlotToken_t)(hModule + OFFSET_HALOREACH_PF_GET_SPLITSCREEN_SLOT_TOKEN);
+                            auto ResolveHudProfile = (ResolveHudProfile_t)(hModule + OFFSET_HALOREACH_PF_RESOLVE_HUD_PROFILE);
+                            auto SelectResolutionRow = (SelectResolutionRow_t)(hModule + OFFSET_HALOREACH_PF_SELECT_HUD_LAYOUT_SUBRECORD);
 
-                            __int64 container = *(__int64*)(hModule + 0x4E38C68);
+                            __int64 container = *(__int64*)(hModule + OFFSET_HALOREACH_DAT_PLAYER_VIEW_CONTAINER);
                             if (container == 0) {
                                 LOG_INFO("Dump Resolution/FOV Table: no live per-player view container yet (not in a game?)");
                             } else {
-                                void* viewContext = *(void**)(hModule + 0x4E389A8);
+                                void* viewContext = *(void**)(hModule + OFFSET_HALOREACH_DAT_VIEW_CONTEXT);
                                 int candidates[] = {0, 1, 2, 3, 5};
 
                                 LOG_INFO("=== HUD FOV/scale table dump ===");
@@ -546,7 +559,7 @@ namespace MCC::Module {
 
                                     unsigned int uVar11 = *(unsigned int*)(container + 4);
                                     __int64 localB8 = (__int64)uVar11 + (__int64)category * 0x14d;
-                                    __int64 poolBase1 = *(__int64*)(hModule + 0x4E39F20 + (size_t)(uVar11 >> 0x1c) * 8);
+                                    __int64 poolBase1 = *(__int64*)(hModule + OFFSET_HALOREACH_DAT_TAG_SEGMENT_TABLE + (size_t)(uVar11 >> 0x1c) * 8);
 
                                     if (poolBase1 == 0) {
                                         LOG_INFO("slot={} token={:#x} category={} - poolBase1 null, skipping", slot, token, category);
@@ -560,7 +573,7 @@ namespace MCC::Module {
                                     }
 
                                     unsigned int categoryBase = *(unsigned int*)(poolBase1 + 0x2e0 + localB8 * 4);
-                                    __int64 poolBase2 = *(__int64*)(hModule + 0x4E39F20 + (size_t)(categoryBase >> 0x1c) * 8);
+                                    __int64 poolBase2 = *(__int64*)(hModule + OFFSET_HALOREACH_DAT_TAG_SEGMENT_TABLE + (size_t)(categoryBase >> 0x1c) * 8);
 
                                     if (poolBase2 == 0) {
                                         LOG_INFO("slot={} category={} - poolBase2 null, skipping", slot, category);
@@ -610,6 +623,13 @@ namespace MCC::Module {
                         bool player1_on = (p_bar1 == nullptr || p_bar3 == nullptr)
                                 ? true : (p_bar1->enabled() && p_bar3->enabled());
 
+                        // Left / Right owns the same table entries and puts back the ones it
+                        // found when the player returns to Top / Bottom, so the bars hold still
+                        // meanwhile (as in Reach).
+                        const bool left_right = i != MODULE_GROUNDHOG && MCC::Splitscreen::LeftRight::Chosen();
+                        if (left_right) ImGui::TextDisabled(kBarsKept);
+                        ImGui::BeginDisabled(left_right);
+
                         if (p_bar1 != nullptr && p_bar3 != nullptr) {
                             bool top = player1_on;
                             ImGui::PushID(counter++);
@@ -649,6 +669,8 @@ namespace MCC::Module {
                                     ? "Removes the black bar for player 2's half of the screen."
                                     : "Enable Player 1's black-bar removal first. On this game, Player 2's toggle only takes effect when Player 1's is also on - same shared-painter bug Reach had before its dedicated fix.");
                         }
+
+                        ImGui::EndDisabled();
 
                         ImGui::Separator();
                     }
